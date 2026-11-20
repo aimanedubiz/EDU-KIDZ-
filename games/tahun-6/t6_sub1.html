@@ -160,6 +160,12 @@
             const id = `T${topicId}_${level.toUpperCase()}_Q${qNum}`;
             let subtopic = TOPICS_LIST[topicId - 1].subtopics[(qNum - 1) % TOPICS_LIST[topicId - 1].subtopics.length];
             
+            // Helper function to strictly format numbers with exact comma positions (groups of 3 digits from right)
+            const formatKpmNumber = (num) => {
+                if (num === null || num === undefined) return '';
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            };
+
             let seed1 = (qNum * 17 + topicId * 31) % 900 + 100;
             let seed2 = (qNum * 23 + topicId * 13) % 800 + 150;
             
@@ -172,26 +178,47 @@
             switch(topicId) {
                 case 1: // KENALI NOMBOR
                     if (qNum % 3 === 0) {
-                        qText = `Tentukan nilai digit bagi digit yang bergaris dalam nombor 4,${seed1}5${seed2},120:`;
-                        options = [`${seed1} 000`, `${seed1}0 000`, `${seed1}00 000`, `${seed1},000,000`];
-                        answer = `${seed1}00 000`;
+                        let jutaDigit = (qNum % 5) + 2; // 2 hingga 6
+                        let ratusRibuDigit = (seed1 % 8) + 1; // 1 hingga 8
+                        let bakiNombor = (seed2 * 100 + 120).toString().padStart(5, '0');
+                        
+                        // Pembinaan nombor 7 digit yang tepat
+                        let rawFullNum = parseInt(`${jutaDigit}${ratusRibuDigit}${bakiNombor}`);
+                        let formattedFull = formatKpmNumber(rawFullNum);
+                        
+                        // Buat garisan bawah khusus pada digit ratus ribu
+                        let displayNumStr = formattedFull.replace(
+                            `${ratusRibuDigit}`, 
+                            `<u class="underline text-blue-600 font-extrabold decoration-2 decoration-blue-500">${ratusRibuDigit}</u>`
+                        );
+                        
+                        let rawRatusRibu = ratusRibuDigit * 100000;
+                        
+                        qText = `Tentukan nilai digit bagi digit yang bergaris dalam nombor ${displayNumStr}:`;
+                        options = [
+                            formatKpmNumber(rawRatusRibu), 
+                            formatKpmNumber(rawRatusRibu / 10), 
+                            formatKpmNumber(rawRatusRibu * 10), 
+                            formatKpmNumber(ratusRibuDigit * 1000)
+                        ];
+                        answer = formatKpmNumber(rawRatusRibu);
                         diagram = "carta_nilai_tempat";
-                        explanation = `Digit ${seed1.toString()[0]} terletak pada rumah ratus ribu. Oleh itu, nilai digitnya ialah ${seed1}00 000.`;
+                        explanation = `Digit ${ratusRibuDigit} yang bergaris terletak pada rumah ratus ribu. Oleh itu, nilai digitnya ialah ${formatKpmNumber(rawRatusRibu)}.`;
                     } else if (qNum % 3 === 1) {
                         qText = `Pilih nombor yang betul bagi perkataan: "Tiga juta dua ratus ribu empat puluh sembilan".`;
-                        options = ["3 200 049", "3 200 490", "3 020 049", "3 249 000"];
-                        answer = "3 200 049";
+                        options = ["3,200,049", "3,200,490", "3,020,049", "3,249,000"];
+                        answer = "3,200,049";
                         diagram = "kad_nombor_juta";
-                        explanation = `Tiga juta = 3 000 000, dua ratus ribu = 200 000, empat puluh sembilan = 49. Jumlahnya 3 200 049.`;
+                        explanation = `Tiga juta = 3,000,000, dua ratus ribu = 200,000, empat puluh sembilan = 49. Jumlahnya 3,200,049.`;
                     } else {
-                        qText = `Apakah bentuk cerakinkan mengikut nilai digit bagi nombor 5,${seed1},682?`;
+                        qText = `Apakah bentuk cerakinkan mengikut nilai digit bagi nombor ${formatKpmNumber(5000000 + seed1 * 1000 + 682)}?`;
                         options = [
-                            `5 000 000 + ${seed1} 000 + 600 + 80 + 2`,
-                            `5 000 000 + ${seed1}00 + 60 + 8 + 2`,
-                            `5 000 000 + ${seed1} 000 + 60 + 82`,
-                            `500 000 + ${seed1} 000 + 600 + 80 + 2`
+                            `5,000,000 + ${formatKpmNumber(seed1 * 1000)} + 600 + 80 + 2`,
+                            `5,000,000 + ${seed1}00 + 60 + 8 + 2`,
+                            `5,000,000 + ${formatKpmNumber(seed1 * 1000)} + 60 + 82`,
+                            `500,000 + ${formatKpmNumber(seed1 * 1000)} + 600 + 80 + 2`
                         ];
-                        answer = `5 000 000 + ${seed1} 000 + 600 + 80 + 2`;
+                        answer = `5,000,000 + ${formatKpmNumber(seed1 * 1000)} + 600 + 80 + 2`;
                         diagram = "carta_cerakinkan_nombor";
                         explanation = `Cerakin mengikut nilai digit menguraikan setiap digit mengikut nilai tempatnya dengan tepat.`;
                     }
@@ -199,40 +226,40 @@
                 case 2: // POLA NOMBOR
                     let startNum = 1205000 + qNum * 10000;
                     let step = 25000 + qNum * 1000;
-                    qText = `Kenal pasti nombor yang hilang dalam pola menaik berikut: ${startNum.toLocaleString()}, ${(startNum + step).toLocaleString()}, [ ? ], ${(startNum + step * 3).toLocaleString()}`;
-                    let wrong1 = (startNum + step * 2 + 5000).toLocaleString();
-                    let wrong2 = (startNum + step * 2 - 2000).toLocaleString();
-                    let wrong3 = (startNum + step * 2 + 10000).toLocaleString();
-                    let correctAns = (startNum + step * 2).toLocaleString();
+                    qText = `Kenal pasti nombor yang hilang dalam pola menaik berikut: ${formatKpmNumber(startNum)}, ${formatKpmNumber(startNum + step)}, [ ? ], ${formatKpmNumber(startNum + step * 3)}`;
+                    let wrong1 = formatKpmNumber(startNum + step * 2 + 5000);
+                    let wrong2 = formatKpmNumber(startNum + step * 2 - 2000);
+                    let wrong3 = formatKpmNumber(startNum + step * 2 + 10000);
+                    let correctAns = formatKpmNumber(startNum + step * 2);
                     options = [correctAns, wrong1, wrong2, wrong3].sort();
                     answer = correctAns;
                     diagram = "carta_pola";
-                    explanation = `Pola ini adalah tertib menaik sebanyak ${step.toLocaleString()} pada setiap sebutan berikutnya.`;
+                    explanation = `Pola ini adalah tertib menaik sebanyak ${formatKpmNumber(step)} pada setiap sebutan berikutnya.`;
                     break;
                 case 3: // PECAHAN JUTA & PERPULUHAN JUTA
                     if (qNum % 2 === 0) {
                         let fracNumer = (qNum % 3) + 1;
                         let val = 1000000 + (fracNumer / 4) * 1000000;
                         qText = `Tukar 1 ${fracNumer}/4 juta kepada nombor bulat:`;
-                        options = [`${val.toLocaleString()}`, `${(val + 100000).toLocaleString()}`, `${(val - 50000).toLocaleString()}`, `${(val + 250000).toLocaleString()}`];
-                        answer = `${val.toLocaleString()}`;
+                        options = [formatKpmNumber(val), formatKpmNumber(val + 100000), formatKpmNumber(val - 50000), formatKpmNumber(val + 250000)];
+                        answer = formatKpmNumber(val);
                         diagram = "grid_pecahan";
-                        explanation = `1 ${fracNumer}/4 juta bermaksud 1 000 000 + (${fracNumer}/4 × 1 000 000). Hasilnya ialah ${val.toLocaleString()}.`;
+                        explanation = `1 ${fracNumer}/4 juta bermaksud 1,000,000 + (${fracNumer}/4 × 1,000,000). Hasilnya ialah ${formatKpmNumber(val)}.`;
                     } else {
                         let decPart = (qNum * 15) % 90 + 10;
                         let pVal = 3000000 + decPart * 10000;
                         qText = `Nyatakan 3.${decPart} juta dalam nombor bulat:`;
-                        options = [`${pVal.toLocaleString()}`, `${(pVal + 10000).toLocaleString()}`, `${(pVal - 20000).toLocaleString()}`, `${(pVal + 200000).toLocaleString()}`];
-                        answer = `${pVal.toLocaleString()}`;
+                        options = [formatKpmNumber(pVal), formatKpmNumber(pVal + 10000), formatKpmNumber(pVal - 20000), formatKpmNumber(pVal + 200000)];
+                        answer = formatKpmNumber(pVal);
                         diagram = "grid_perpuluhan";
-                        explanation = `3.${decPart} juta dikira dengan mendarabkan 3.${decPart} dengan 1 000 000.`;
+                        explanation = `3.${decPart} juta dikira dengan mendarabkan 3.${decPart} dengan 1,000,000.`;
                     }
                     break;
                 case 4: // PENUKARAN NOMBOR
                     const conversionType = qNum % 5;
                     if (conversionType === 0) {
                         let numVal = 2000000 + seed1 * 100;
-                        qText = `Tuliskan nombor ${numVal.toLocaleString()} dalam perkataan yang tepat:`;
+                        qText = `Tuliskan nombor ${formatKpmNumber(numVal)} dalam perkataan yang tepat:`;
                         options = [
                             `Dua juta ${seed1} ratus`,
                             `Dua juta ${seed1} ribu`,
@@ -241,58 +268,58 @@
                         ];
                         answer = `Dua juta ${seed1} ratus`;
                         diagram = "kad_nombor_juta";
-                        explanation = `Nombor ${numVal.toLocaleString()} dibaca sebagai Dua juta ${seed1} ratus.`;
+                        explanation = `Nombor ${formatKpmNumber(numVal)} dibaca sebagai Dua juta ${seed1} ratus.`;
                     } else if (conversionType === 1) {
                         let targetNum = 4000000 + seed2 * 1000;
                         qText = `Pilih angka yang betul bagi: "Empat juta ${seed2} ribu".`;
                         options = [
-                            targetNum.toLocaleString(),
-                            (targetNum + 100000).toLocaleString(),
-                            (targetNum - 50000).toLocaleString(),
-                            (4000000 + seed2 * 100).toLocaleString()
+                            formatKpmNumber(targetNum),
+                            formatKpmNumber(targetNum + 100000),
+                            formatKpmNumber(targetNum - 50000),
+                            formatKpmNumber(4000000 + seed2 * 100)
                         ].sort();
-                        answer = targetNum.toLocaleString();
+                        answer = formatKpmNumber(targetNum);
                         diagram = "kad_nombor_juta";
-                        explanation = `"Empat juta ${seed2} ribu" ditulis dalam bentuk angka sebagai ${targetNum.toLocaleString()}.`;
+                        explanation = `"Empat juta ${seed2} ribu" ditulis dalam bentuk angka sebagai ${formatKpmNumber(targetNum)}.`;
                     } else if (conversionType === 2) {
                         let cNum = 5000000 + seed1 * 1000 + 400 + 80 + 3;
-                        qText = `Apakah nombor bagi bentuk cerakin berikut?\n5 000 000 + ${(seed1*1000).toLocaleString()} + 400 + 80 + 3`;
+                        qText = `Apakah nombor bagi bentuk cerakin berikut?\n5,000,000 + ${formatKpmNumber(seed1*1000)} + 400 + 80 + 3`;
                         options = [
-                            cNum.toLocaleString(),
-                            (cNum + 1000).toLocaleString(),
-                            (5000000 + seed1*100 + 483).toLocaleString(),
-                            (cNum - 400).toLocaleString()
+                            formatKpmNumber(cNum),
+                            formatKpmNumber(cNum + 1000),
+                            formatKpmNumber(5000000 + seed1*100 + 483),
+                            formatKpmNumber(cNum - 400)
                         ].sort();
-                        answer = cNum.toLocaleString();
+                        answer = formatKpmNumber(cNum);
                         diagram = "carta_cerakinkan_nombor";
-                        explanation = `Gabungkan nilai tempat setiap pengangka cerakin untuk membentuk nombor penuh ${cNum.toLocaleString()}.`;
+                        explanation = `Gabungkan nilai tempat setiap pengangka cerakin untuk membentuk nombor penuh ${formatKpmNumber(cNum)}.`;
                     } else if (conversionType === 3) {
                         let numer = (qNum % 2 === 0) ? 1 : 3;
                         let denom = 4;
                         let fracResult = (numer / denom) * 1000000;
                         qText = `Tukar ${numer}/${denom} juta kepada nombor bulat:`;
                         options = [
-                            fracResult.toLocaleString(),
-                            (fracResult + 250000).toLocaleString(),
-                            (fracResult - 125000).toLocaleString(),
-                            (fracResult * 2).toLocaleString()
+                            formatKpmNumber(fracResult),
+                            formatKpmNumber(fracResult + 250000),
+                            formatKpmNumber(fracResult - 125000),
+                            formatKpmNumber(fracResult * 2)
                         ].sort();
-                        answer = fracResult.toLocaleString();
+                        answer = formatKpmNumber(fracResult);
                         diagram = "grid_pecahan";
-                        explanation = `${numer}/${denom} juta dikira sebagai ${numer}/${denom} × 1 000 000 = ${fracResult.toLocaleString()}.`;
+                        explanation = `${numer}/${denom} juta dikira sebagai ${numer}/${denom} × 1,000,000 = ${formatKpmNumber(fracResult)}.`;
                     } else {
                         let decVal = (qNum * 25) % 900 + 100;
                         let decResult = decVal * 1000;
                         qText = `Tukar 0.${decVal} juta kepada nombor bulat:`;
                         options = [
-                            decResult.toLocaleString(),
-                            (decResult + 100000).toLocaleString(),
-                            (decResult / 10).toLocaleString(),
-                            (decResult + 50000).toLocaleString()
+                            formatKpmNumber(decResult),
+                            formatKpmNumber(decResult + 100000),
+                            formatKpmNumber(decResult / 10),
+                            formatKpmNumber(decResult + 50000)
                         ].sort();
-                        answer = decResult.toLocaleString();
+                        answer = formatKpmNumber(decResult);
                         diagram = "grid_perpuluhan";
-                        explanation = `0.${decVal} juta diperoleh dengan mendarab 0.${decVal} dengan 1 000 000, iaitu ${decResult.toLocaleString()}.`;
+                        explanation = `0.${decVal} juta diperoleh dengan mendarab 0.${decVal} dengan 1,000,000, iaitu ${formatKpmNumber(decResult)}.`;
                     }
                     break;
                 case 5: // OPERASI ASAS
@@ -301,157 +328,154 @@
                         let numA = 1245000 + qNum * 12345;
                         let numB = 356000 + qNum * 5432;
                         let res = numA + numB;
-                        qText = `Hitung hasil tambah berikut secara menegak dan tepat: ${numA.toLocaleString()} + ${numB.toLocaleString()} = ?`;
+                        qText = `Hitung hasil tambah berikut secara menegak dan tepat: ${formatKpmNumber(numA)} + ${formatKpmNumber(numB)} = ?`;
                         options = [
-                            res.toLocaleString(),
-                            (res + 1000).toLocaleString(),
-                            (res - 2500).toLocaleString(),
-                            (res + 10000).toLocaleString()
+                            formatKpmNumber(res),
+                            formatKpmNumber(res + 1000),
+                            formatKpmNumber(res - 2500),
+                            formatKpmNumber(res + 10000)
                         ].sort(() => Math.random() - 0.5);
-                        answer = res.toLocaleString();
+                        answer = formatKpmNumber(res);
                         diagram = "kad_operasi";
-                        explanation = `Susun nombor secara menegak mengikut nilai tempat dari sa hingga juta. Jumlah hasil tambah ialah ${res.toLocaleString()}.`;
+                        explanation = `Susun nombor secara menegak mengikut nilai tempat dari sa hingga juta. Jumlah hasil tambah ialah ${formatKpmNumber(res)}.`;
                     } else if (opType === 1) {
                         let numA = 5890400 + qNum * 15200;
                         let numB = 2134000 + qNum * 3100;
                         let res = numA - numB;
-                        qText = `Cari hasil tolak bagi nombor besar berikut: ${numA.toLocaleString()} - ${numB.toLocaleString()} = ?`;
+                        qText = `Cari hasil tolak bagi nombor besar berikut: ${formatKpmNumber(numA)} - ${formatKpmNumber(numB)} = ?`;
                         options = [
-                            res.toLocaleString(),
-                            (res + 5000).toLocaleString(),
-                            (res - 1000).toLocaleString(),
-                            (res + 20000).toLocaleString()
+                            formatKpmNumber(res),
+                            formatKpmNumber(res + 5000),
+                            formatKpmNumber(res - 1000),
+                            formatKpmNumber(res + 20000)
                         ].sort(() => Math.random() - 0.5);
-                        answer = res.toLocaleString();
+                        answer = formatKpmNumber(res);
                         diagram = "kad_operasi";
-                        explanation = `Lakukan penolakan dengan meminjam dari rumah nilai tempat sebelah jika perlu. Hasil tolak ialah ${res.toLocaleString()}.`;
+                        explanation = `Lakukan penolakan dengan meminjam dari rumah nilai tempat sebelah jika perlu. Hasil tolak ialah ${formatKpmNumber(res)}.`;
                     } else if (opType === 2) {
                         let numA = 145000 + qNum * 1200;
                         let numB = 12 + (qNum % 8);
                         let res = numA * numB;
-                        qText = `Hitung hasil darab nombor bulat dengan nombor 2 digit: ${numA.toLocaleString()} × ${numB} = ?`;
+                        qText = `Hitung hasil darab nombor bulat dengan nombor 2 digit: ${formatKpmNumber(numA)} × ${numB} = ?`;
                         options = [
-                            res.toLocaleString(),
-                            (res + numA).toLocaleString(),
-                            (res - numA).toLocaleString(),
-                            (res + 50000).toLocaleString()
+                            formatKpmNumber(res),
+                            formatKpmNumber(res + numA),
+                            formatKpmNumber(res - numA),
+                            formatKpmNumber(res + 50000)
                         ].sort(() => Math.random() - 0.5);
-                        answer = res.toLocaleString();
+                        answer = formatKpmNumber(res);
                         diagram = "kad_operasi";
-                        explanation = `Darabkan ${numA.toLocaleString()} dengan ${numB} menggunakan kaedah lazim dengan teliti. Hasil darab ialah ${res.toLocaleString()}.`;
+                        explanation = `Darabkan ${formatKpmNumber(numA)} dengan ${numB} menggunakan kaedah lazim dengan teliti. Hasil darab ialah ${formatKpmNumber(res)}.`;
                     } else {
                         let divisor = 15 + (qNum % 10);
                         let quotient = 234000 + qNum * 1100;
                         let dividend = quotient * divisor;
-                        qText = `Selesaikan operasi bahagi nombor besar berikut: ${dividend.toLocaleString()} ÷ ${divisor} = ?`;
+                        qText = `Selesaikan operasi bahagi nombor besar berikut: ${formatKpmNumber(dividend)} ÷ ${divisor} = ?`;
                         options = [
-                            quotient.toLocaleString(),
-                            (quotient + 1000).toLocaleString(),
-                            (quotient - 500).toLocaleString(),
-                            (quotient + 5000).toLocaleString()
+                            formatKpmNumber(quotient),
+                            formatKpmNumber(quotient + 1000),
+                            formatKpmNumber(quotient - 500),
+                            formatKpmNumber(quotient + 5000)
                         ].sort(() => Math.random() - 0.5);
-                        answer = quotient.toLocaleString();
+                        answer = formatKpmNumber(quotient);
                         diagram = "kad_operasi";
-                        explanation = `Bahagikan ${dividend.toLocaleString()} dengan ${divisor} menggunakan kaedah bahagi panjang. Hasilnya ialah ${quotient.toLocaleString()}.`;
+                        explanation = `Bahagikan ${formatKpmNumber(dividend)} dengan ${divisor} menggunakan kaedah bahagi panjang. Hasilnya ialah ${formatKpmNumber(quotient)}.`;
                     }
                     break;
                 case 6: // OPERASI BERGABUNG
-                    qText = `Selesaikan ayat matematik berikut mengikut tertib operasi: 4 500 000 + ${seed1} 000 × 2 = ?`;
+                    qText = `Selesaikan ayat matematik berikut mengikut tertib operasi: 4,500,000 + ${formatKpmNumber(seed1 * 1000)} × 2 = ?`;
                     let resOp = 4500000 + seed1 * 2000;
-                    options = [resOp.toLocaleString(), (4500000 + seed1 * 1000 * 2).toLocaleString(), (4550000 + seed1 * 2000).toLocaleString(), (4400000 + seed1 * 2000).toLocaleString()].sort();
-                    answer = resOp.toLocaleString();
+                    options = [formatKpmNumber(resOp), formatKpmNumber(4500000 + seed1 * 1000 * 2), formatKpmNumber(4550000 + seed1 * 2000), formatKpmNumber(4400000 + seed1 * 2000)].sort();
+                    answer = formatKpmNumber(resOp);
                     diagram = "kad_operasi";
-                    explanation = `Mengikut tertib operasi (BODMAS/KODMAS), darab didahulukan sebelum tambah.`;
+                    explanation = `Mengikut tertib operasi (KODMAS), darab didahulukan sebelum tambah.`;
                     break;
-                case 7: // OPERASI MELIBATKAN ANU (Refined: 100% Unique Questions Across All Levels & QNumbers)
+                case 7: // OPERASI MELIBATKAN ANU
                     const varsList = ['x', 'y', 'z', 'p', 'q', 'm'];
                     const chosenVar = varsList[(qNum + topicId) % varsList.length];
                     
                     if (level === 'Senang') {
-                        // Senang: Persamaan asas melibatkan tambah dan tolak (1 hingga 20 unik)
                         let baseVal = 1000000 + (qNum * 125400);
                         let targetVal = baseVal + 2500000 + (qNum * 50000);
                         
                         if (qNum % 2 === 0) {
-                            qText = `Cari nilai bagi anu ${chosenVar} dalam persamaan tambah berikut:\n${chosenVar} + ${baseVal.toLocaleString()} = ${targetVal.toLocaleString()}`;
+                            qText = `Cari nilai bagi anu ${chosenVar} dalam persamaan tambah berikut:\n${chosenVar} + ${formatKpmNumber(baseVal)} = ${formatKpmNumber(targetVal)}`;
                             let correctVal = targetVal - baseVal;
-                            answer = correctVal.toLocaleString();
+                            answer = formatKpmNumber(correctVal);
                             options = [
-                                correctVal.toLocaleString(),
-                                (correctVal + 150000).toLocaleString(),
-                                (targetVal + 300000).toLocaleString(),
-                                (baseVal - 50000).toLocaleString()
+                                formatKpmNumber(correctVal),
+                                formatKpmNumber(correctVal + 150000),
+                                formatKpmNumber(targetVal + 300000),
+                                formatKpmNumber(baseVal - 50000)
                             ].sort();
-                            explanation = `Untuk mencari ${chosenVar}, tolakkan ${targetVal.toLocaleString()} dengan ${baseVal.toLocaleString()}, menghasilkan ${correctVal.toLocaleString()}.`;
+                            explanation = `Untuk mencari ${chosenVar}, tolakkan ${formatKpmNumber(targetVal)} dengan ${formatKpmNumber(baseVal)}, menghasilkan ${formatKpmNumber(correctVal)}.`;
                         } else {
-                            qText = `Selesaikan persamaan tolak berikut untuk mencari nilai ${chosenVar}:\n${targetVal.toLocaleString()} - ${chosenVar} = ${baseVal.toLocaleString()}`;
+                            qText = `Selesaikan persamaan tolak berikut untuk mencari nilai ${chosenVar}:\n${formatKpmNumber(targetVal)} - ${chosenVar} = ${formatKpmNumber(baseVal)}`;
                             let correctVal = targetVal - baseVal;
-                            answer = correctVal.toLocaleString();
+                            answer = formatKpmNumber(correctVal);
                             options = [
-                                correctVal.toLocaleString(),
-                                (correctVal + 200000).toLocaleString(),
-                                targetVal.toLocaleString(),
-                                (correctVal - 100000).toLocaleString()
+                                formatKpmNumber(correctVal),
+                                formatKpmNumber(correctVal + 200000),
+                                formatKpmNumber(targetVal),
+                                formatKpmNumber(correctVal - 100000)
                             ].sort();
-                            explanation = `Nilai ${chosenVar} diperoleh dengan menolak ${baseVal.toLocaleString()} daripada ${targetVal.toLocaleString()}, iaitu ${correctVal.toLocaleString()}.`;
+                            explanation = `Nilai ${chosenVar} diperoleh dengan menolak ${formatKpmNumber(baseVal)} daripada ${formatKpmNumber(targetVal)}, iaitu ${formatKpmNumber(correctVal)}.`;
                         }
                     } else if (level === 'Sederhana') {
-                        // Sederhana: Persamaan melibatkan darab dan bahagi nombor besar
                         if (qNum % 2 === 0) {
-                            let multiplier = 2 + (qNum % 6); // 2 hingga 7
+                            let multiplier = 2 + (qNum % 6);
                             let singleVal = 800000 + (qNum * 75000);
                             let productVal = multiplier * singleVal;
-                            qText = `Cari nilai bagi anu ${chosenVar} dalam operasi darab berikut:\n${multiplier} × ${chosenVar} = ${productVal.toLocaleString()}`;
-                            answer = singleVal.toLocaleString();
+                            qText = `Cari nilai bagi anu ${chosenVar} dalam operasi darab berikut:\n${multiplier} × ${chosenVar} = ${formatKpmNumber(productVal)}`;
+                            answer = formatKpmNumber(singleVal);
                             options = [
-                                singleVal.toLocaleString(),
-                                (singleVal + 100000).toLocaleString(),
-                                (singleVal * 2).toLocaleString(),
-                                (singleVal - 50000).toLocaleString()
+                                formatKpmNumber(singleVal),
+                                formatKpmNumber(singleVal + 100000),
+                                formatKpmNumber(singleVal * 2),
+                                formatKpmNumber(singleVal - 50000)
                             ].sort();
-                            explanation = `Bahagikan ${productVal.toLocaleString()} dengan ${multiplier} untuk mendapatkan nilai ${chosenVar} iaitu ${singleVal.toLocaleString()}.`;
+                            explanation = `Bahagikan ${formatKpmNumber(productVal)} dengan ${multiplier} untuk mendapatkan nilai ${chosenVar} iaitu ${formatKpmNumber(singleVal)}.`;
                         } else {
-                            let divisorVal = 3 + (qNum % 5); // 3 hingga 7
+                            let divisorVal = 3 + (qNum % 5);
                             let baseQuotient = 1200000 + (qNum * 95000);
                             let dividendVal = baseQuotient * divisorVal;
-                            qText = `Tentukan nilai anu ${chosenVar} bagi persamaan bahagi ini:\n${chosenVar} ÷ ${divisorVal} = ${baseQuotient.toLocaleString()}`;
-                            answer = dividendVal.toLocaleString();
+                            qText = `Tentukan nilai anu ${chosenVar} bagi persamaan bahagi ini:\n${chosenVar} ÷ ${divisorVal} = ${formatKpmNumber(baseQuotient)}`;
+                            answer = formatKpmNumber(dividendVal);
                             options = [
-                                dividendVal.toLocaleString(),
-                                (dividendVal + 400000).toLocaleString(),
-                                (dividendVal - 250000).toLocaleString(),
-                                baseQuotient.toLocaleString()
+                                formatKpmNumber(dividendVal),
+                                formatKpmNumber(dividendVal + 400000),
+                                formatKpmNumber(dividendVal - 250000),
+                                formatKpmNumber(baseQuotient)
                             ].sort();
-                            explanation = `Darabkan ${baseQuotient.toLocaleString()} dengan pembahagi ${divisorVal} untuk memperoleh nilai ${chosenVar} iaitu ${dividendVal.toLocaleString()}.`;
+                            explanation = `Darabkan ${formatKpmNumber(baseQuotient)} dengan pembahagi ${divisorVal} untuk memperoleh nilai ${chosenVar} iaitu ${formatKpmNumber(dividendVal)}.`;
                         }
                     } else {
-                        // Susah: Operasi bergabung melibatkan anu (Contoh: Darab dengan Tambah/Tolak)
                         let multFactor = 2 + (qNum % 3);
                         let addPartVal = 1200000 + (qNum * 50000);
                         let innerVarVal = 1500000 + (qNum * 110000);
                         let totalResultVal = (multFactor * innerVarVal) + addPartVal;
                         
-                        qText = `Selesaikan persamaan operasi bergabung melibatkan anu ${chosenVar} berikut dengan teliti:\n(${multFactor} × ${chosenVar}) + ${addPartVal.toLocaleString()} = ${totalResultVal.toLocaleString()}`;
-                        answer = innerVarVal.toLocaleString();
+                        qText = `Selesaikan persamaan operasi bergabung melibatkan anu ${chosenVar} berikut dengan teliti:\n(${multFactor} × ${chosenVar}) + ${formatKpmNumber(addPartVal)} = ${formatKpmNumber(totalResultVal)}`;
+                        answer = formatKpmNumber(innerVarVal);
                         options = [
-                            innerVarVal.toLocaleString(),
-                            (innerVarVal + 200000).toLocaleString(),
-                            (innerVarVal - 150000).toLocaleString(),
-                            (innerVarVal * 2).toLocaleString()
+                            formatKpmNumber(innerVarVal),
+                            formatKpmNumber(innerVarVal + 200000),
+                            formatKpmNumber(innerVarVal - 150000),
+                            formatKpmNumber(innerVarVal * 2)
                         ].sort();
-                        explanation = `Langkah 1: Tolak ${addPartVal.toLocaleString()} daripada ${totalResultVal.toLocaleString()} = ${(totalResultVal - addPartVal).toLocaleString()}. Langkah 2: Bahagi ${multFactor} untuk mendapat ${chosenVar} = ${innerVarVal.toLocaleString()}.`;
+                        explanation = `Langkah 1: Tolak ${formatKpmNumber(addPartVal)} daripada ${formatKpmNumber(totalResultVal)} = ${formatKpmNumber(totalResultVal - addPartVal)}. Langkah 2: Bahagi ${multFactor} untuk mendapat ${chosenVar} = ${formatKpmNumber(innerVarVal)}.`;
                     }
                     diagram = "kotak_anu";
                     break;
-                case 8: // NOMBOR PERDANA & GUBAHAN (Refined: Pelbagai soalan nombor perdana, gubahan & faktor)
-                    const subType8 = qNum % 5;
+                case 8: // NOMBOR PERDANA & GUBAHAN
+                    const subType8 = qNum % 4;
                     if (subType8 === 0) {
-                        // Mengenal pasti nombor perdana dalam julat tertentu
+                        // Mengenal pasti nombor perdana (Prime Numbers)
                         const primePools = [
-                            { q: "Antara nombor berikut, yang manakah adalah Nombor Perdana?", opts: ["29", "27", "33", "35"], ans: "29", exp: "29 hanya boleh dibahagi dengan 1 dan 29 sahaja. 27, 33, dan 35 adalah nombor gubahan." },
-                            { q: "Pilih nombor perdana yang terletak di antara 40 hingga 50:", opts: ["43", "45", "49", "51"], ans: "43", exp: "Nombor perdana antara 40 hingga 50 ialah 41 dan 43. 45, 49, dan 51 boleh dibahagi dengan faktor selain 1 dan diri sendiri." },
-                            { q: "Antara berikut, yang manakah BUKAN nombor perdana?", opts: ["51", "47", "53", "59"], ans: "51", exp: "51 bukan nombor perdana kerana ia boleh dibahagi dengan 3 dan 17 (3 × 17 = 51)." },
-                            { q: "Apakah nombor perdana terkecil yang bernilai lebih besar daripada 10?", opts: ["11", "13", "15", "17"], ans: "11", exp: "Nombor perdana selepas 10 ialah 11." }
+                            { q: "Antara nombor berikut, yang manakah ialah Nombor Perdana?", opts: ["17", "15", "21", "27"], ans: "17", exp: "17 hanya boleh dibahagi dengan 1 dan 17 sahaja (tepat 2 faktor)." },
+                            { q: "Pilih nombor perdana di antara 30 dan 40:", opts: ["31", "33", "35", "39"], ans: "31", exp: "31 ialah nombor perdana. 33, 35, dan 39 mempunyai lebih daripada 2 faktor." },
+                            { q: "Berapakah bilangan nombor perdana di antara 1 hingga 10?", opts: ["4", "3", "5", "6"], ans: "4", exp: "Nombor perdana dari 1 hingga 10 ialah 2, 3, 5, dan 7 (iaitu 4 buah nombor)." },
+                            { q: "Apakah nombor perdana genap yang TUNGGAL?", opts: ["2", "4", "0", "6"], ans: "2", exp: "Nombor 2 adalah satu-satunya nombor perdana yang genap." }
                         ];
                         let pItem = primePools[qNum % primePools.length];
                         qText = pItem.q;
@@ -513,66 +537,62 @@
                     }
                     diagram = "carta_faktor";
                     break;
-                case 9: // PENYELESAIAN MASALAH (Refined: Murid, Jarak, Barang & Wang dalam situasi kehidupan sebenar)
+                case 9: // PENYELESAIAN MASALAH
                     const pType = qNum % 4;
                     if (pType === 0) {
-                        // Masalah melibatkan Bilangan Murid
                         let baseMurid = 1240 + (qNum * 125);
                         let totalZoneMurid = baseMurid * 8;
-                        qText = `Program Jelajah Ilmu Bernama melibatkan ${baseMurid.toLocaleString()} orang murid di sebuah daerah. Jika terdapat 8 buah daerah menyertai program ini dengan bilangan murid yang sama di setiap daerah, berapakah jumlah keseluruhan murid yang terlibat?`;
+                        qText = `Program Jelajah Ilmu Bernama melibatkan ${formatKpmNumber(baseMurid)} orang murid di sebuah daerah. Jika terdapat 8 buah daerah menyertai program ini dengan bilangan murid yang sama di setiap daerah, berapakah jumlah keseluruhan murid yang terlibat?`;
                         options = [
-                            totalZoneMurid.toLocaleString(),
-                            (totalZoneMurid + 2500).toLocaleString(),
-                            (totalZoneMurid - 1200).toLocaleString(),
-                            (baseMurid * 7).toLocaleString()
+                            formatKpmNumber(totalZoneMurid),
+                            formatKpmNumber(totalZoneMurid + 2500),
+                            formatKpmNumber(totalZoneMurid - 1200),
+                            formatKpmNumber(baseMurid * 7)
                         ].sort();
-                        answer = totalZoneMurid.toLocaleString();
+                        answer = formatKpmNumber(totalZoneMurid);
                         diagram = "situasi_kehidupan_sebenar";
-                        explanation = `Darabkan bilangan murid setiap daerah (${baseMurid.toLocaleString()}) dengan bilangan daerah (8) untuk mendapat jumlah keseluruhan murid.`;
+                        explanation = `Darabkan bilangan murid setiap daerah (${formatKpmNumber(baseMurid)}) dengan bilangan daerah (8) untuk mendapat jumlah keseluruhan murid.`;
                     } else if (pType === 1) {
-                        // Masalah Jarak Perjalanan
                         let kmBase = 1250 + (qNum * 450);
                         let kmReturn = kmBase * 2;
-                        qText = `Sebuah konvoi kenderaan Bernama Edu Kidz merentasi Semenanjung Malaysia sejauh ${kmBase.toLocaleString()} km sehala dari Kuala Lumpur ke Perlis dan kembali semula. Hitung jumlah jarak perjalanan pergi dan balik konvoi tersebut.`;
+                        qText = `Sebuah konvoi kenderaan Bernama Edu Kidz merentasi Semenanjung Malaysia sejauh ${formatKpmNumber(kmBase)} km sehala dari Kuala Lumpur ke Perlis dan kembali semula. Hitung jumlah jarak perjalanan pergi dan balik konvoi tersebut.`;
                         options = [
-                            kmReturn.toLocaleString(),
-                            (kmReturn + 500).toLocaleString(),
-                            (kmBase + 1000).toLocaleString(),
-                            (kmReturn - 800).toLocaleString()
+                            formatKpmNumber(kmReturn),
+                            formatKpmNumber(kmReturn + 500),
+                            formatKpmNumber(kmBase + 1000),
+                            formatKpmNumber(kmReturn - 800)
                         ].sort();
-                        answer = kmReturn.toLocaleString();
+                        answer = formatKpmNumber(kmReturn);
                         diagram = "situasi_kehidupan_sebenar";
-                        explanation = `Jarak pergi dan balik dikira dengan mendarabkan jarak sehala (${kmBase.toLocaleString()} km) dengan 2.`;
+                        explanation = `Jarak pergi dan balik dikira dengan mendarabkan jarak sehala (${formatKpmNumber(kmBase)} km) dengan 2.`;
                     } else if (pType === 2) {
-                        // Masalah Pengeluaran & Taburan Barang (Buku/Majalah)
                         let prodBox = 2450000 + (qNum * 12000);
                         let soldBox = 1200000 + (qNum * 5000);
                         let remainBox = prodBox - soldBox;
-                        qText = `Sebuah gudang mencetak ${prodBox.toLocaleString()} naskhah majalah ilmu untuk diedarkan ke sekolah-sekolah. Sebanyak ${soldBox.toLocaleString()} naskhah telah berjaya diedarkan pada minggu pertama. Berapakah baki naskhah majalah yang masih belum diedarkan?`;
+                        qText = `Sebuah gudang mencetak ${formatKpmNumber(prodBox)} naskhah majalah ilmu untuk diedarkan ke sekolah-sekolah. Sebanyak ${formatKpmNumber(soldBox)} naskhah telah berjaya diedarkan pada minggu pertama. Berapakah baki naskhah majalah yang masih belum diedarkan?`;
                         options = [
-                            remainBox.toLocaleString(),
-                            (remainBox + 50000).toLocaleString(),
-                            (remainBox - 20000).toLocaleString(),
-                            (prodBox + soldBox).toLocaleString()
+                            formatKpmNumber(remainBox),
+                            formatKpmNumber(remainBox + 50000),
+                            formatKpmNumber(remainBox - 20000),
+                            formatKpmNumber(prodBox + soldBox)
                         ].sort();
-                        answer = remainBox.toLocaleString();
+                        answer = formatKpmNumber(remainBox);
                         diagram = "situasi_kehidupan_sebenar";
-                        explanation = `Tolakkan bilangan majalah yang telah diedarkan (${soldBox.toLocaleString()}) daripada jumlah keseluruhan cetakan (${prodBox.toLocaleString()}).`;
+                        explanation = `Tolakkan bilangan majalah yang telah diedarkan (${formatKpmNumber(soldBox)}) daripada jumlah keseluruhan cetakan (${formatKpmNumber(prodBox)}).`;
                     } else {
-                        // Masalah Kewangan & Sumbangan Sekolah
                         let unitPrice = 15 + (qNum % 10);
                         let totalUnits = 45000 + (qNum * 500);
                         let totalCost = unitPrice * totalUnits;
-                        qText = `Persatuan Ibu Bapa dan Guru (PIBG) membeli ${totalUnits.toLocaleString()} buah kamus digital untuk kegunaan murid tahun 6 pada harga RM${unitPrice} seunit. Hitung jumlah bayaran keseluruhan bagi pembelian kamus tersebut.`;
+                        qText = `Persatuan Ibu Bapa dan Guru (PIBG) membeli ${formatKpmNumber(totalUnits)} buah kamus digital untuk kegunaan murid tahun 6 pada harga RM${unitPrice} seunit. Hitung jumlah bayaran keseluruhan bagi pembelian kamus tersebut.`;
                         options = [
-                            `RM ${totalCost.toLocaleString()}`,
-                            `RM ${(totalCost + 15000).toLocaleString()}`,
-                            `RM ${(totalCost - 25000).toLocaleString()}`,
-                            `RM ${(totalUnits * (unitPrice + 2)).toLocaleString()}`
+                            `RM ${formatKpmNumber(totalCost)}`,
+                            `RM ${formatKpmNumber(totalCost + 15000)}`,
+                            `RM ${formatKpmNumber(totalCost - 25000)}`,
+                            `RM ${formatKpmNumber(totalUnits * (unitPrice + 2))}`
                         ].sort();
-                        answer = `RM ${totalCost.toLocaleString()}`;
+                        answer = `RM ${formatKpmNumber(totalCost)}`;
                         diagram = "situasi_kehidupan_sebenar";
-                        explanation = `Darabkan bilangan unit (${totalUnits.toLocaleString()}) dengan harga seunit (RM${unitPrice}) untuk mendapatkan jumlah bayaran keseluruhan.`;
+                        explanation = `Darabkan bilangan unit (${formatKpmNumber(totalUnits)}) dengan harga seunit (RM${unitPrice}) untuk mendapatkan jumlah bayaran keseluruhan.`;
                     }
                     break;
             }
@@ -1030,7 +1050,7 @@
             if (scoreEl) scoreEl.innerText = state.score;
             if (cogEl) cogEl.innerText = `Aras: ${q.aras_kognitif}`;
             if (subEl) subEl.innerText = q.subtopik;
-            if (textEl) textEl.innerText = q.soalan;
+            if (textEl) textEl.innerHTML = q.soalan;
 
             const icons = {
                 "carta_nilai_tempat": "🔢",

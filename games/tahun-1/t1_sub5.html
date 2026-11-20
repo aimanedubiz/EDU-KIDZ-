@@ -810,7 +810,7 @@
             renderModHTML() {
                 return `
                     <div class="text-center max-w-md mx-auto">
-                        <button onclick="app.renderTahapHTML()" onclick-action="back" class="mb-4 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl transition inline-flex items-center space-x-1" onclick="app.currentView='tahap'; app.render();">
+                        <button onclick="app.currentView='tahap'; app.render();" class="mb-4 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl transition inline-flex items-center space-x-1">
                             <span>← Kembali Tahap</span>
                         </button>
                         <h2 class="font-fredoka text-2xl font-bold text-slate-800 mb-1">PILIH MOD PERMAINAN</h2>
@@ -920,7 +920,6 @@
 
             renderPermainanHTML() {
                 if (this.currentIndex >= this.activeQuestions.length) {
-                    this.tamatPermainan();
                     return '';
                 }
 
@@ -981,11 +980,16 @@
                     </div>
                 ` : '';
 
+                // Memastikan q.options sentiasa wujud & mempunyai pilihan jawapan selamat
+                const safeOptions = (q && q.options && q.options.length > 0) 
+                    ? q.options 
+                    : [q.correctAnswer, "Pilihan A", "Pilihan B", "Pilihan C"].sort(() => Math.random() - 0.5);
+
                 return `
                     <div>
                         <!-- Header Soalan -->
                         <div class="flex justify-between items-center mb-3">
-                            <span class="text-xs font-bold bg-amber-100 text-amber-800 px-3 py-1 rounded-full">Soalan ${this.currentIndex + 1} / 20</span>
+                            <span class="text-xs font-bold bg-amber-100 text-amber-800 px-3 py-1 rounded-full">Soalan ${this.currentIndex + 1} / ${this.activeQuestions.length}</span>
                             <span class="text-xs font-bold bg-rose-100 text-rose-800 px-3 py-1 rounded-full">⭐ Markah: ${this.score} / 100</span>
                         </div>
 
@@ -999,8 +1003,8 @@
 
                         <!-- Pilihan Jawapan -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4" id="options-grid">
-                            ${q.options.map((opt, idx) => `
-                                <button onclick="app.semakJawapan('${opt.replace(/'/g, "\\'")}')" class="p-4 bg-white hover:bg-amber-50 border-2 border-amber-200 rounded-2xl font-bold text-slate-700 text-sm shadow-sm transition transform active:scale-95 text-center flex items-center justify-center">
+                            ${safeOptions.map((opt, idx) => `
+                                <button onclick="app.semakJawapan('${String(opt).replace(/'/g, "\\'")}')" class="p-4 bg-white hover:bg-amber-50 border-2 border-amber-200 rounded-2xl font-bold text-slate-700 text-sm shadow-sm transition transform active:scale-95 text-center flex items-center justify-center">
                                     <span class="w-7 h-7 bg-amber-100 text-amber-800 rounded-full inline-flex items-center justify-center mr-3 text-xs">${String.fromCharCode(65 + idx)}</span>
                                     <span>${opt}</span>
                                 </button>
@@ -1014,6 +1018,8 @@
 
             semakJawapan(pilihanMurid, isTimeout = false) {
                 if (this.timerInterval) clearInterval(this.timerInterval);
+                
+                if (this.currentIndex >= this.activeQuestions.length) return;
                 const q = this.activeQuestions[this.currentIndex];
                 const feedbackBox = document.getElementById('feedback-box');
                 const optionsGrid = document.getElementById('options-grid');
@@ -1030,47 +1036,75 @@
                     this.score += 5;
                     this.correctCount++;
                     sound.playCorrect();
-                    feedbackBox.className = "text-center p-4 rounded-2xl font-bold text-sm mt-4 bg-emerald-100 text-emerald-800 border-2 border-emerald-300 animate-bounce-slow";
-                    feedbackBox.innerHTML = `🎉 Syabas! Jawapan kamu betul! (+5 markah)`;
+                    if (feedbackBox) {
+                        feedbackBox.className = "text-center p-4 rounded-2xl font-bold text-sm mt-4 bg-emerald-100 text-emerald-800 border-2 border-emerald-300 animate-bounce-slow";
+                        feedbackBox.innerHTML = `🎉 Syabas! Jawapan kamu betul! (+5 markah)`;
+                    }
                 } else {
                     this.wrongCount++;
                     if (isTimeout) this.unansweredCount++;
                     sound.playWrong();
-                    feedbackBox.className = "text-center p-4 rounded-2xl font-bold text-sm mt-4 bg-rose-100 text-rose-800 border-2 border-rose-300";
-                    feedbackBox.innerHTML = isTimeout ? `⏰ Masa sudah tamat! <br>✅ Jawapan yang betul ialah: <b>${q.correctAnswer}</b>` : `❌ Cuba lagi! <br>✅ Jawapan yang betul ialah: <b>${q.correctAnswer}</b>`;
+                    if (feedbackBox) {
+                        feedbackBox.className = "text-center p-4 rounded-2xl font-bold text-sm mt-4 bg-rose-100 text-rose-800 border-2 border-rose-300";
+                        feedbackBox.innerHTML = isTimeout ? `⏰ Masa sudah tamat! <br>✅ Jawapan yang betul ialah: <b>${q.correctAnswer}</b>` : `❌ Cuba lagi! <br>✅ Jawapan yang betul ialah: <b>${q.correctAnswer}</b>`;
+                    }
                 }
 
-                feedbackBox.classList.remove('hidden');
+                if (feedbackBox) {
+                    feedbackBox.classList.remove('hidden');
+                }
                 this.userAnswersRecord.push({ soal: q.question, dipilih: pilihanMurid, betul: q.correctAnswer, status: isCorrect });
 
-                // Teruskan ke soalan seterusnya selepas 2 saat
+                // Teruskan ke soalan seterusnya selepas 1.5 saat
                 setTimeout(() => {
                     this.currentIndex++;
-                    this.render();
-                }, 2000);
+                    if (this.currentIndex >= this.activeQuestions.length) {
+                        this.tamatPermainan();
+                    } else {
+                        this.render();
+                    }
+                }, 1500);
             }
 
             tamatPermainan() {
                 if (this.timerInterval) clearInterval(this.timerInterval);
-                
-                // Kemas kini data pengguna
-                this.currentUser.totalSoalanDijawab += 20;
-                this.currentUser.totalBetul += this.correctCount;
-                this.currentUser.totalSalah += this.wrongCount;
-                this.currentUser.totalMarkah += this.score;
-                if (this.score > this.currentUser.skorTertinggi) {
-                    this.currentUser.skorTertinggi = this.score;
-                }
 
-                // Tandakan topik selesai jika skor >= 70
-                if (this.score >= 70 && !this.currentUser.topikSelesai.includes(this.selectedTopic)) {
-                    this.currentUser.topikSelesai.push(this.selectedTopic);
-                }
+                // Pastikan nilai skor adalah nombor yang sah
+                this.score = Number(this.score) || 0;
 
-                // Kemas kini dalam senarai utama users & simpan localStorage
-                const idx = this.users.findIndex(x => x.username === this.currentUser.username);
-                if (idx !== -1) {
-                    this.users[idx] = this.currentUser;
+                // Kemaskini statistik akaun pengguna semasa
+                if (this.currentUser) {
+                    this.currentUser.totalSoalanDijawab += this.activeQuestions.length;
+                    this.currentUser.totalBetul += this.correctCount;
+                    this.currentUser.totalSalah += this.wrongCount;
+                    
+                    this.currentUser.totalMarkah = (Number(this.currentUser.totalMarkah) || 0) + this.score;
+
+                    if (this.score > (this.currentUser.skorTertinggi || 0)) {
+                        this.currentUser.skorTertinggi = this.score;
+                    }
+
+                    if (!this.currentUser.topikSelesai.includes(this.selectedTopic)) {
+                        this.currentUser.topikSelesai.push(this.selectedTopic);
+                    }
+                    if (!this.currentUser.tahapSelesai.includes(this.selectedDifficulty)) {
+                        this.currentUser.tahapSelesai.push(this.selectedDifficulty);
+                    }
+
+                    // Kemaskini lencana pencapaian
+                    if (this.currentUser.totalBetul >= 10 && !this.currentUser.lencana.includes('🏅 Jam Hebat')) {
+                        this.currentUser.lencana.push('🏅 Jam Hebat');
+                    }
+                    if (this.currentUser.totalBetul >= 30 && !this.currentUser.lencana.includes('🏅 Pakar Masa')) {
+                        this.currentUser.lencana.push('🏅 Pakar Masa');
+                    }
+                    if (this.currentUser.topikSelesai.length >= 3 && !this.currentUser.lencana.includes('🏅 Juara Kalendar')) {
+                        this.currentUser.lencana.push('🏅 Juara Kalendar');
+                    }
+                    if (this.score === 100 && !this.currentUser.lencana.includes('🏆 Master Masa')) {
+                        this.currentUser.lencana.push('🏆 Master Masa');
+                    }
+
                     this.simpanDatabase();
                 }
 
@@ -1078,167 +1112,208 @@
                 this.render();
             }
 
-            // --- KEPUTUSAN PERMAINAN ---
+            // --- PAPARAN KEPUTUSAN PERMAINAN ---
             renderKeputusanHTML() {
-                let mesejPrestasi = "";
-                if (this.score >= 90) mesejPrestasi = '🏆 "Hebat! Kamu memang Juara Masa!"';
-                else if (this.score >= 70) mesejPrestasi = '🌟 "Bagus! Teruskan berlatih!"';
-                else if (this.score >= 50) mesejPrestasi = '👍 "Bagus! Cuba lagi untuk skor lebih tinggi!"';
-                else mesejPrestasi = '💪 "Jangan putus asa! Mari cuba lagi!"';
+                const totalQ = (this.activeQuestions && this.activeQuestions.length) ? this.activeQuestions.length : 20;
+                const finalScore = Number(this.score) || 0;
+                const peratus = Math.round((this.correctCount / totalQ) * 100);
 
-                let ketepatan = (this.correctCount / 20) * 100;
+                let mesejPencapaian = "";
+                let ikonPencapaian = "🏆";
+
+                if (finalScore >= 90) {
+                    mesejPencapaian = "Hebat! Kamu memang Juara Masa!";
+                    ikonPencapaian = "🏆";
+                } else if (finalScore >= 70) {
+                    mesejPencapaian = "Bagus! Teruskan berlatih!";
+                    ikonPencapaian = "🌟";
+                } else if (finalScore >= 50) {
+                    mesejPencapaian = "Bagus! Cuba lagi untuk skor lebih tinggi!";
+                    ikonPencapaian = "👍";
+                } else {
+                    mesejPencapaian = "Jangan putus asa! Mari cuba lagi!";
+                    ikonPencapaian = "💪";
+                }
+
+                const totalUserMarkah = this.currentUser ? (Number(this.currentUser.totalMarkah) || finalScore) : finalScore;
 
                 return `
-                    <div class="text-center max-w-md mx-auto">
-                        <div class="text-5xl mb-2 animate-bounce-slow">🎉</div>
+                    <div class="text-center max-w-lg mx-auto py-2">
+                        <div class="text-5xl mb-2 animate-bounce-slow">${ikonPencapaian}</div>
                         <h2 class="font-fredoka text-3xl font-bold text-amber-600 mb-1">PERMAINAN TAMAT!</h2>
-                        <p class="text-slate-600 text-sm mb-4 font-medium">${mesejPrestasi}</p>
+                        <p class="text-slate-600 font-bold text-base mb-4">${mesejPencapaian}</p>
 
-                        <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 mb-6 text-left space-y-2 text-sm shadow-sm">
-                            <div class="flex justify-between"><span>Nama:</span><span class="font-bold">${this.currentUser.nama}</span></div>
-                            <div class="flex justify-between"><span>Topik:</span><span class="font-bold">Topik ${this.selectedTopic} (${this.selectedDifficulty})</span></div>
-                            <div class="flex justify-between border-t border-amber-200 pt-2 text-base font-bold text-amber-800">
-                                <span>Markah:</span><span>${this.score} / 100 ⭐</span>
+                        <!-- Kad Skor Utama (Markah Keseluruhan Set Ini) -->
+                        <div class="bg-gradient-to-br from-amber-100 to-amber-200 border-4 border-amber-300 rounded-3xl p-6 shadow-md mb-6">
+                            <div class="text-xs font-extrabold tracking-wider text-amber-800 uppercase mb-1">MARKAH KESELURUHAN SET INI</div>
+                            <div class="font-fredoka text-6xl font-extrabold text-amber-600 drop-shadow-sm mb-2">
+                                ${finalScore} <span class="text-2xl font-bold text-slate-600">/ 100</span>
                             </div>
-                            <div class="flex justify-between text-xs text-slate-500"><span>Betul: ${this.correctCount}</span><span>Salah: ${this.wrongCount}</span><span>Ketepatan: ${ketepatan}%</span></div>
+                            <div class="inline-block bg-white text-slate-700 text-xs font-bold px-4 py-1.5 rounded-full border border-amber-300 shadow-sm">
+                                Ketepatan Jawapan: <span class="text-emerald-600 font-extrabold">${peratus}%</span>
+                            </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <button onclick="app.mulakanPermainanAktif(${this.selectedTimeLimit})" class="p-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-xl shadow-md text-sm transition">
+                        <!-- Ringkasan Statistik -->
+                        <div class="grid grid-cols-3 gap-3 mb-6">
+                            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                                <div class="text-xs font-bold text-emerald-700">BETUL</div>
+                                <div class="font-fredoka text-xl font-bold text-emerald-800">${this.correctCount} / ${totalQ}</div>
+                            </div>
+                            <div class="p-3 bg-rose-50 border border-rose-200 rounded-2xl">
+                                <div class="text-xs font-bold text-rose-700">SALAH</div>
+                                <div class="font-fredoka text-xl font-bold text-rose-800">${this.wrongCount}</div>
+                            </div>
+                            <div class="p-3 bg-purple-50 border border-purple-200 rounded-2xl">
+                                <div class="text-xs font-bold text-purple-700">JUMLAH AKAUN</div>
+                                <div class="font-fredoka text-xl font-bold text-purple-800">${totalUserMarkah} pts</div>
+                            </div>
+                        </div>
+
+                        <!-- Butang Tindakan -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button onclick="app.mulakanPermainanAktif(app.selectedTimeLimit)" class="p-3 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow">
                                 🔄 MAIN LAGI
                             </button>
-                            <button onclick="app.navigasiKeMenu()" class="p-3 bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-500 hover:to-sky-600 text-white font-bold rounded-xl shadow-md text-sm transition">
+                            <button onclick="app.navigasiKeMenu()" class="p-3 bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs rounded-xl transition shadow">
                                 🏠 MENU UTAMA
                             </button>
-                            <button onclick="app.bukaProgress()" class="p-3 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white font-bold rounded-xl shadow-md text-sm transition">
+                            <button onclick="app.bukaProgress()" class="p-3 bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs rounded-xl transition shadow">
                                 📊 PROGRESS
                             </button>
-                            <button onclick="app.bukaLeaderboard()" class="p-3 bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold rounded-xl shadow-md text-sm transition">
-                                🏆 LEADERBOARD
+                            <button onclick="app.bukaLeaderboard()" class="p-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition shadow">
+                                🏆 RANKING
                             </button>
                         </div>
                     </div>
                 `;
             }
 
-            // --- PROGRESS SAYA ---
-            renderProgressHTML() {
-                const c = this.currentUser;
-                return `
-                    <div class="max-w-md mx-auto">
-                        <button onclick="app.navigasiKeMenu()" class="mb-4 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl transition inline-flex items-center space-x-1">
-                            <span>← Kembali ke Menu</span>
-                        </button>
-                        <h2 class="font-fredoka text-2xl font-bold text-slate-800 mb-1 text-center">📊 PROGRESS SAYA</h2>
-                        <p class="text-slate-500 text-sm mb-6 text-center">Rekod pencapaian pembelajaran ${c.nama}:</p>
-
-                        <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 mb-6 space-y-3 text-sm shadow-sm">
-                            <div class="flex justify-between"><span>Jumlah Soalan Dijawab:</span><span class="font-bold">${c.totalSoalanDijawab}</span></div>
-                            <div class="flex justify-between"><span>Jawapan Betul:</span><span class="font-bold text-emerald-600">${c.totalBetul}</span></div>
-                            <div class="flex justify-between"><span>Jawapan Salah:</span><span class="font-bold text-rose-600">${c.totalSalah}</span></div>
-                            <div class="flex justify-between"><span>Jumlah Markah Terkumpul:</span><span class="font-bold text-amber-700">${c.totalMarkah} ⭐</span></div>
-                            <div class="flex justify-between border-t border-amber-200 pt-2"><span>Skor Tertinggi:</span><span class="font-bold text-purple-700">${c.skorTertinggi} / 100</span></div>
-                        </div>
-
-                        <div class="mb-6">
-                            <h3 class="font-fredoka font-bold text-sm text-slate-700 mb-2">🏅 Lencana Pencapaian</h3>
-                            <div class="flex flex-wrap gap-2">
-                                <span class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-xl text-xs font-bold border border-amber-300">⏰ Jam Hebat</span>
-                                <span class="px-3 py-1.5 bg-sky-100 text-sky-800 rounded-xl text-xs font-bold border border-sky-300">📅 Pakar Kalendar</span>
-                                <span class="px-3 py-1.5 bg-purple-100 text-purple-800 rounded-xl text-xs font-bold border border-purple-300">🏆 Master Masa</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-
+            // --- PAPARAN PROGRESS SAYA ---
             bukaProgress() {
                 sound.playClick();
                 this.currentView = 'progress';
                 this.render();
             }
 
-            // --- LEADERBOARD ---
-            renderLeaderboardHTML() {
-                // Susun senarai pengguna mengikut skor tertinggi
-                let sortedUsers = [...this.users].sort((a, b) => b.skorTertinggi - a.skorTertinggi);
+            renderProgressHTML() {
+                if (!this.currentUser) return '';
+                const u = this.currentUser;
+
+                const lencanaList = u.lencana && u.lencana.length > 0 ? u.lencana : ['Belum ada lencana lagi. Mari bermain!'];
 
                 return `
                     <div class="max-w-md mx-auto">
                         <button onclick="app.navigasiKeMenu()" class="mb-4 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl transition inline-flex items-center space-x-1">
                             <span>← Kembali ke Menu</span>
                         </button>
-                        <h2 class="font-fredoka text-2xl font-bold text-slate-800 mb-1 text-center">🏆 LEADERBOARD EDU KIDZ</h2>
-                        <p class="text-slate-500 text-sm mb-6 text-center">Senarai pemain terhebat & markah tertinggi:</p>
+                        <h2 class="font-fredoka text-2xl font-bold text-slate-800 mb-1 text-center">📊 PROGRESS SAYA</h2>
+                        <p class="text-slate-500 text-xs text-center mb-6">Rekod pencapaian peribadi ${u.nama}</p>
 
-                        <div class="space-y-3 mb-6">
-                            ${sortedUsers.length === 0 ? '<p class="text-center text-xs text-slate-400">Belum ada rekod pemain lagi.</p>' : ''}
-                            ${sortedUsers.map((usr, idx) => `
-                                <div class="p-3.5 bg-white border-2 border-amber-200 rounded-2xl flex items-center justify-between shadow-sm">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-8 h-8 rounded-full bg-amber-100 font-bold text-amber-800 flex items-center justify-center text-sm">
-                                            ${idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : idx + 1))}
-                                        </div>
-                                        <div>
-                                            <div class="font-bold text-sm text-slate-800">${usr.nama}</div>
-                                            <div class="text-[10px] text-slate-400">@${usr.username}</div>
-                                        </div>
-                                    </div>
-                                    <div class="font-fredoka font-bold text-amber-600 text-base">
-                                        ${usr.skorTertinggi} <span class="text-xs font-normal text-slate-500">markah</span>
-                                    </div>
-                                </div>
-                            `).join('')}
+                        <div class="bg-white border-2 border-amber-200 rounded-2xl p-4 shadow-sm mb-4 space-y-3">
+                            <div class="flex justify-between border-b pb-2 text-sm">
+                                <span class="text-slate-500 font-medium">Jumlah Soalan Dijawab:</span>
+                                <span class="font-bold text-amber-600">${u.totalSoalanDijawab}</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 text-sm">
+                                <span class="text-slate-500 font-medium">Jumlah Jawapan Betul:</span>
+                                <span class="font-bold text-emerald-600">${u.totalBetul}</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 text-sm">
+                                <span class="text-slate-500 font-medium">Jumlah Jawapan Salah:</span>
+                                <span class="font-bold text-rose-600">${u.totalSalah}</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 text-sm">
+                                <span class="text-slate-500 font-medium">Jumlah Markah Terkumpul:</span>
+                                <span class="font-bold text-purple-600">${u.totalMarkah} pts</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-slate-500 font-medium">Skor Tertinggi Set:</span>
+                                <span class="font-bold text-amber-600">${u.skorTertinggi} / 100</span>
+                            </div>
+                        </div>
+
+                        <h3 class="font-fredoka text-base font-bold text-slate-800 mb-2">🎖️ Lencana Pencapaian:</h3>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            ${lencanaList.map(l => `<span class="px-3 py-1.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full border border-amber-300 shadow-sm">${l}</span>`).join('')}
                         </div>
                     </div>
                 `;
             }
 
+            // --- PAPARAN LEADERBOARD ---
             bukaLeaderboard() {
                 sound.playClick();
                 this.currentView = 'leaderboard';
                 this.render();
             }
 
-            // --- TETAPAN ---
-            renderTetapanHTML() {
+            renderLeaderboardHTML() {
+                const sorted = [...this.users].sort((a, b) => b.totalMarkah - a.totalMarkah);
+
                 return `
-                    <div class="text-center max-w-md mx-auto">
+                    <div class="max-w-md mx-auto">
                         <button onclick="app.navigasiKeMenu()" class="mb-4 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl transition inline-flex items-center space-x-1">
                             <span>← Kembali ke Menu</span>
                         </button>
-                        <h2 class="font-fredoka text-2xl font-bold text-slate-800 mb-1">⚙️ TETAPAN APLIKASI</h2>
-                        <p class="text-slate-500 text-sm mb-6">Ubah tetapan audio & kesan bunyi:</p>
+                        <h2 class="font-fredoka text-2xl font-bold text-slate-800 mb-1 text-center">🏆 LEADERBOARD</h2>
+                        <p class="text-slate-500 text-xs text-center mb-6">Kedudukan markah tertinggi pemain Edu Kidz</p>
 
-                        <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 text-left space-y-4 shadow-sm">
-                            <div class="flex justify-between items-center">
-                                <span class="font-bold text-sm text-slate-700">Kesan Bunyi (Audio)</span>
-                                <button onclick="app.toggleSound()" id="sound-toggle-btn" class="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-white font-bold rounded-xl text-xs transition">
-                                    ${sound.enabled ? '🔊 PASANG (ON)' : '🔇 TUTUP (OFF)'}
-                                </button>
-                            </div>
+                        <div class="space-y-2">
+                            ${sorted.length === 0 ? '<p class="text-center text-xs text-slate-400">Belum ada rekod pemain.</p>' : ''}
+                            ${sorted.map((usr, idx) => {
+                                let medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                                let isCurrent = this.currentUser && this.currentUser.username === usr.username;
+                                return `
+                                    <div class="p-3 ${isCurrent ? 'bg-amber-100 border-2 border-amber-400' : 'bg-white border border-slate-200'} rounded-2xl flex items-center justify-between shadow-sm">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="font-bold text-lg w-8 text-center">${medal}</span>
+                                            <div>
+                                                <div class="font-bold text-sm text-slate-800">${usr.nama} ${isCurrent ? '(Saya)' : ''}</div>
+                                                <div class="text-[10px] text-slate-500">@${usr.username}</div>
+                                            </div>
+                                        </div>
+                                        <div class="font-fredoka font-bold text-amber-600 text-base">
+                                            ${usr.totalMarkah} <span class="text-xs text-slate-400 font-normal">pts</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 `;
             }
 
+            // --- PAPARAN TETAPAN ---
             bukaTetapan() {
                 sound.playClick();
                 this.currentView = 'tetapan';
                 this.render();
             }
 
-            toggleSound() {
-                sound.enabled = !sound.enabled;
-                sound.playClick();
-                const btn = document.getElementById('sound-toggle-btn');
-                if (btn) {
-                    btn.innerText = sound.enabled ? '🔊 PASANG (ON)' : '🔇 TUTUP (OFF)';
-                }
+            renderTetapanHTML() {
+                return `
+                    <div class="max-w-md mx-auto text-center">
+                        <button onclick="app.navigasiKeMenu()" class="mb-4 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl transition inline-flex items-center space-x-1">
+                            <span>← Kembali ke Menu</span>
+                        </button>
+                        <h2 class="font-fredoka text-2xl font-bold text-slate-800 mb-1">⚙️ TETAPAN APLIKASI</h2>
+                        <p class="text-slate-500 text-xs mb-6">Laraskan tetapan audio dan permainan:</p>
+
+                        <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-4 mb-6">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-sm text-slate-700">Kesan Bunyi (Sound FX)</span>
+                                <button onclick="sound.enabled = !sound.enabled; app.render();" class="px-4 py-2 rounded-xl font-bold text-xs ${sound.enabled ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'} transition">
+                                    ${sound.enabled ? '🔊 AKTIF' : '🔇 MATI'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
         }
 
-        // Mulakan aplikasi apabila halaman dimuatkan
+        // Mulakan aplikasi sebaik sahaja halaman siap dimuatkan
         let app;
         window.onload = function() {
             app = new EduKidzApp();

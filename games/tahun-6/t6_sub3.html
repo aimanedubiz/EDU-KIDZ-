@@ -273,14 +273,22 @@
 
         const QuestionBank = {};
 
-        // --- TOPICS 1, 3, 4, 6 GENERATOR ---
-        function generateOtherTopicQuestions() {
+        // --- UNIFIED QUESTION BANK GENERATOR FOR ALL TOPICS (1-6) ---
+        function generateAllQuestions() {
             for (let t = 1; t <= 6; t++) {
-                if (t === 2 || t === 5) continue; // Skip Topic 2 & Topic 5 as they have dedicated generators
                 QuestionBank[t] = { mudah: [], sederhana: [], sukar: [] };
-                for (let levelKey of ['mudah', 'sederhana', 'sukar']) {
-                    for (let i = 1; i <= 20; i++) {
-                        QuestionBank[t][levelKey].push(generateSingleOtherQuestion(t, levelKey, i));
+                
+                if (t === 2) {
+                    generateTopic2Questions();
+                } else if (t === 5) {
+                    generateTopic5Questions();
+                } else if (t === 6) {
+                    generateTopic6Questions();
+                } else {
+                    for (let levelKey of ['mudah', 'sederhana', 'sukar']) {
+                        for (let i = 1; i <= 20; i++) {
+                            QuestionBank[t][levelKey].push(generateSingleOtherQuestion(t, levelKey, i));
+                        }
                     }
                 }
             }
@@ -320,114 +328,178 @@
                 answer = `RM${interest.toFixed(2)}`;
                 options = [`RM${interest.toFixed(2)}`, `RM${(interest * 2).toFixed(2)}`, `RM${(principal + interest).toFixed(2)}`, `RM${(interest + 5).toFixed(2)}`].sort(() => Math.random() - 0.5);
                 explanation = `Faedah = P × r × t = RM${principal} × ${rate}% = RM${interest.toFixed(2)}.`;
-            } else {
-                visualType = "troli";
-                let initial = 200 + (index * 10);
-                let spend = 45 + (index * 3);
-                let bal = initial - spend;
-                qText = `${name} mempunyai wang sebanyak RM${initial}. Dia membeli kasut bola berharga RM${spend}. Berapakah baki wang ${name}?`;
-                answer = `RM${bal}`;
-                options = [`RM${bal}`, `RM${bal + 10}`, `RM${bal - 5}`, `RM${initial - 20}`].sort(() => Math.random() - 0.5);
-                explanation = `Baki = RM${initial} − RM${spend} = RM${bal}.`;
             }
 
             return { id: qId, topic, level, cognitive, type, question: qText, options, correctAnswer: answer, explanation, visual: visualType };
         }
 
-        generateOtherTopicQuestions();
+        // --- TOPIK 2 GENERATOR (Diskaun, Rebat dan Baucar) ---
+        function generateTopic2Questions() {
+            const mudah2 = [
+                { q: "Apakah yang dimaksudkan dengan 'Diskaun'?", ans: "Potongan harga daripada harga asal barang.", opts: ["Potongan harga daripada harga asal barang.", "Wang tambahan yang perlu dibayar.", "Cukai yang dikenakan oleh kerajaan.", "Faedah simpanan di dalam bank."] },
+                { q: "Apakah fungsi utama 'Baucar' dalam jualan?", ans: "Kupon yang memberi potongan harga atau nilai percuma.", opts: ["Kupon yang memberi potongan harga atau nilai percuma.", "Resit bukti pembayaran.", "Dokumen tuntutan hutang.", "Penyataan simpanan bank."] },
+                { q: "Sebuah baju berharga RM50 diberikan diskaun 10%. Berapakah nilai diskaun tersebut?", ans: "RM5.00", opts: ["RM5.00", "RM10.00", "RM15.00", "RM2.00"] },
+                { q: "Puan Aminah mendapat rebat sebanyak RM10 apabila membeli peralatan elektrik RM100. Berapakah jumlah wang yang dibayar?", ans: "RM90.00", opts: ["RM90.00", "RM110.00", "RM95.00", "RM80.00"] },
+                { q: "Manakah antara berikut biasanya memberikan baucar tunai?", ans: "Pasar raya semasa promosi.", opts: ["Pasar raya semasa promosi.", "Balai polis.", "Klinik kesihatan.", "Perpustakaan awam."] },
+                { q: "Kasut berharga RM80 dijual dengan potongan diskaun RM20. Berapakah harga selepas diskaun?", ans: "RM60.00", opts: ["RM60.00", "RM70.00", "RM50.00", "RM65.00"] },
+                { q: "Apakah kesan pemberian diskaun ke atas harga sesuatu barangan?", ans: "Harga barang menjadi lebih murah.", opts: ["Harga barang menjadi lebih murah.", "Harga barang menjadi lebih mahal.", "Tiada perubahan harga.", "Harga kos bertambah."] },
+                { q: "Siti ada baucar tunai RM5. Dia membeli buku RM18. Berapakah yang perlu dibayar Siti?", ans: "RM13.00", opts: ["RM13.00", "RM15.00", "RM23.00", "RM12.00"] },
+                { q: "Apakah istilah bagi pemulangan semula sebahagian wang selepas pembayaran dilakukan?", ans: "Rebat", opts: ["Rebat", "Faedah", "Invois", "Cukai"] },
+                { q: "Harga asal sebuah permainan ialah RM40. Potongan diskaun 50% diberikan. Berapakah harga baharu?", ans: "RM20.00", opts: ["RM20.00", "RM25.00", "RM15.00", "RM30.00"] }
+            ];
+
+            mudah2.forEach((item, idx) => {
+                QuestionBank[2].mudah.push({
+                    id: `WANG-T2-M-${String(idx + 1).padStart(3, '0')}`, topic: 2, level: 'mudah', cognitive: 'Mengingat', type: 'objektif',
+                    question: item.q, options: [...item.opts].sort(() => Math.random() - 0.5), correctAnswer: item.ans, explanation: `Jawapan tepat: ${item.ans}`, visual: 'troli'
+                });
+            });
+
+            for (let i = 11; i <= 20; i++) {
+                let cost = i * 10;
+                let disc = 10;
+                let ansVal = cost - (cost * (disc / 100));
+                QuestionBank[2].mudah.push({
+                    id: `WANG-T2-M-${String(i).padStart(3, '0')}`, topic: 2, level: 'mudah', cognitive: 'Memahami', type: 'objektif',
+                    question: `Sebuah jam tangan berharga RM${cost} diberikan diskaun ${disc}%. Berapakah harga jual jam tersebut?`,
+                    options: [`RM${ansVal.toFixed(2)}`, `RM${(ansVal + 5).toFixed(2)}`, `RM${(ansVal - 2).toFixed(2)}`, `RM${(cost + 5).toFixed(2)}`].sort(() => Math.random() - 0.5),
+                    correctAnswer: `RM${ansVal.toFixed(2)}`, explanation: `Diskaun 10% dari RM${cost} = RM${cost * 0.1}. Harga baharu = RM${ansVal.toFixed(2)}.`, visual: 'troli'
+                });
+            }
+
+            for (let i = 1; i <= 20; i++) {
+                let orig = 100 + (i * 15);
+                let disc = 20;
+                let discAmount = (orig * disc) / 100;
+                let finalPrice = orig - discAmount;
+                QuestionBank[2].sederhana.push({
+                    id: `WANG-T2-S-${String(i).padStart(3, '0')}`, topic: 2, level: 'sederhana', cognitive: 'Memahami', type: 'objektif',
+                    question: `Harga sebuah jaket ialah RM${orig}. Kedai menawarkan diskaun ${disc}%. Berapakah jumlah wang yang dapat dijimatkan?`,
+                    options: [`RM${discAmount.toFixed(2)}`, `RM${finalPrice.toFixed(2)}`, `RM${(discAmount + 10).toFixed(2)}`, `RM${(discAmount - 5).toFixed(2)}`].sort(() => Math.random() - 0.5),
+                    correctAnswer: `RM${discAmount.toFixed(2)}`, explanation: `Jumlah jimat (diskaun) = ${disc}% × RM${orig} = RM${discAmount.toFixed(2)}.`, visual: 'troli'
+                });
+
+                let pOrig = 200 + (i * 20);
+                let pDisc = (pOrig * 0.25);
+                let pVoucher = 15;
+                let pFinal = pOrig - pDisc - pVoucher;
+                QuestionBank[2].sukar.push({
+                    id: `WANG-T2-K-${String(i).padStart(3, '0')}`, topic: 2, level: 'sukar', cognitive: 'Mengaplikasi', type: 'objektif',
+                    question: `Sebuah basikal berharga RM${pOrig}. Kedai memberikan diskaun 25% dan pelanggan menggunakan baucar tunai RM${pVoucher}. Hitung harga akhir basikal itu.`,
+                    options: [`RM${pFinal.toFixed(2)}`, `RM${(pFinal + 15).toFixed(2)}`, `RM${(pOrig - pDisc).toFixed(2)}`, `RM${(pFinal - 10).toFixed(2)}`].sort(() => Math.random() - 0.5),
+                    correctAnswer: `RM${pFinal.toFixed(2)}`, explanation: `1. Harga selepas diskaun 25% = RM${pOrig - pDisc}. 2. Tolak baucar RM${pVoucher} = RM${pFinal.toFixed(2)}.`, visual: 'troli'
+                });
+            }
+        }
+
+        // --- TOPIK 5 GENERATOR (Aset, Liabiliti, Insurans dan Takaful) ---
+        function generateTopic5Questions() {
+            const mudah5 = [
+                { q: "Apakah definisi 'Aset'?", ans: "Harta atau wang tunai yang dimiliki.", opts: ["Harta atau wang tunai yang dimiliki.", "Tanggungan atau hutang yang wajib dibayar.", "Cukai yang dikenakan oleh kerajaan.", "Denda kelewatan bayaran."] },
+                { q: "Manakah antara berikut merupakan contoh Liabiliti?", ans: "Pinjaman kad kredit", opts: ["Pinjaman kad kredit", "Wang simpanan di bank", "Rumah kediaman bebas hutang", "Emas simpanan"] },
+                { q: "Apakah tujuan utama mengambil Insurans atau Takaful?", ans: "Memberikan perlindungan kewangan daripada risiko.", opts: ["Memberikan perlindungan kewangan daripada risiko.", "Mendapatkan keuntungan berlipat ganda.", "Membayar simpanan tahunan secara paksa.", "Mengelak daripada bayaran cukai pendapatan."] },
+                { q: "Apakah konsep utama dalam sistem Takaful?", ans: "Saling membantu dan bekerjasama berdasarkan prinsip syariah.", opts: ["Saling membantu dan bekerjasama berdasarkan prinsip syariah.", "Pelaburan saham berisiko tinggi.", "Pinjaman wang berfaedah.", "Perjudian nasib."] },
+                { q: "Manakah antara berikut tergolong sebagai Aset?", ans: "Akaun simpanan tetap di bank", opts: ["Akaun simpanan tetap di bank", "Ansuran kereta yang belum selesai", "Pinjaman peribadi bank", "Hutang kedai runcit"] }
+            ];
+
+            mudah5.forEach((item, idx) => {
+                QuestionBank[5].mudah.push({
+                    id: `WANG-T5-M-${String(idx + 1).padStart(3, '0')}`, topic: 5, level: 'mudah', cognitive: 'Mengingat', type: 'objektif',
+                    question: item.q, options: [...item.opts].sort(() => Math.random() - 0.5), correctAnswer: item.ans, explanation: `Penerangan: ${item.ans}`, visual: 'bank'
+                });
+            });
+
+            for (let i = 6; i <= 20; i++) {
+                QuestionBank[5].mudah.push({
+                    id: `WANG-T5-M-${String(i).padStart(3, '0')}`, topic: 5, level: 'mudah', cognitive: 'Mengingat', type: 'objektif',
+                    question: `Jika Encik Kamal mempunyai simpanan tunai sebanyak RM${i * 1000}, adakah simpanan tersebut dikategorikan sebagai Aset atau Liabiliti?`,
+                    options: ["Aset", "Liabiliti", "Cukai", "Faedah"].sort(() => Math.random() - 0.5),
+                    correctAnswer: "Aset", explanation: "Simpanan tunai ialah harta yang dimiliki, maka ia merupakan Aset.", visual: 'bank'
+                });
+            }
+
+            for (let i = 1; i <= 20; i++) {
+                let asset = 50000 + (i * 2000);
+                let liab = 10000 + (i * 500);
+                let netWorth = asset - liab;
+                QuestionBank[5].sederhana.push({
+                    id: `WANG-T5-S-${String(i).padStart(3, '0')}`, topic: 5, level: 'sederhana', cognitive: 'Memahami', type: 'objektif',
+                    question: `Puan Rahmah mempunyai jumlah Aset bernilai RM${asset} dan jumlah Liabiliti bernilai RM${liab}. Hitung nilai harta bersihnya.`,
+                    options: [`RM${netWorth}`, `RM${asset + liab}`, `RM${netWorth - 2000}`, `RM${netWorth + 5000}`].sort(() => Math.random() - 0.5),
+                    correctAnswer: `RM${netWorth}`, explanation: `Harta Bersih = Jumlah Aset − Jumlah Liabiliti = RM${asset} − RM${liab} = RM${netWorth}.`, visual: 'bank'
+                });
+
+                QuestionBank[5].sukar.push({
+                    id: `WANG-T5-K-${String(i).padStart(3, '0')}`, topic: 5, level: 'sukar', cognitive: 'Mengaplikasi', type: 'objektif',
+                    question: `Encik Ali mempunyai wang RM${asset}. Beliau membayar premium Takaful sebanyak RM${1200 + (i * 100)} setahun untuk perlindungan perubatan keluarga. Mengapakah tindakan ini dikira sebagai perancangan kewangan yang baik?`,
+                    options: [
+                        "Mengurangkan risiko beban kewangan jika berlaku kecemasan kesihatan.",
+                        "Menambah tanggungan liabiliti bulanan tanpa faedah.",
+                        "Memastikan wang tunai habis digunakan.",
+                        "Elak bayar zakat harta."
+                    ].sort(() => Math.random() - 0.5),
+                    correctAnswer: "Mengurangkan risiko beban kewangan jika berlaku kecemasan kesihatan.",
+                    explanation: "Takaful memberikan perlindungan kewangan bagi mengelakkan kemerosotan aset secara mendadak akibat bayaran perubatan.", visual: 'bank'
+                });
+            }
+        }
 
         // --- REFINED TOPIK 6 GENERATOR (Penyelesaian Masalah Berkaitan Wang) ---
         function generateTopic6Questions() {
-            QuestionBank[6] = { mudah: [], sederhana: [], sukar: [] };
-
-            // 20 MUDAH: Soalan penyelesaian masalah harian 1-2 langkah (Mengingat / Memahami)
             const mudahList6 = [
                 { q: "Encik Ahmad membeli 3 biji buku dengan harga RM12.50 sebuah. Berapakah jumlah harga yang perlu dibayarnya?", ans: "RM37.50", opts: ["RM37.50", "RM35.00", "RM39.00", "RM32.50"] },
                 { q: "Siti mempunyai wang sebanyak RM150.00. Dia membeli sepasang kasut sekolah berharga RM58.90. Hitung baki wang Siti.", ans: "RM91.10", opts: ["RM91.10", "RM92.10", "RM90.10", "RM95.10"] },
                 { q: "Harga 4 batang pen yang sama ialah RM16.80. Berapakah harga bagi sebatang pen tersebut?", ans: "RM4.20", opts: ["RM4.20", "RM4.00", "RM4.50", "RM3.80"] },
                 { q: "Raju menyimpan RM25.50 setiap minggu di dalam tabung. Berapakah jumlah simpanannya selepas 4 minggu?", ans: "RM102.00", opts: ["RM102.00", "RM100.00", "RM105.00", "RM98.00"] },
-                { q: "Puan Lim membelanjakan RM84.60 untuk barangan dapur dan RM35.40 untuk buah-buahan. Berapakah jumlah perbelanjaan Puan Lim?", ans: "RM120.00", opts: ["RM120.00", "RM119.00", "RM125.00", "RM115.00"] },
-                { q: "Sebuah kilang menghasilkan 250 buah beg tangan sehari. Jika harga sebuat beg ialah RM45.00, berapakah jumlah jualan sehari kilang itu?", ans: "RM11,250.00", opts: ["RM11,250.00", "RM10,500.00", "RM12,000.00", "RM11,000.00"] },
-                { q: "Aiman memenangi hadiah wang tunai sebanyak RM500.00. Dia menderma 20% daripada wang itu kepada rumah anak yatim. Berapakah wang yang didermakannya?", ans: "RM100.00", opts: ["RM100.00", "RM50.00", "RM150.00", "RM80.00"] },
-                { q: "Harga sepasang baju Melayu ialah RM120.00. Kedai itu memberi diskaun sebanyak RM15.00. Berapakah harga baju selepas diskaun?", ans: "RM105.00", opts: ["RM105.00", "RM110.00", "RM100.00", "RM95.00"] },
-                { q: "Farah membayar bil elektrik sebanyak RM85.45 dan bil air sebanyak RM32.10 menggunakan wang tunai RM150.00. Berapakah baki wang tunggal yang diterimanya?", ans: "RM32.45", opts: ["RM32.45", "RM31.45", "RM33.45", "RM30.00"] },
-                { q: "Seorang pekebun menjual 120 kg mangga dengan harga RM6.50 sekilogram. Berapakah jumlah hasil jualan mangga tersebut?", ans: "RM780.00", opts: ["RM780.00", "RM750.00", "RM800.00", "RM720.00"] },
-                { q: "Harga kos sebuah meja ialah RM240.00. Penjual menjualnya dengan mendapat keuntungan sebanyak RM65.00. Hitung harga jual meja itu.", ans: "RM305.00", opts: ["RM305.00", "RM300.00", "RM310.00", "RM295.00"] },
-                { q: "Aminah mempunyai wang RM200.00. Dia membeli 2 buah buku rujukan berharga RM35.00 setiap satu. Berapakah baki wangnya?", ans: "RM130.00", opts: ["RM130.00", "RM120.00", "RM140.00", "RM125.00"] },
-                { q: "Sebuah persatuan mengutip derma sebanyak RM1,200.00 dan membahagikannya sama rata kepada 4 buah keluarga miskin. Berapakah wang yang diterima oleh setiap keluarga?", ans: "RM300.00", opts: ["RM300.00", "RM250.00", "RM350.00", "RM400.00"] },
-                { q: "Harga sebiji kek ialah RM48.00. Ibu membeli 3 biji kek yang sama untuk majlis hari lahir. Berapakah jumlah bayaran ibu?", ans: "RM144.00", opts: ["RM144.00", "RM140.00", "RM150.00", "RM138.00"] },
-                { q: "Zack membuat pinjaman wang sebanyak RM5,000.00 dari bank. Selepas setahun, dia perlu membayar faedah sebanyak RM250.00. Berapakah jumlah keseluruhan bayaran balik pinjamannya?", ans: "RM5,250.00", opts: ["RM5,250.00", "RM5,500.00", "RM5,200.00", "RM5,100.00"] },
-                { q: "David membeli 5.5 kg ikan dengan harga RM12.00 sekilogram. Berapakah jumlah harga ikan yang dibelinya?", ans: "RM66.00", opts: ["RM66.00", "RM60.00", "RM70.00", "RM65.50"] },
-                { q: "Puan Nurul ada RM450.00 dalam akaun bank. Dia mengeluarkan RM125.50 untuk membeli pakaian. Berbaki berapakah wang dalam akaun banknya?", ans: "RM324.50", opts: ["RM324.50", "RM325.50", "RM320.00", "RM330.00"] },
-                { q: "Harga selaras jam tangan ialah RM180.00. Semasa jualan murah, diskaun sebanyak 10% diberikan. Berapakah nilai diskaun tersebut?", ans: "RM18.00", opts: ["RM18.00", "RM20.00", "RM15.00", "RM25.00"] },
-                { q: "Kumar bekerja selama 8 jam sehari dengan kadar bayaran RM15.00 sejam. Berapakah upah yang diterimanya untuk sehari bekerja?", ans: "RM120.00", opts: ["RM120.00", "RM100.00", "RM130.00", "RM110.00"] },
-                { q: "Sebuah bas persiaran membawa 40 orang penumpang. Harga tiket seorang ialah RM25.00. Hitung jumlah kutipan tiket bas tersebut.", ans: "RM1,000.00", opts: ["RM1,000.00", "RM950.00", "RM1,050.00", "RM900.00"] }
+                { q: "Puan Lim membelanjakan RM84.60 untuk barangan dapur dan RM35.40 untuk buah-buahan. Berapakah jumlah perbelanjaan Puan Lim?", ans: "RM120.00", opts: ["RM120.00", "RM119.00", "RM125.00", "RM115.00"] }
             ];
 
             mudahList6.forEach((item, idx) => {
-                let qId = `WANG-T6-M-${String(idx + 1).padStart(3, '0')}`;
                 QuestionBank[6].mudah.push({
-                    id: qId, topic: 6, level: 'mudah', cognitive: 'Mengingat', type: 'objektif',
+                    id: `WANG-T6-M-${String(idx + 1).padStart(3, '0')}`, topic: 6, level: 'mudah', cognitive: 'Mengingat', type: 'objektif',
                     question: item.q, options: [...item.opts].sort(() => Math.random() - 0.5),
                     correctAnswer: item.ans, explanation: `Penyelesaian: ${item.ans}.`, visual: 'troli'
                 });
             });
 
-            // 20 SEDERHANA: Masalah gabungan operasi wang, belanjawan dan peratusan (Memahami)
-            for (let i = 1; i <= 20; i++) {
-                let qId = `WANG-T6-S-${String(i).padStart(3, '0')}`;
-                let names = ['Amir', 'Siti', 'Raju', 'Mei Ling', 'Aiman', 'Zack', 'Nurul', 'David', 'Farah', 'Kumar'];
-                let name = names[i % names.length];
-                let baseAmt = 300 + (i * 20);
-                let spendAmt = 120 + (i * 10);
-                let saveAmt = baseAmt - spendAmt;
-                let qText = `${name} mempunyai wang simpanan sebanyak RM${baseAmt}.00. Dia membelanjakan RM${spendAmt}.00 untuk membeli peralatan sekolah dan bakinya disimpan ke dalam bank. Hitung nisbah atau baki simpanan baharu ${name}.`;
-                let answer = `RM${saveAmt}.00`;
-                let options = [
-                    `RM${saveAmt}.00`,
-                    `RM${saveAmt + 20}.00`,
-                    `RM${spendAmt}.00`,
-                    `RM${saveAmt - 10}.00`
-                ].sort(() => Math.random() - 0.5);
-                let explanation = `Baki simpanan = RM${baseAmt} − RM${spendAmt} = RM${saveAmt}.00.`;
-
-                QuestionBank[6].sederhana.push({
-                    id: qId, topic: 6, level: 'sederhana', cognitive: 'Memahami', type: 'objektif',
-                    question: qText, options, correctAnswer: answer, explanation, visual: 'troli'
+            for (let i = 6; i <= 20; i++) {
+                let cost = i * 15;
+                let sell = cost + 25;
+                QuestionBank[6].mudah.push({
+                    id: `WANG-T6-M-${String(i).padStart(3, '0')}`, topic: 6, level: 'mudah', cognitive: 'Mengingat', type: 'objektif',
+                    question: `Sebuah barang dibeli pada harga kos RM${cost} dan dijual pada harga RM${sell}. Berapakah keuntungan yang diperoleh?`,
+                    options: [`RM25.00`, `RM30.00`, `RM20.00`, `RM15.00`].sort(() => Math.random() - 0.5),
+                    correctAnswer: `RM25.00`, explanation: `Untung = RM${sell} − RM${cost} = RM25.00.`, visual: 'troli'
                 });
             }
 
-            // 20 SUKAR: Masalah kompleks pelbagai peringkat (multi-step word problems) (Mengaplikasi)
             for (let i = 1; i <= 20; i++) {
-                let qId = `WANG-T6-K-${String(i).padStart(3, '0')}`;
-                let names = ['Amir', 'Siti', 'Raju', 'Mei Ling', 'Aiman', 'Zack', 'Nurul', 'David', 'Farah', 'Kumar'];
-                let name = names[i % names.length];
+                let baseAmt = 300 + (i * 20);
+                let spendAmt = 120 + (i * 10);
+                let saveAmt = baseAmt - spendAmt;
+                QuestionBank[6].sederhana.push({
+                    id: `WANG-T6-S-${String(i).padStart(3, '0')}`, topic: 6, level: 'sederhana', cognitive: 'Memahami', type: 'objektif',
+                    question: `Aiman mempunyai simpanan sebanyak RM${baseAmt}.00. Dia membelanjakan RM${spendAmt}.00 dan bakinya disimpan. Berapakah baki simpanan baharu Aiman?`,
+                    options: [`RM${saveAmt}.00`, `RM${saveAmt + 20}.00`, `RM${spendAmt}.00`, `RM${saveAmt - 10}.00`].sort(() => Math.random() - 0.5),
+                    correctAnswer: `RM${saveAmt}.00`, explanation: `Baki simpanan = RM${baseAmt} − RM${spendAmt} = RM${saveAmt}.00.`, visual: 'troli'
+                });
+
                 let capital = 1000 + (i * 100);
-                let profitRate = 15;
-                let profitVal = (capital * profitRate) / 100;
+                let profitVal = (capital * 15) / 100;
                 let totalVal = capital + profitVal;
-                let tax = 6;
-                let taxVal = (totalVal * tax) / 100;
+                let taxVal = (totalVal * 6) / 100;
                 let finalVal = (totalVal + taxVal).toFixed(2);
-
-                let qText = `${name} melabur sebanyak RM${capital}.00 dalam perniagaan. Selepas setahun, perniagaan itu memberi pulangan keuntungan sebanyak ${profitRate}%. Jika cukai sebanyak ${tax}% dikenakan ke atas jumlah nilai akhir pelaburan tersebut, berapakah nilai keseluruhan selepas cukai?`;
-                let answer = `RM${finalVal}`;
-                let options = [
-                    `RM${finalVal}`,
-                    `RM${(Number(finalVal) + 50).toFixed(2)}`,
-                    `RM${(capital + profitVal).toFixed(2)}`,
-                    `RM${(Number(finalVal) - 30).toFixed(2)}`
-                ].sort(() => Math.random() - 0.5);
-                let explanation = `1. Nilai selepas untung = RM${capital} + (${profitRate}% dari RM${capital}) = RM${totalVal.toFixed(2)}. 2. Cukai 6% = RM${taxVal.toFixed(2)}. 3. Jumlah keseluruhan = RM${finalVal}.`;
-
                 QuestionBank[6].sukar.push({
-                    id: qId, topic: 6, level: 'sukar', cognitive: 'Mengaplikasi', type: 'objektif',
-                    question: qText, options, correctAnswer: answer, explanation, visual: 'troli'
+                    id: `WANG-T6-K-${String(i).padStart(3, '0')}`, topic: 6, level: 'sukar', cognitive: 'Mengaplikasi', type: 'objektif',
+                    question: `Siti melabur RM${capital}.00 dengan pulangan 15%. Cukai 6% dikenakan ke atas jumlah nilai selepas pulangan. Berapakah nilai akhir pelaburan?`,
+                    options: [`RM${finalVal}`, `RM${(Number(finalVal) + 50).toFixed(2)}`, `RM${(capital + profitVal).toFixed(2)}`, `RM${(Number(finalVal) - 30).toFixed(2)}`].sort(() => Math.random() - 0.5),
+                    correctAnswer: `RM${finalVal}`, explanation: `1. Untung 15% = RM${totalVal.toFixed(2)}. 2. Cukai 6% = RM${taxVal.toFixed(2)}. 3. Jumlah = RM${finalVal}.`, visual: 'troli'
                 });
             }
         }
 
-        generateTopic6Questions();
+        // Initialize question bank completely
+        generateAllQuestions();
 
         GameState.renderAuthScreen = function() {
             const main = document.getElementById('main-view');
