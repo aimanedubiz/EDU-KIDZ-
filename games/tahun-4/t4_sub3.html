@@ -167,7 +167,7 @@
                     <i class="fas fa-book-open"></i> PANDUAN PERMAINAN
                 </button>
             </div>
-            <p class="text-xs text-sky-200 mt-6 font-semibold flex items-center justify-center gap-1.5"><i class="fas fa-cloud text-amber-300"></i> Storan Awan Aktif: Data markah anda selamat diselaraskan secara dalam talian!</p>
+            <p class="text-xs text-sky-200 mt-6 font-semibold flex items-center justify-center gap-1.5"><i class="fas fa-cloud text-amber-300"></i> <span id="score-storage-status">Rekod markah disimpan pada pelayar ini.</span></p>
         </section>
 
         <!-- 2. DAFTAR AKAUN -->
@@ -343,7 +343,7 @@
 
                 <!-- Specimen Banknotes/Coins Illustration -->
                 <div id="quiz-illustration" class="hidden my-4 p-4 bg-amber-50/80 rounded-2xl border-2 border-amber-200 flex flex-wrap items-center justify-center gap-4">
-                    <!-- Dynamic rendering of specimen banknotes/coins -->
+                    <!-- Prices from the current question -->
                 </div>
 
                 <!-- Answer Container -->
@@ -561,6 +561,7 @@
             const usersColRef = firestore.collection(db, 'artifacts', appId, 'public', 'data', 'usersDatabase');
             
             firestore.onSnapshot(usersColRef, (snapshot) => {
+                document.getElementById("score-storage-status").textContent = "Sambungan storan awan tersedia.";
                 cloudUsersDatabase = {};
                 snapshot.forEach((docSnap) => {
                     cloudUsersDatabase[docSnap.id] = docSnap.data();
@@ -572,6 +573,7 @@
                     updateHeaderUI();
                 }
             }, (error) => {
+                document.getElementById("score-storage-status").textContent = "Rekod markah disimpan pada pelayar ini.";
                 console.error("Firestore sync error:", error);
             });
         }
@@ -688,7 +690,7 @@
                         qObj.jawapanBetul = `RM${total}`;
                         qObj.penerangan = `RM${a} + RM${b} = RM${total}.`;
                         qObj.pilihan = [`RM${total}`, `RM${total + 5}`, `RM${total - 10}`, `RM${total + 12}`];
-                        qObj.banknotes = [10, 20];
+                        qObj.purchaseAmounts = [a, b];
                     } else if (catId === 2) { // Tolak
                         let start = 100 + i * 10;
                         let cost = item.price + (i % 4) * 5;
@@ -1138,12 +1140,12 @@
 
             const illBox = document.getElementById('quiz-illustration');
             illBox.innerHTML = "";
-            if (q.banknotes && q.banknotes.length > 0) {
+            if (q.purchaseAmounts?.length) {
                 illBox.classList.remove('hidden');
-                q.banknotes.forEach(note => {
+                q.purchaseAmounts.forEach(amount => {
                     const noteEl = document.createElement('div');
-                    noteEl.className = "specimen-tag bg-sky-600 text-white font-extrabold px-6 py-3 rounded-lg shadow border-2 border-sky-300 text-sm flex items-center gap-2";
-                    noteEl.innerHTML = `<i class="fas fa-money-bill-wave"></i> RM${note}`;
+                    noteEl.className = "bg-sky-600 text-white font-extrabold px-6 py-3 rounded-lg shadow border-2 border-sky-300 text-sm flex items-center gap-2";
+                    noteEl.textContent = `Harga: RM${amount}`;
                     illBox.appendChild(noteEl);
                 });
             } else {
