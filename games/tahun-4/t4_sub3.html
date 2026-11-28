@@ -734,7 +734,7 @@
                         let qty1 = 4;
                         let qty2 = 2;
                         let ansVal = (unit * qty1) / qty2;
-                        qObj.soalan = `${char.name} membeli ${qty1} pek ${item.name} dengan harga RM${unit} sepek. Jumlah kos dikongsi bersama ${qty2} orang rakan. Berapakah bayaran seorang?`;
+                        qObj.soalan = `${char.name} membeli ${qty1} pek ${item.name} dengan harga RM${unit} sepek. Jumlah kos dibahagikan sama rata antara ${qty2} orang, termasuk ${char.name}. Berapakah bayaran seorang?`;
                         qObj.jawapanBetul = `RM${ansVal}`;
                         qObj.penerangan = `(RM${unit} × ${qty1} = RM${unit*qty1}). Kemudian RM${unit*qty1} ÷ ${qty2} = RM${ansVal}.`;
                         qObj.pilihan = [
@@ -744,7 +744,7 @@
                             `RM${ansVal + 12}`
                         ];
                     } else { // Penyelesaian Masalah (Cat 7)
-                        let start = 80 + i * 5;
+                        let start = 81 + i * 5;
                         let buy = item.price;
                         let left = start - buy;
                         qObj.soalan = `${char.name} mempunyai RM${start}. Dia membeli ${item.name} berharga RM${buy}. Berapakah baki wang yang tinggal dalam dompet ${char.name}?`;
@@ -812,7 +812,7 @@
                         qObj.pilihan = [`RM${ansVal}`, `RM${(parseFloat(ansVal)+20).toFixed(2)}`, `RM${(parseFloat(ansVal)-10).toFixed(2)}`, `RM${(parseFloat(ansVal)+35).toFixed(2)}`];
                     } else { // Penyelesaian Masalah (Cat 7) - Tahap Sederhana
                         let cost = 280 + i * 15;
-                        let paid = 500 + (i % 3) * 100;
+                        let paid = 600 + (i % 3) * 100;
                         let bal = paid - cost;
                         qObj.soalan = `${char.name} membeli ${item.name} berharga RM${cost}. Dia menyerahkan wang RM${paid} kepada juruwang. Berapakah baki wang yang perlu dikembalikan?`;
                         qObj.jawapanBetul = `RM${bal}`;
@@ -832,7 +832,7 @@
                         let b = 15400.50;
                         let c = 8200.25;
                         let total = (a + b + c).toFixed(2);
-                        qObj.soalan = `${char.title} memperuntukkan wang untuk perniagaan: pembeli ${item.name} RM${a.toFixed(2)}, ubah suai kedai RM${b.toFixed(2)} dan pemasaran RM${c.toFixed(2)}. Hitung jumlah modal.`;
+                        qObj.soalan = `${char.title} memperuntukkan wang untuk perniagaan: pembelian ${item.name} RM${a.toFixed(2)}, ubah suai kedai RM${b.toFixed(2)} dan pemasaran RM${c.toFixed(2)}. Hitung jumlah modal.`;
                         qObj.jawapanBetul = `RM${total}`;
                         qObj.penerangan = `RM${a.toFixed(2)} + RM${b.toFixed(2)} + RM${c.toFixed(2)} = RM${total}.`;
                         qObj.pilihan = [`RM${total}`, `RM${(parseFloat(total)+1000).toFixed(2)}`, `RM${(parseFloat(total)-500.50).toFixed(2)}`, `RM${(parseFloat(total)+2500).toFixed(2)}`];
@@ -1182,26 +1182,37 @@
                 const box = document.createElement('div');
                 box.className = "space-y-4 text-center";
                 box.innerHTML = `
-                    <p class="text-xs font-bold text-slate-600">Tekan jawapan yang betul di bawah untuk dipadankan:</p>
+                    <p class="text-xs font-bold text-slate-600">Seret jawapan ke ruang jawapan atau tekan pilihan anda:</p>
                     <div id="drop-target" class="drop-zone rounded-2xl p-3 flex items-center justify-center font-black text-lg text-slate-400 bg-slate-50">
-                        Drop Jawapan Di Sini
+                        Lepaskan jawapan di sini
                     </div>
                     <div class="flex flex-wrap justify-center gap-2 pt-2" id="drag-options"></div>
                 `;
                 area.appendChild(box);
 
                 const dragOptsContainer = document.getElementById('drag-options');
+                const target = document.getElementById('drop-target');
+                const chooseAnswer = opt => {
+                    if (resultRecorded || answeredIndex === currentQuestionIndex) return;
+                    userSelectedAnswer = opt;
+                    target.textContent = opt;
+                    target.classList.add('text-slate-900', 'bg-amber-100', 'border-amber-400');
+                    target.classList.remove('text-slate-400');
+                };
+                target.addEventListener('dragover', event => event.preventDefault());
+                target.addEventListener('drop', event => {
+                    event.preventDefault();
+                    const option = event.dataTransfer.getData('text/plain');
+                    if (q.pilihan.includes(option)) chooseAnswer(option);
+                });
                 q.pilihan.forEach(opt => {
-                    const chip = document.createElement('div');
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.draggable = true;
                     chip.className = "btn-bounce cursor-pointer bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold px-4 py-2.5 rounded-xl shadow border border-amber-300 text-sm";
                     chip.innerText = opt;
-                    chip.onclick = () => {
-                        const target = document.getElementById('drop-target');
-                        target.innerText = opt;
-                        target.classList.add('text-slate-900', 'bg-amber-100', 'border-amber-400');
-                        target.classList.remove('text-slate-400');
-                        userSelectedAnswer = opt;
-                    };
+                    chip.onclick = () => chooseAnswer(opt);
+                    chip.addEventListener('dragstart', event => event.dataTransfer.setData('text/plain', opt));
                     dragOptsContainer.appendChild(chip);
                 });
             } else { // Padanan
@@ -1266,6 +1277,15 @@
             submitAnswer(true);
         }
 
+        function parseMoneyCents(value) {
+            const input = String(value).trim().replace(/^RM\s*/i, '');
+            const match = /^(\d+|\d{1,3}(?:,\d{3})+|\d{1,3}(?: \d{3})+)(?:\.(\d{1,2}))?$/.exec(input);
+            if (!match) return null;
+            const cents = Number(match[1].replace(/[, ]/g, '')) * 100 +
+                Number((match[2] || '').padEnd(2, '0'));
+            return Number.isSafeInteger(cents) ? cents : null;
+        }
+
         function submitAnswer(isTimeOut = false) {
             if (resultRecorded || answeredIndex === currentQuestionIndex || !activeQuizQuestions[currentQuestionIndex]) return;
             answeredIndex = currentQuestionIndex;
@@ -1279,9 +1299,8 @@
 
             let isCorrect = false;
             if (!isTimeOut && userSelectedAnswer) {
-                const cleanUser = userSelectedAnswer.toString().toUpperCase().replace(/\s+/g, '');
-                const cleanAns = q.jawapanBetul.toString().toUpperCase().replace(/\s+/g, '');
-                isCorrect = (cleanUser === cleanAns || cleanUser === cleanAns.replace('RM', ''));
+                const cents = parseMoneyCents(userSelectedAnswer);
+                isCorrect = cents !== null && cents === parseMoneyCents(q.jawapanBetul);
             }
 
             const feedbackBox = document.getElementById('quiz-feedback-box');

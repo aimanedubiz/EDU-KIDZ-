@@ -349,9 +349,6 @@
                         id: "TP1-S-07", topic: "Carta Pai", sub: "Membandingkan Data", level: "sederhana", cog: "Mengaplikasi", type: "objektif",
                         question: "Sebuah carta pai menunjukkan pilihan permainan dengan sudut 180° (Bola Sepak) dan 45° (Badminton). Jika jumlah murid 80 orang, berapakah jumlah murid untuk kedua-dua permainan ini?",
                         options: ["A. 35", "B. 40", "C. 45", "D. 50"],
-                        answer: "C. 45",
-                        explanation: "Jumlah sudut = 180° + 45° = 225°. Kuantiti = (225 / 360) × 80 = 5/8 × 80 = 50? Ralat: 5/8 * 80 = 50. Pilihan C salah, mari perbetulkan: 225/360 = 5/8. 5/8 * 80 = 50. Pilihan D. 50.",
-                        options: ["A. 35", "B. 40", "C. 45", "D. 50"],
                         answer: "D. 50",
                         explanation: "225° / 360° × 80 = 5/8 × 80 = 50 orang.",
                         chartData: { labels: ["Bola Sepak", "Badminton", "Lain"], angles: [180, 45, 135], values: [40, 10, 30] }
@@ -390,16 +387,11 @@
                     },
                     {
                         id: "TP1-S-12", topic: "Carta Pai", sub: "Menentukan Kuantiti", level: "sederhana", cog: "Mengaplikasi", type: "objektif",
-                        question: "Sebanyak 100 orang murid menyertai perkhemahan. Sudut aktiviti merentas desa ialah 90° dan sudut orientering ialah 45°. Berapakah jumlah murid menyertai kedua-dua aktiviti ini?",
-                        options: ["A. 25", "B. 35", "C. Hakikat 37.5", "D. 37.5 orang"],
-                        // wait, let's make it integer compatible
-                        options: ["A. 25", "B. 30", "C. 35", "D. 40"],
-                        // Let's adjust total murid so it's clean: total 240 murid. 135/360 * 240 = 90.
-                        question: "Sebanyak 240 orang murid menyertai perkhemahan. Sudut aktiviti merentas desa ialah 90° dan sudut orientering ialah 45°. Berapakah jumlah murid menyertai kedua-dua aktiviti ini?",
-                        options: ["A. 70", "B. 80", "C. 90", "D. 100"],
-                        answer: "C. 90",
-                        explanation: "(135° / 360°) × 240 = 3/8 × 240 = 90 orang.",
-                        chartData: { labels: ["Merentas Desa", "Orientering", "Lain"], angles: [90, 45, 225], values: [60, 30, 150] }
+                        question: "Sebanyak 160 orang murid menyertai perkhemahan. Sudut aktiviti merentas desa ialah 90° dan sudut orientering ialah 45°. Berapakah jumlah murid menyertai kedua-dua aktiviti ini?",
+                        options: ["A. 40", "B. 50", "C. 60", "D. 70"],
+                        answer: "C. 60",
+                        explanation: "(135° / 360°) × 160 = 3/8 × 160 = 60 orang.",
+                        chartData: { labels: ["Merentas Desa", "Orientering", "Lain"], angles: [90, 45, 225], values: [40, 20, 100] }
                     },
                     {
                         id: "TP1-S-13", topic: "Carta Pai", sub: "Melengkapkan Carta Pai", level: "sederhana", cog: "Mengaplikasi", type: "objektif",
@@ -470,8 +462,6 @@
                     {
                         id: "TP1-T-01", topic: "Carta Pai", sub: "Penyelesaian Masalah Kompleks", level: "susah", cog: "Mengaplikasi", type: "objektif",
                         question: "Jumlah murid di sebuah sekolah ialah 400 orang. Sektor Tahun 6 ialah 90°, Tahun 5 ialah 135°, dan bakinya ialah Tahun 4. Cari bilangan murid Tahun 4.",
-                        options: ["A. 100", "B. 125", "C. 135", "D. 150"],
-                        answer: "C. 135", // Wait: 360 - 90 - 135 = 135°. 135/360 * 400 = 3/8 * 400 = 150! Let's correct options.
                         options: ["A. 100", "B. 120", "C. 150", "D. 175"],
                         answer: "C. 150",
                         explanation: "Sudut Tahun 4 = 360° - 90° - 135° = 135°. Bilangan = (135 / 360) × 400 = 150 orang.",
@@ -496,9 +486,6 @@
                     {
                         id: "TP1-T-04", topic: "Carta Pai", sub: "Penyelesaian Masalah Kompleks", level: "susah", cog: "Mengaplikasi", type: "objektif",
                         question: "Diberi jumlah murid ialah 240 orang. Sudut sektor A ialah 90° dan sektor B ialah dua kali ganda sektor A. Cari baki bilangan murid untuk sektor C.",
-                        options: ["A. 60", "B. 80", "C. 100", "D. 120"],
-                        answer: "B. 80",
-                        explanation: "Sektor A = 90°, Sektor B = 180°. Sudut C = 360° - 90° - 180° = 90°. 90° daripada 240 = 240 ÷ 4 = 60? Ralat: 240/4 = 60! Pilihan A. 60.",
                         options: ["A. 60", "B. 80", "C. 100", "D. 120"],
                         answer: "A. 60",
                         explanation: "Sudut C = 360° - 90° - 180° = 90°. Kuantiti = 240 ÷ 4 = 60 orang.",
@@ -736,12 +723,10 @@
                     },
                     {
                         id: "TP2-M-13", topic: "Kebolehjadian", sub: "Cuaca", level: "mudah", cog: "Mengingat", type: "objektif",
-                        question: "Hujan turun lebat berserta kilat semasa langit mendung gelap di waktu petang. Apakah kebolehjadian hujan?",
-                        options: ["A. Mustahil", "B. Kecil kemungkinan", "C. Besar kemungkinan", "D. Pasti"],
-                        answer: "C. Besar kemungkinan", // or pasti/besar
+                        question: "Ramalan cuaca menunjukkan peluang hujan petang ini ialah 80%. Apakah kebolehjadian hujan petang ini?",
                         options: ["A. Mustahil", "B. Kecil kemungkinan", "C. Sama kemungkinan", "D. Besar kemungkinan"],
                         answer: "D. Besar kemungkinan",
-                        explanation: "Tanda-tanda cuaca mendung gelap menunjukkan hujan sangat mungkin turun.",
+                        explanation: "Peluang 80% lebih daripada 50% tetapi kurang daripada 100%. Jadi besar kemungkinan hujan.",
                         chartData: { type: "prob", status: "besar" }
                     },
                     {
@@ -771,8 +756,6 @@
                     {
                         id: "TP2-M-17", topic: "Kebolehjadian", sub: "Roda Putar", level: "mudah", cog: "Memahami", type: "objektif",
                         question: "Roda putar mempunyai 4 sektor warna yang sama saiz: Merah, Merah, Merah, Biru. Apakah kebolehjadian jarum berhenti pada warna Merah?",
-                        options: ["A. Mustahil", "B. Kecil kemungkinan", "C. Besar kemungkinan", "D. Pasti"],
-                        answer: "C. Besar kemungkinan", // Wait: 3 out of 4 is large probability.
                         options: ["A. Mustahil", "B. Kecil kemungkinan", "C. Besar kemungkinan", "D. Pasti"],
                         answer: "C. Besar kemungkinan",
                         explanation: "3 daripada 4 bahagian ialah warna merah, jadi besar kemungkinan.",
@@ -1049,12 +1032,10 @@
                     },
                     {
                         id: "TP2-T-11", topic: "Kebolehjadian", sub: "Penaakulan Kompleks", level: "susah", cog: "Mengaplikasi", type: "objektif",
-                        question: "Diberi kebolehjadian berlaku hujan di sebuah gurun panas terik tanpa awan adalah...",
-                        options: ["A. Mustahil", "B. Kecil kemungkinan", "C. Sama kemungkinan", "D. Pasti"],
-                        answer: "B. Kecil kemungkinan", // or mustahil in extreme deserts, but "kecil kemungkinan" / "mustahil"
+                        question: "Sebuah beg hanya mengandungi guli merah dan biru. Apakah kebolehjadian mengambil guli kuning tanpa melihat?",
                         options: ["A. Mustahil", "B. Kecil kemungkinan", "C. Besar kemungkinan", "D. Pasti"],
                         answer: "A. Mustahil", // Let's use Mustahil for extreme arid desert without cloud.
-                        explanation: "Di kawasan gurun yang sangat kering dan tiada awan, hujan langsung tidak akan turun (mustahil).",
+                        explanation: "Tiada guli kuning dalam beg. Kebolehjadiannya ialah 0, iaitu mustahil.",
                         chartData: { type: "prob", status: "mustahil" }
                     },
                     {
@@ -1274,8 +1255,6 @@
                     {
                         id: "TP3-M-18", topic: "Penyelesaian Masalah", sub: "Kebolehjadian Harian", level: "mudah", cog: "Mengingat", type: "objektif",
                         question: "Menjatuhkan sebiji bola getah ke lantai. Apakah kebolehjadian bola itu melantun semula ke atas?",
-                        options: ["A. Mustahil", "B. Kecil kemungkinan", "C. Besar kemungkinan", "D. Pasti"],
-                        answer: "C. Besar kemungkinan", // or pasti (sifat kenyal bola getah)
                         options: ["A. Mustahil", "B. Kecil kemungkinan", "C. Sama kemungkinan", "D. Besar kemungkinan"],
                         answer: "D. Besar kemungkinan",
                         explanation: "Sifat fizikal bola getah apabila dijatuhkan ke lantai keras adalah melantun.",

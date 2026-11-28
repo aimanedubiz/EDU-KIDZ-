@@ -339,7 +339,7 @@
                 {
                     id: "PJR_S_027", topik: "Panjang, Jarak dan Ruang", tahap: "Sederhana", aras_kognitif: "Memahami", mod_permainan: "Objektif",
                     soalan: "Tukarkan 7 km 85 m kepada perpuluhan kilometer.",
-                    pilihan_jawapan: ["A. 7.85 km", "B. 7.085 km", "C. 7.850 km", "D. 78.5 km"],
+                    pilihan_jawapan: ["A. 7.85 km", "B. 7.085 km", "C. 7.0085 km", "D. 78.5 km"],
                     jawapan_betul: "B. 7.085 km",
                     penerangan_jawapan: "85 m ÷ 1 000 = 0.085 km. Maka 7 + 0.085 = 7.085 km.",
                     markah: 5, jenis_gambar: "Peta laluan", deskripsi_gambar: "Garisan GPS di peta."
@@ -462,7 +462,6 @@
                     soalan: "Seutas tali sepanjang 15.6 m dipotong kepada 3 bahagian. Bahagian pertama ialah 4 m 25 cm, bahagian kedua adalah 1.5 m lebih panjang daripada bahagian pertama. Berapakah panjang bahagian ketiga dalam cm?",
                     pilihan_jawapan: ["A. 560 cm", "B. 173.5 cm", "C. 192 cm", "D. 180 cm"],
                     jawapan_betul: "A. 560 cm",
-                    penerangan_jawapan: "Bahagian kedua ialah 425 + 150 = 575 cm. Panjang baki ialah 1 560 − 425 − 575 = 560 cm.",
                     penerangan_jawapan: "Bahagian kedua ialah 425 + 150 = 575 cm. Panjang baki ialah 1 560 − 425 − 575 = 560 cm.",
                     markah: 5, jenis_gambar: "Tali panjang", deskripsi_gambar: "Tali dipotong kepada beberapa bahagian."
                 },
@@ -1455,7 +1454,6 @@
                     soalan: "Sebuah gudang menyimpan 120 kampit beras dengan setiap kampit berjisim 10 kg. Setiap minggu, sebanyak 15% daripada baki beras pada awal minggu itu dijual kepada pemborong. Berapakah baki jisim beras di gudang itu selepas 2 minggu?",
                     pilihan_jawapan: ["A. 867 kg", "B. 850 kg", "C. 950 kg", "D. 800 kg"],
                     jawapan_betul: "A. 867 kg",
-                    penerangan_jawapan: "Jisim asal ialah 120 × 10 = 1 200 kg. Selepas minggu pertama baki ialah 1 200 × 0.85 = 1 020 kg. Selepas minggu kedua, baki ialah 1 020 × 0.85 = 867 kg.",
                     penerangan_jawapan: "Jisim asal ialah 120 × 10 = 1 200 kg. Selepas minggu pertama baki ialah 1 200 × 0.85 = 1 020 kg. Selepas minggu kedua, baki ialah 1 020 × 0.85 = 867 kg.",
                     markah: 5, jenis_gambar: "Gudang beras", deskripsi_gambar: "Kampit beras bertimbun."
                 },
@@ -2538,6 +2536,16 @@
             processAnswerResult(isCorrect, q);
         }
 
+        function matchesBlankAnswer(value, expected) {
+            const input = value.trim();
+            if (/^\d+$/.test(expected)) {
+                const wholeNumber = /^(?:\d+|\d{1,3}(?: \d{3})+|\d{1,3}(?:,\d{3})+)(?:\.0+)?$/;
+                return wholeNumber.test(input) &&
+                    Number(input.replace(/[ ,]/g, '')) === Number(expected);
+            }
+            return input.toLowerCase() === expected.trim().toLowerCase();
+        }
+
         function checkBlankAnswer() {
             const input = document.getElementById('blank-input');
             if (!input) return;
@@ -2550,7 +2558,7 @@
             if (appState.timerInterval) clearInterval(appState.timerInterval);
             const q = appState.currentQuestions[appState.currentQuestionIndex];
             if (!q) return;
-            const isCorrect = val.toLowerCase() === q.jawapan_betul.toLowerCase();
+            const isCorrect = matchesBlankAnswer(val, q.jawapan_betul);
 
             processAnswerResult(isCorrect, q);
         }
