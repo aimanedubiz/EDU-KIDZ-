@@ -817,7 +817,25 @@
 
         // --- Helper for Options Shuffling ---
         function makeOptions(correct, alt1, alt2, alt3) {
-            let arr = [correct, alt1, alt2, alt3];
+            const factors = { mm: [1, 'panjang'], cm: [10, 'panjang'], m: [1000, 'panjang'],
+                km: [1000000, 'panjang'], g: [1, 'jisim'], kg: [1000, 'jisim'],
+                ml: [1, 'isipadu'], l: [1000, 'isipadu'], ℓ: [1000, 'isipadu'] };
+            const equivalent = option => {
+                const text = String(option).trim().toLowerCase();
+                const pieces = [...text.matchAll(/(-?\d+(?:\.\d+)?)\s*(km|mm|cm|kg|ml|m|g|l|ℓ)\b|(-?\d+(?:\.\d+)?)\s*ℓ/g)];
+                if (!pieces.length || text.replace(/(-?\d+(?:\.\d+)?)\s*(?:km|mm|cm|kg|ml|m|g|l)\b|(-?\d+(?:\.\d+)?)\s*ℓ/g, '').trim()) return text;
+                const units = pieces.map(piece => factors[piece[2] || 'ℓ']);
+                if (units.some(unit => unit[1] !== units[0][1])) return text;
+                const total = pieces.reduce((sum, piece, index) => sum + Number(piece[1] ?? piece[3]) * units[index][0], 0);
+                return units[0][1] + ':' + Number(total.toFixed(7));
+            };
+            const seen = new Set();
+            const arr = [correct, alt1, alt2, alt3].filter(option => {
+                const key = equivalent(option);
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
             // Simple shuffle
             for (let i = arr.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));

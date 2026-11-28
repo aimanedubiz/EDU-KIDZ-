@@ -157,7 +157,7 @@
 
         let appState = {
             currentUser: null,
-            users: JSON.parse(localStorage.getItem('math_kids_users') || '[]'),
+            users: loadNumberUsers(),
             currentView: 'welcome',
             selectedTopic: 1,
             selectedMode: 'OBJEKTIF',
@@ -172,8 +172,15 @@
             timeLeft: 0
         };
 
+        function loadNumberUsers() {
+            const saved = localStorage.getItem('edukidz_t3_sub1_users');
+            if (saved) return JSON.parse(saved);
+            const legacy = JSON.parse(localStorage.getItem('math_kids_users') || '[]');
+            return Array.isArray(legacy) ? legacy.filter(user => user && user.stats && Array.isArray(user.completedTopics)) : [];
+        }
+
         function saveAppStateToStorage() {
-            localStorage.setItem('math_kids_users', JSON.stringify(appState.users));
+            localStorage.setItem('edukidz_t3_sub1_users', JSON.stringify(appState.users));
         }
 
         function numToWords(n) {
@@ -207,16 +214,18 @@
 
         function generateQuestionBank(topicId, level) {
             let questions = [];
-            let prefix = "T3-N10000-T" + topicId + "-" + level.charAt(0);
+            let prefix = "T3-N10000-T" + topicId + "-" + level;
             const rnd = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
             const formatNum = (n) => n.toLocaleString('en-US');
 
+            const levelIndex = ["SENANG", "SEDERHANA", "SUSAH"].indexOf(level);
             for (let i = 1; i <= 20; i++) {
+                const slot = levelIndex * 20 + i;
                 let id = prefix + "-" + String(i).padStart(3, '0');
                 let qData = {};
 
                 if (topicId === 1) {
-                    let targetNum = rnd(1001, 9999);
+                    let targetNum = 1100 + slot * 137;
                     let words = numToWords(targetNum);
                     let options = [formatNum(targetNum), formatNum(targetNum + 10), formatNum(Math.max(100, targetNum - 10)), formatNum(targetNum + 100)].sort(() => Math.random() - 0.5);
                     
@@ -230,7 +239,12 @@
                         penerangan: "Nombor \"" + words + "\" ditulis dalam angka sebagai " + formatNum(targetNum) + "."
                     };
                 } else if (topicId === 2) {
-                    let n = rnd(1234, 9876);
+                    const firstDigit = 2 + levelIndex * 3;
+                    const digitsForPlaces = [...'0123456789'].filter(digit => Number(digit) !== firstDigit);
+                    const first = (i - 1) % 9;
+                    const second = (first + 1 + Math.floor((i - 1) / 9)) % 9;
+                    const third = (second + 1) % 9 === first ? (second + 2) % 9 : (second + 1) % 9;
+                    const n = Number([firstDigit, digitsForPlaces[first], digitsForPlaces[second], digitsForPlaces[third]].join(''));
                     let sStr = String(n);
                     let posIdx = i % 4;
                     let places = ["ribu", "ratus", "puluh", "sa"];
@@ -248,13 +262,13 @@
                         penerangan: "Bagi nombor " + formatNum(n) + ", digit " + targetDigit + " terletak pada rumah nilai tempat " + placeName + "."
                     };
                 } else if (topicId === 3) {
-                    let r = rnd(1, 9) * 1000;
-                    let rt = rnd(1, 9) * 100;
-                    let p = rnd(1, 9) * 10;
+                    let r = (2 + levelIndex * 3) * 1000;
+                    let rt = (1 + Math.floor((i - 1) / 9)) * 100;
+                    let p = (1 + (i - 1) % 9) * 10;
                     let s = rnd(1, 9);
                     let total = r + rt + p + s;
                     let correctCerakin = r + " + " + rt + " + " + p + " + " + s;
-                    let wrong1 = r + " + " + p + " + " + rt + " + " + s;
+                    let wrong1 = r + " + " + rt + " + " + s;
                     let wrong2 = (r+100) + " + " + rt + " + " + p + " + " + s;
                     let wrong3 = r + " + " + rt + " + " + (p+10) + " + " + s;
 
@@ -268,7 +282,7 @@
                         penerangan: "Cerakin mengikut nilai digit bagi " + formatNum(total) + " ialah " + correctCerakin + "."
                     };
                 } else if (topicId === 4) {
-                    let a = rnd(1000, 9500);
+                    let a = 1100 + slot * 135;
                     let b = a + rnd(10, 300) * (i % 2 === 0 ? 1 : -1);
                     if (b < 1000) b = 1500;
                     if (a === b) b = a + 45;
@@ -284,13 +298,13 @@
                         penerangan: "Apabila membandingkan " + formatNum(a) + " dan " + formatNum(b) + ", nombor yang lebih besar ialah " + formatNum(larger) + "."
                     };
                 } else if (topicId === 5) {
-                    let base = rnd(2000, 7000);
+                    let base = 1900 + slot * 79;
                     let step = rnd(50, 200);
                     let seq = [base, base + step, base + (step*2), base + (step*3)];
 
                     qData = {
                         id: id, topik: "Susunan Nombor", tahap: level, aras_kognitif: "Memahami", jenis_game: "OBJEKTIF",
-                        soalan: "Susun nombor berikut secara <strong>menaik</strong> (kecil ke besar):<br><span class='text-base sm:text-lg font-bold text-sky-700'>" + seq.map(formatNum).join(', ') + "</span>",
+                        soalan: "Susun nombor berikut secara <strong>menaik</strong> (kecil ke besar):<br><span class='text-base sm:text-lg font-bold text-sky-700'>" + [seq[2], seq[0], seq[3], seq[1]].map(formatNum).join(', ') + "</span>",
                         gambarajah: "Carta Rangkaian Nombor Menaik",
                         pilihan: [
                             seq.map(formatNum).join(' , '),
@@ -303,21 +317,19 @@
                         penerangan: "Susunan menaik bermula daripada nombor terkecil kepada nombor terbesar iaitu: " + seq.map(formatNum).join(', ') + "."
                     };
                 } else if (topicId === 6) {
-                    let actual = rnd(1500, 8000);
-                    let approx = Math.round(actual / 500) * 500;
-                    if (approx === actual) approx += 100;
-
+                    const reference = 250 + (20 * levelIndex + i) * 50;
+                    const estimate = reference * 2;
                     qData = {
                         id: id, topik: "Anggarkan Nombor", tahap: level, aras_kognitif: "Mengaplikasi", jenis_game: "OBJEKTIF",
-                        soalan: "Sebuah balang mengandungi lebih kurang <strong>" + formatNum(actual) + "</strong> biji guli. Jika set rujukan separuh balang ialah 2,000 biji, pilih anggaran yang paling munasabah untuk seluruh balang:",
+                        soalan: `Separuh daripada balang mengandungi kira-kira <strong>${formatNum(reference)}</strong> biji guli. Berapakah anggaran bilangan guli apabila balang penuh?`,
                         gambarajah: "Ilustrasi Set Rujukan Kuantiti Guli",
-                        pilihan: [formatNum(approx), formatNum(actual + 3000), formatNum(Math.max(200, actual - 2000)), formatNum(actual + 4500)].sort(() => Math.random() - 0.5),
-                        jawapan: formatNum(approx),
+                        pilihan: [estimate, reference, estimate + 500, estimate - 100].map(formatNum).sort(() => Math.random() - 0.5),
+                        jawapan: formatNum(estimate),
                         markah: 5,
-                        penerangan: "Anggaran yang paling munasabah berdasarkan set rujukan terdekat ialah " + formatNum(approx) + "."
+                        penerangan: `Balang penuh bersamaan dua bahagian separuh. Anggarannya ialah 2 × ${formatNum(reference)} = ${formatNum(estimate)} biji guli.`
                     };
                 } else if (topicId === 7) {
-                    let num = rnd(1234, 8950);
+                    let num = 1300 + slot * 113;
                     let rounded = Math.round(num / 100) * 100;
 
                     qData = {
@@ -330,7 +342,7 @@
                         penerangan: "Digit puluh menentukan pembundaran kepada ratus terdekat. Hasil pembundaran bagi " + formatNum(num) + " ialah " + formatNum(rounded) + "."
                     };
                 } else if (topicId === 8) {
-                    let start = rnd(1000, 4000);
+                    let start = 1000 + slot * 43;
                     let step = [10, 100, 1000, 50][i % 4];
                     let s1 = start;
                     let s2 = start + step;
@@ -354,125 +366,125 @@
                     let explanation = "";
 
                     if (pType === 0) {
-                        let a = rnd(2100, 4500);
+                        let a = 3300 + levelIndex * 120;
                         let b = rnd(1200, 2300);
                         ansVal = a + b;
                         qText = "Encik Ali mengedarkan " + formatNum(a) + " risalah kesihatan. Pada minggu berikutnya, beliau mengedarkan " + formatNum(b) + " risalah lagi. Hitung jumlah keseluruhan risalah.";
                         explanation = "Campurkan " + formatNum(a) + " dengan " + formatNum(b) + " untuk mendapatkan jumlah " + formatNum(ansVal) + ".";
                     } else if (pType === 1) {
-                        let total = rnd(6500, 9800);
+                        let total = 8150 + levelIndex * 120;
                         let sold = rnd(2100, 4200);
                         ansVal = total - sold;
                         qText = "Sebuah kilang menghasilkan " + formatNum(total) + " buah kereta mainan. Sebanyak " + formatNum(sold) + " buah telah dijual. Berapakah baki kereta mainan?";
                         explanation = "Tolak jualan " + formatNum(sold) + " daripada jumlah asal " + formatNum(total) + " menghasilkan baki " + formatNum(ansVal) + ".";
                     } else if (pType === 2) {
-                        let box = rnd(120, 250);
+                        let box = 185 + levelIndex * 40;
                         let count = 20;
                         ansVal = box * count;
                         if (ansVal > 9999) ansVal = 4800;
                         qText = "Sebuah kotak besar mengandungi " + count + " batang pensel warna. Jika Puan Zetty membeli " + Math.round(ansVal/count) + " kotak, berapakah jumlah batang pensel?";
                         explanation = "Darabkan bilangan kotak dengan kandungan setiap kotak untuk mendapat jumlah " + formatNum(ansVal) + ".";
                     } else if (pType === 3) {
-                        let total = rnd(4000, 8000);
+                        let total = 6000 + levelIndex * 120;
                         total = Math.round(total / 4) * 4;
                         ansVal = total / 4;
                         qText = "Sebanyak " + formatNum(total) + " biji mangga diagihkan sama rata ke dalam 4 buah bakul. Berapakah bilangan mangga di dalam setiap bakul?";
                         explanation = "Bahagikan " + formatNum(total) + " dengan 4 bakul menghasilkan " + formatNum(ansVal) + " biji setiap bakul.";
                     } else if (pType === 4) {
-                        let init = rnd(1500, 3000);
+                        let init = 2250 + levelIndex * 120;
                         let add1 = rnd(1100, 2200);
                         let add2 = rnd(1300, 2400);
                         ansVal = init + add1 + add2;
                         qText = "Pusat Tuisyen mempunyai " + formatNum(init) + " murid pagi, " + formatNum(add1) + " murid petang, dan " + formatNum(add2) + " murid malam. Berapakah jumlah murid?";
                         explanation = "Jumlahkan kesemua kumpulan murid untuk mendapat " + formatNum(ansVal) + " orang.";
                     } else if (pType === 5) {
-                        let target = rnd(6000, 9500);
+                        let target = 7750 + levelIndex * 120;
                         let saved = rnd(2100, 4300);
                         ansVal = target - saved;
                         qText = "Farhan ingin mengumpul " + formatNum(target) + " sen untuk basikal. Setakat ini dia mengumpul " + formatNum(saved) + " sen. Berapakah baki wang yang perlu dikumpul?";
                         explanation = "Tolak wang terkumpul daripada sasaran untuk mendapat baki " + formatNum(ansVal) + " sen.";
                     } else if (pType === 6) {
-                        let initial = rnd(5000, 8000);
+                        let initial = 6500 + levelIndex * 120;
                         let taken = rnd(1500, 2500);
                         let added = rnd(1200, 3000);
                         ansVal = initial - taken + added;
                         qText = "Di dalam gudang ada " + formatNum(initial) + " kotak buku. Sebanyak " + formatNum(taken) + " dikeluarkan, kemudian " + formatNum(added) + " dimasukkan semula. Berapakah jumlah sekarang?";
                         explanation = "Tolak buku yang dikeluarkan dan tambah buku baharu untuk mendapat " + formatNum(ansVal) + ".";
                     } else if (pType === 7) {
-                        let perRow = rnd(150, 300);
+                        let perRow = 225 + levelIndex * 40;
                         let rows = 12;
                         ansVal = perRow * rows;
                         if (ansVal > 9999) ansVal = 3600;
                         qText = "Sebuah dewan mempunyai " + rows + " baris kerusi. Setiap baris disusun dengan " + perRow + " buah kerusi. Hitung jumlah keseluruhan kerusi.";
                         explanation = "Darabkan bilangan baris dengan kerusi sebaris menghasilkan " + formatNum(ansVal) + ".";
                     } else if (pType === 8) {
-                        let total = rnd(4500, 9000);
+                        let total = 6750 + levelIndex * 120;
                         total = Math.round(total / 5) * 5;
                         ansVal = total / 5;
                         qText = "Sebanyak " + formatNum(total) + " meter kain dipotong sama panjang kepada 5 gulungan. Berapakah panjang setiap gulungan?";
                         explanation = "Bahagikan jumlah panjang dengan 5 gulungan untuk mendapat " + formatNum(ansVal) + " meter.";
                     } else if (pType === 9) {
-                        let b1 = rnd(1100, 2300);
+                        let b1 = 1700 + levelIndex * 120;
                         let b2 = rnd(1400, 2600);
                         let b3 = rnd(1200, 2100);
                         ansVal = b1 + b2 + b3;
                         qText = "Perpustakaan merekodkan " + formatNum(b1) + " buku cerita, " + formatNum(b2) + " buku sains, dan " + formatNum(b3) + " majalah. Hitung jumlah bahan bacaan.";
                         explanation = "Campurkan ketiga-tiga jenis bahan bacaan untuk mendapat " + formatNum(ansVal) + ".";
                     } else if (pType === 10) {
-                        let budget = rnd(8000, 9900);
+                        let budget = 8950 + levelIndex * 120;
                         let spent = rnd(3400, 5200);
                         ansVal = budget - spent;
                         qText = "PIBG memperuntukkan dana " + formatNum(budget) + " Ringgit. Sebanyak " + formatNum(spent) + " Ringgit telah dibelanjakan. Berapakah baki dana?";
                         explanation = "Tolak perbelanjaan daripada peruntukan asal untuk mendapat baki " + formatNum(ansVal) + " Ringgit.";
                     } else if (pType === 11) {
-                        let kids = rnd(2000, 3500);
+                        let kids = 2750 + levelIndex * 120;
                         let adults = rnd(1500, 2500);
                         let seniors = rnd(800, 1300);
                         ansVal = kids + adults + seniors;
                         qText = "Konsert dihadiri oleh " + formatNum(kids) + " kanak-kanak, " + formatNum(adults) + " dewasa, dan " + formatNum(seniors) + " warga emas. Berapakah jumlah penonton?";
                         explanation = "Jumlahkan semua golongan penonton untuk mendapat " + formatNum(ansVal) + " orang.";
                     } else if (pType === 12) {
-                        let birds = rnd(4000, 7000);
+                        let birds = 5500 + levelIndex * 120;
                         let flown = rnd(1500, 2800);
                         ansVal = birds - flown;
                         qText = "Di paya terdapat " + formatNum(birds) + " ekor burung. Sebanyak " + formatNum(flown) + " ekor terbang berpindah. Berapakah baki burung?";
                         explanation = "Tolak burung yang terbang daripada jumlah awal untuk mendapat " + formatNum(ansVal) + " ekor.";
                     } else if (pType === 13) {
-                        let packs = rnd(120, 200);
+                        let packs = 160 + levelIndex * 40;
                         ansVal = packs * 30;
                         qText = "Kedai menerima " + packs + " bungkus pen. Setiap bungkus ada 30 batang. Hitung jumlah batang pen.";
                         explanation = "Darabkan bungkusan dengan kandungan sebungkus untuk mendapat " + formatNum(ansVal) + ".";
                     } else if (pType === 14) {
-                        let packets = rnd(4000, 8000);
+                        let packets = 6000 + levelIndex * 120;
                         packets = Math.round(packets / 8) * 8;
                         ansVal = packets / 8;
                         qText = "Sebanyak " + formatNum(packets) + " paket serbuk dimasukkan sama banyak ke dalam 8 kotak. Berapakah paket dalam setiap kotak?";
                         explanation = "Bahagikan jumlah paket dengan 8 kotak menghasilkan " + formatNum(ansVal) + ".";
                     } else if (pType === 15) {
-                        let s1 = rnd(2000, 3500);
+                        let s1 = 2750 + levelIndex * 120;
                         let s2 = rnd(2100, 4000);
                         ansVal = s1 + s2;
                         qText = "Pasukan Rumah Merah mengumpul " + formatNum(s1) + " markah pada separuh masa pertama dan " + formatNum(s2) + " markah pada separuh masa kedua. Jumlah markah?";
                         explanation = "Campurkan markah kedua-dua masa untuk mendapat " + formatNum(ansVal) + ".";
                     } else if (pType === 16) {
-                        let cap = rnd(8000, 9900);
+                        let cap = 8950 + levelIndex * 120;
                         let curr = rnd(4500, 7000);
                         ansVal = cap - curr;
                         qText = "Stadium mempunyai kapasiti " + formatNum(cap) + " penonton. Hari ini " + formatNum(curr) + " penonton hadir. Berapakah tempat duduk kosong?";
                         explanation = "Tolak kehadiran penonton daripada kapasiti stadium untuk mendapat " + formatNum(ansVal) + ".";
                     } else if (pType === 17) {
-                        let dist = rnd(1500, 3000);
+                        let dist = 2250 + levelIndex * 120;
                         ansVal = dist * 3;
-                        qText = "Jarak ke bandar A ialah " + formatNum(dist) + " meter. Jarak ke bandar B adalah 3 kali ganda lebih jauh. Berapakah jarak ke bandar B?";
+                        qText = "Jarak ke bandar A ialah " + formatNum(dist) + " meter. Jarak ke bandar B ialah 3 kali jarak ke bandar A. Berapakah jarak ke bandar B?";
                         explanation = "Darabkan jarak asas dengan 3 untuk mendapat " + formatNum(ansVal) + " meter.";
                     } else if (pType === 18) {
-                        let money = rnd(5000, 9000);
+                        let money = 7000 + levelIndex * 120;
                         money = Math.round(money / 5) * 5;
                         ansVal = money / 5;
                         qText = "Sebanyak " + formatNum(money) + " sen wang sumbangan diagihkan sama rata kepada 5 orang anak yatim. Berapakah bahagian setiap anak?";
                         explanation = "Bahagikan jumlah wang dengan 5 orang untuk mendapat " + formatNum(ansVal) + " sen.";
                     } else {
-                        let stock = rnd(6000, 9500);
+                        let stock = 7750 + levelIndex * 120;
                         let s1 = rnd(1200, 2200);
                         let s2 = rnd(1500, 2500);
                         ansVal = stock - s1 - s2;
@@ -482,7 +494,7 @@
 
                     let w1 = ansVal + rnd(100, 300);
                     let w2 = ansVal > 400 ? ansVal - rnd(100, 300) : ansVal + 400;
-                    let w3 = ansVal + rnd(400, 800);
+                    let w3 = ansVal + rnd(401, 800);
                     let options = [formatNum(ansVal), formatNum(w1), formatNum(w2), formatNum(w3)].sort(() => Math.random() - 0.5);
 
                     qData = {
@@ -887,7 +899,10 @@
         function startGameSession() {
             SoundFX.playClick();
             appState.activeQuestions = generateQuestionBank(appState.selectedTopic, appState.selectedLevel);
+            clearInterval(appState.timerInterval);
             appState.currentQuestionIndex = 0;
+            appState.answeredIndex = -1;
+            appState.finished = false;
             appState.score = 0;
             appState.correctCount = 0;
             appState.wrongCount = 0;
@@ -964,6 +979,8 @@
         }
 
         function handleAnswerSelection(selectedOpt, btnEl) {
+            if (appState.finished || appState.answeredIndex === appState.currentQuestionIndex) return;
+            appState.answeredIndex = appState.currentQuestionIndex;
             document.querySelectorAll('.answer-option').forEach(b => b.disabled = true);
             
             const q = appState.activeQuestions[appState.currentQuestionIndex];
@@ -1016,6 +1033,8 @@
         }
 
         function endGameSession() {
+            if (appState.finished) return;
+            appState.finished = true;
             if (appState.timerInterval) clearInterval(appState.timerInterval);
             
             const u = appState.currentUser;

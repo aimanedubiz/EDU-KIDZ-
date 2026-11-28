@@ -522,15 +522,19 @@
         let auth = null, db = null, firebaseUser = null;
         let cloudUsersDatabase = {};
 
-        // Import Firebase SDK modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        if (firebaseConfig) {
+        let firestore = null;
+        async function connectCloud() {
+            if (!firebaseConfig) return;
             try {
+                const [{ initializeApp }, authSdk, firestoreSdk] = await Promise.all([
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"),
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"),
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")
+                ]);
+                const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = authSdk;
+                firestore = firestoreSdk;
                 const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
+                db = firestore.getFirestore(app);
                 auth = getAuth(app);
 
                 // AUTHENTICATION & CLOUD LISTENER SETUP
@@ -554,9 +558,9 @@
 
         function initCloudSync() {
             if (!db || !firebaseUser) return;
-            const usersColRef = collection(db, 'artifacts', appId, 'public', 'data', 'usersDatabase');
+            const usersColRef = firestore.collection(db, 'artifacts', appId, 'public', 'data', 'usersDatabase');
             
-            onSnapshot(usersColRef, (snapshot) => {
+            firestore.onSnapshot(usersColRef, (snapshot) => {
                 cloudUsersDatabase = {};
                 snapshot.forEach((docSnap) => {
                     cloudUsersDatabase[docSnap.id] = docSnap.data();
@@ -575,8 +579,8 @@
         async function saveUserToCloud(username, userData) {
             if (!db) return;
             try {
-                const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'usersDatabase', username);
-                await setDoc(userDocRef, userData, { merge: true });
+                const userDocRef = firestore.doc(db, 'artifacts', appId, 'public', 'data', 'usersDatabase', username);
+                await firestore.setDoc(userDocRef, userData, { merge: true });
             } catch (err) {
                 console.error("Error saving to cloud:", err);
             }
@@ -595,6 +599,8 @@
 
         let activeQuizQuestions = [];
         let currentQuestionIndex = 0;
+        let answeredIndex = -1;
+        let resultRecorded = false;
         let sessionScore = 0;
         let sessionCorrect = 0;
         let sessionWrong = 0;
@@ -1101,6 +1107,8 @@
             }
 
             currentQuestionIndex = 0;
+            answeredIndex = -1;
+            resultRecorded = false;
             sessionScore = 0;
             sessionCorrect = 0;
             sessionWrong = 0;
@@ -1257,6 +1265,8 @@
         }
 
         function submitAnswer(isTimeOut = false) {
+            if (resultRecorded || answeredIndex === currentQuestionIndex || !activeQuizQuestions[currentQuestionIndex]) return;
+            answeredIndex = currentQuestionIndex;
             clearInterval(timerInterval);
             const q = activeQuizQuestions[currentQuestionIndex];
 
@@ -1308,6 +1318,7 @@
         }
 
         function nextQuestion() {
+            if (resultRecorded || answeredIndex !== currentQuestionIndex) return;
             currentQuestionIndex++;
             if (currentQuestionIndex < activeQuizQuestions.length) {
                 loadCurrentQuestion();
@@ -1317,6 +1328,8 @@
         }
 
         function finishQuizSession() {
+            if (resultRecorded || !activeQuizQuestions.length) return;
+            resultRecorded = true;
             const accuracy = Math.round((sessionCorrect / activeQuizQuestions.length) * 100);
             
             document.getElementById('res-score').innerText = `${sessionScore} / 100`;
@@ -1419,13 +1432,17 @@
                     else if (idx === 1) medal = "🥈 2";
                     else if (idx === 2) medal = "🥉 3";
 
-                    const gamesCount = (u.history || []).length;
+                    const history = u.history || [];
+                    const gamesCount = history.length;
+                    const accuracies = history.map(session => Number.parseFloat(session.accuracy)).filter(Number.isFinite);
+                    const accuracyLabel = accuracies.length
+                        ? `${Math.round(accuracies.reduce((sum, value) => sum + value, 0) / accuracies.length)}%` : '—';
                     tr.innerHTML = `
                         <td class="p-3 font-black">${medal}</td>
                         <td class="p-3 text-slate-900">${u.nickname || u.username}</td>
                         <td class="p-3 text-emerald-600 font-black">${u.totalScore || 0}</td>
                         <td class="p-3">${gamesCount} Sesi</td>
-                        <td class="p-3 text-sky-600">100%</td>
+                        <td class="p-3 text-sky-600">${accuracyLabel}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -1456,6 +1473,7 @@
         window.onload = function () {
             updateHeaderUI();
             showSection('section-home');
+            connectCloud();
         };
     </script>
 </body>

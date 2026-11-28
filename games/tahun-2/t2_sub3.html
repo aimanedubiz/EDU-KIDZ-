@@ -323,330 +323,131 @@
         // Global Question Bank Generator (Guarantees 20 unique questions per topic per level)
         const QuestionGenerator = {
             generateSessionQuestions(topicId, difficulty) {
-                const list = [];
-                const usedKeys = new Set();
-                let attempts = 0;
-
-                while (list.length < 20 && attempts < 500) {
-                    attempts++;
-                    const q = this.createSingleQuestion(topicId, difficulty, list.length + 1);
-                    const key = q.questionText + "_" + JSON.stringify(q.correctAnswer) + "_" + (q.visualHtml || '');
-                    if (!usedKeys.has(key)) {
-                        usedKeys.add(key);
-                        list.push(q);
-                    }
-                }
-
-                // Fallback top-up if unique combinations are exhausted before 20
-                while (list.length < 20) {
-                    const q = this.createSingleQuestion(topicId, difficulty, list.length + 1);
-                    list.push(q);
-                }
-
-                return list;
+                const tier = ['easy', 'medium', 'hard'].indexOf(difficulty);
+                return Array.from({length: 20}, (_, i) => this.build(topicId, difficulty, tier, i));
             },
 
-            createSingleQuestion(topicId, difficulty, index) {
-                // Topic switch
+            build(topicId, difficulty, tier, index) {
+                const slot = tier * 20 + index;
+                const tenths = slot % 9 + 1;
+                const decimal = n => (n / 10).toFixed(1);
+                const bar = n => VisualRenderer.renderBar(10, n, 250, 60, 'grid10');
+                const symbol = (a, b) => a === b ? '=' : a > b ? '>' : '<';
+                const q = {
+                    id: `T${topicId}_${difficulty}_${index + 1}`,
+                    topicId, gameType: 'objective',
+                    cognitive: ['Mengingat', 'Memahami', 'Mengaplikasi'][tier],
+                    visualHtml: ''
+                };
+                const fractionPairs = denominators => denominators.flatMap(d =>
+                    Array.from({length: d - 1}, (_, i) => [i + 1, d]));
+                const parts = fractionPairs([[2, 3, 4, 5], [6, 7, 8], [9, 10]][tier]);
+                const [num, den] = parts[index % parts.length];
+                const shapeType = index < parts.length ? 'pie' : 'bar';
                 switch (topicId) {
-                    case 1: return this.genTopic1(difficulty, index);
-                    case 2: return this.genTopic2(difficulty, index);
-                    case 3: return this.genTopic3(difficulty, index);
-                    case 4: return this.genTopic4(difficulty, index);
-                    case 5: return this.genTopic5(difficulty, index);
-                    case 6: return this.genTopic6(difficulty, index);
-                    case 7: return this.genTopic7(difficulty, index);
-                    case 8: return this.genTopic8(difficulty, index);
-                    default: return this.genTopic1(difficulty, index);
-                }
-            },
-
-            // Helper for random integer in range
-            randInt(min, max) {
-                return Math.floor(Math.random() * (max - min + 1)) + min;
-            },
-
-            // Helper to shuffle array
-            shuffle(arr) {
-                return [...arr].sort(() => Math.random() - 0.5);
-            },
-
-            // TOPIK 1: KENALI PECAHAN
-            genTopic1(diff, idx) {
-                const denominators = diff === 'easy' ? [2, 3, 4] : (diff === 'medium' ? [4, 5, 6, 8] : [5, 6, 8, 10]);
-                const denom = denominators[this.randInt(0, denominators.length - 1)];
-                const num = this.randInt(1, denom - 1);
-                
-                const qType = idx % 3; // 0: Fraction from diagram, 1: Numerator question, 2: Denominator question
-
-                if (qType === 0) {
-                    const theme = ['pizza', 'cake', 'watermelon', 'blue'][this.randInt(0, 3)];
-                    const visualHtml = VisualRenderer.renderPie(denom, num, 180, 180, theme);
-                    const correctStr = `${num}/${denom}`;
-                    
-                    // Choices
-                    const choices = new Set([correctStr]);
-                    choices.add(`${denom - num}/${denom}`);
-                    choices.add(`${num}/${denom + 1}`);
-                    choices.add(`${num + 1}/${denom}`);
-                    while (choices.size < 4) {
-                        choices.add(`${this.randInt(1, 9)}/${denom}`);
+                    case 1: {
+                        const ask = index < parts.length ? 'shaded' : 'total';
+                        const part = ask === 'shaded' ? num : den;
+                        q.questionText = ask === 'shaded'
+                            ? 'Nyatakan pecahan bagi bahagian yang berlorek.'
+                            : 'Berapakah jumlah bahagian sama besar dalam rajah?';
+                        q.visualHtml = shapeType === 'pie'
+                            ? VisualRenderer.renderPie(den, num, 160, 160, 'pizza')
+                            : VisualRenderer.renderBar(den, num, 240, 60, 'grid10');
+                        q.correctAnswer = ask === 'shaded' ? `${num}/${den}` : String(part);
+                        q.options = ask === 'shaded'
+                            ? [q.correctAnswer, `${num + 1}/${den}`, `${num}/${den + 1}`, `${num + 2}/${den}`]
+                            : [part, part + 1, part - 1, part + 2].map(String);
+                        q.explanation = `Rajah mempunyai ${den} bahagian sama besar. ${num} bahagian berlorek.`;
+                        break;
                     }
-
-                    return {
-                        id: `T1_${diff}_${idx}_${Date.now()}`,
-                        topicId: 1,
-                        gameType: 'objective',
-                        cognitive: 'Mengingat',
-                        questionText: 'Apakah pecahan bagi bahagian yang diwarnakan dalam gambar di bawah?',
-                        visualHtml: visualHtml,
-                        options: this.shuffle(Array.from(choices)),
-                        correctAnswer: correctStr,
-                        explanation: `Pecahan ialah ${correctStr} kerana ${num} daripada ${denom} bahagian telah diwarnakan.`
-                    };
-                } else if (qType === 1) {
-                    const choices = this.shuffle([num.toString(), denom.toString(), (num + 1).toString(), (denom - num).toString()]);
-                    return {
-                        id: `T1_${diff}_${idx}_${Date.now()}`,
-                        topicId: 1,
-                        gameType: 'objective',
-                        cognitive: 'Mengingat',
-                        questionText: `Dalam pecahan <span class="text-kidBlue font-bold text-3xl">${num}/${denom}</span>, manakah nombor <b>PENGANGKA</b> (nombor di atas)?`,
-                        visualHtml: VisualRenderer.renderPie(denom, num, 140, 140, 'pizza'),
-                        options: choices,
-                        correctAnswer: num.toString(),
-                        explanation: `Pengangka ialah nombor di sebelah ATAS garisan pecahan, iaitu ${num}.`
-                    };
-                } else {
-                    const choices = this.shuffle([denom.toString(), num.toString(), (denom + 2).toString(), (num + 1).toString()]);
-                    return {
-                        id: `T1_${diff}_${idx}_${Date.now()}`,
-                        topicId: 1,
-                        gameType: 'objective',
-                        cognitive: 'Mengingat',
-                        questionText: `Dalam pecahan <span class="text-kidPink font-bold text-3xl">${num}/${denom}</span>, manakah nombor <b>PENYEBUT</b> (nombor di bawah)?`,
-                        visualHtml: VisualRenderer.renderPie(denom, num, 140, 140, 'cake'),
-                        options: choices,
-                        correctAnswer: denom.toString(),
-                        explanation: `Penyebut ialah jumlah keseluruhan bahagian di BUKAN/ATAS iaitu nombor di sebelah BAWAH (${denom}).`
-                    };
+                    case 2:
+                        q.gameType = 'colorable';
+                        q.denom = den;
+                        q.targetNum = tier === 2 ? den - num : num;
+                        q.shapeType = shapeType;
+                        q.questionText = tier === 2
+                            ? `Dalam rajah ${shapeType === 'pie' ? 'bulatan' : 'jalur'}, biarkan ${num}/${den} bahagian kosong. Warnakan bahagian yang lain.`
+                            : `Warnakan ${num}/${den} daripada rajah ${shapeType === 'pie' ? 'bulatan' : 'jalur'}.`;
+                        q.correctAnswer = q.targetNum;
+                        q.explanation = `Warnakan ${q.targetNum} daripada ${den} bahagian yang sama besar.`;
+                        break;
+                    case 3: {
+                        const comparisonPairs = [[3, 4, 5], [6, 7], [8, 9, 10]][tier].flatMap(d =>
+                            Array.from({length: d}, (_, i) =>
+                                Array.from({length: d-i}, (_, j) => [i + 1, j + i + 1, d])).flat());
+                        const [x, y, d] = comparisonPairs[index];
+                        const [first, second] = index % 2 ? [x, y] : [y, x];
+                        q.questionText = `Pilih simbol: ${first}/${d} ___ ${second}/${d}`;
+                        q.visualHtml = VisualRenderer.renderBar(d, first, 170, 40, 'grid10') +
+                            VisualRenderer.renderBar(d, second, 170, 40, 'grid10');
+                        q.correctAnswer = symbol(first, second);
+                        q.options = ['>', '<', '='];
+                        q.explanation = `Penyebutnya sama. Bandingkan pengangka ${first} dengan ${second}.`;
+                        break;
+                    }
+                    case 4: {
+                        const n = tenths;
+                        const pattern = Math.floor(slot / 9);
+                        const remainder = 10 - n;
+                        const prompts = [
+                            [`Tukarkan ${n}/10 kepada perpuluhan.`, n],
+                            [`Suatu jalur mempunyai ${n} daripada 10 bahagian berlorek. Tulis perpuluhan bagi bahagian yang tidak berlorek.`, remainder],
+                            [`Suatu jalur mempunyai ${n} daripada 10 bahagian kosong. Tulis perpuluhan bagi bahagian yang berlorek.`, remainder],
+                            [`Seutas jalur berwarna memenuhi ${n} petak persepuluh. Selepas satu lagi petak diwarnakan, apakah perpuluhan bahagian berwarna?`, n+1],
+                            [`Daripada satu jalur penuh, ${n}/10 dipotong. Nyatakan baki jalur dalam bentuk perpuluhan.`, remainder],
+                            [`${n} petak persepuluh sudah diwarnakan. Padam warna satu petak. Nyatakan perpuluhan bahagian yang masih berwarna.`, n-1],
+                            [`Dua petak persepuluh sudah diwarnakan. Tambah ${n} lagi. Nyatakan bahagian berwarna sebagai perpuluhan.`, n+2]
+                        ];
+                        const [prompt, result] = prompts[pattern];
+                        q.questionText = prompt;
+                        q.visualHtml = pattern === 1 ? bar(n) : pattern === 2 ? bar(remainder) : '';
+                        q.correctAnswer = decimal(result);
+                        q.options = [result, result === 0 ? 9 : 0, result === 1 ? 8 : 1, result === 2 ? 7 : 2].map(decimal);
+                        q.explanation = `${result} persepuluh bersamaan ${decimal(result)}.`;
+                        break;
+                    }
+                    case 7: {
+                        const pairs = Array.from({length: 11}, (_, sum) =>
+                            Array.from({length: sum + 1}, (_, first) => [first, sum])).flat().slice(1);
+                        const [known, total] = pairs[slot];
+                        const missing = total - known;
+                        q.gameType = 'fillBlank';
+                        q.questionText = `Lengkapkan ayat matematik: ${decimal(known)} + ___ = ${decimal(total)}.`;
+                        q.correctAnswer = decimal(missing);
+                        q.explanation = `${total} persepuluh tolak ${known} persepuluh ialah ${missing} persepuluh, iaitu ${q.correctAnswer}.`;
+                        break;
+                    }
+                    case 5:
+                    case 6: {
+                        const pairs = Array.from({length: 11}, (_, i) =>
+                            Array.from({length: 11-i}, (_, j) => [i, i+j])).flat();
+                        const [x, y] = pairs[slot];
+                        const [first, second] = slot % 2 ? [x, y] : [y, x];
+                        const left = topicId === 5 ? decimal(first) : `${first}/10`;
+                        q.questionText = `Pilih simbol perbandingan yang betul: ${left} ___ ${decimal(second)}`;
+                        q.visualHtml = bar(first) + bar(second);
+                        q.correctAnswer = symbol(first, second);
+                        q.options = ['>', '<', '='];
+                        q.explanation = `${left} bersamaan ${decimal(first)}. Jadi ${decimal(first)} ${q.correctAnswer} ${decimal(second)}.`;
+                        break;
+                    }
+                    default: {
+                        const subjects = ['kek', 'piza', 'pai', 'jalur kertas', 'sekeping coklat', 'roti', 'sandwic'];
+                        const subject = subjects[Math.floor(slot / 9)];
+                        const lost = tier === 2;
+                        const part = lost ? 10 - tenths : tenths;
+                        q.questionText = lost
+                            ? `Sepotong ${subject} dibahagikan kepada 10 bahagian sama besar. ${tenths} bahagian diambil. Apakah perpuluhan bagi baki?`
+                            : `Satu ${subject} dibahagikan kepada 10 bahagian sama besar. ${tenths} bahagian diambil. Nyatakan bahagian yang diambil dalam bentuk ${tier === 0 ? 'pecahan' : 'perpuluhan'}.`;
+                        q.correctAnswer = tier === 0 ? `${part}/10` : decimal(part);
+                        q.options = [part, part - 1, part + 1, part < 3 ? 5 : part - 2]
+                            .map(n => tier === 0 ? `${n}/10` : decimal(n));
+                        q.explanation = `Jawapannya ${q.correctAnswer} kerana terdapat ${part} daripada 10 bahagian yang diminta.`;
+                    }
                 }
-            },
-
-            // TOPIK 2: WARNAKAN PECAHAN
-            genTopic2(diff, idx) {
-                const denomList = diff === 'easy' ? [2, 3, 4] : (diff === 'medium' ? [4, 5, 6, 8] : [6, 8, 10]);
-                const denom = denomList[this.randInt(0, denomList.length - 1)];
-                const num = this.randInt(1, denom - 1);
-                const shapeType = idx % 2 === 0 ? 'pie' : 'bar';
-
-                return {
-                    id: `T2_${diff}_${idx}_${Date.now()}`,
-                    topicId: 2,
-                    gameType: 'colorable',
-                    cognitive: 'Memahami',
-                    questionText: `Sila tekan bahagian pada gambarajah untuk mewarnakan pecahan <b><span class="text-kidGreen text-2xl">${num}/${denom}</span></b>:`,
-                    denom: denom,
-                    targetNum: num,
-                    shapeType: shapeType,
-                    correctAnswer: num,
-                    explanation: `Untuk mewarnakan ${num}/${denom}, anda perlu menekan tepat ${num} bahagian daripada ${denom} bahagian sama besar.`
-                };
-            },
-
-            // TOPIK 3: BANDINGKAN PECAHAN
-            genTopic3(diff, idx) {
-                const denomChoices = diff === 'easy' ? [2, 3, 4, 5] : (diff === 'medium' ? [4, 5, 6, 8] : [6, 8, 9, 10]);
-                const denom = denomChoices[this.randInt(0, denomChoices.length - 1)];
-                const n1 = this.randInt(1, denom - 1);
-                let n2 = this.randInt(1, denom - 1);
-                if (n1 === n2) n2 = (n1 % (denom - 1)) + 1;
-
-                let symbol = '=';
-                if (n1 > n2) symbol = '>';
-                if (n1 < n2) symbol = '<';
-
-                const visualHtml = `<div class="flex items-center justify-center gap-4 my-2">
-                    <div class="text-center">
-                        ${VisualRenderer.renderPie(denom, n1, 120, 120, 'pizza')}
-                        <span class="font-bold text-xl text-slate-700">${n1}/${denom}</span>
-                    </div>
-                    <div class="text-3xl font-black text-kidPink animate-pulse">?</div>
-                    <div class="text-center">
-                        ${VisualRenderer.renderPie(denom, n2, 120, 120, 'cake')}
-                        <span class="font-bold text-xl text-slate-700">${n2}/${denom}</span>
-                    </div>
-                </div>`;
-
-                return {
-                    id: `T3_${diff}_${idx}_${Date.now()}`,
-                    topicId: 3,
-                    gameType: 'objective',
-                    cognitive: 'Memahami',
-                    questionText: `Bandingkan dua pecahan ini. Pilih simbol perbandingan yang betul: <br><b>${n1}/${denom} &nbsp; [ &nbsp;?&nbsp; ] &nbsp; ${n2}/${denom}</b>`,
-                    visualHtml: visualHtml,
-                    options: ['>', '<', '='],
-                    correctAnswer: symbol,
-                    explanation: `${n1}/${denom} adalah ${symbol === '>' ? 'LEBIH BESAR daripada' : 'LEBIH KECIL daripada'} ${n2}/${denom}.`
-                };
-            },
-
-            // TOPIK 4: TUKAR PECAHAN KEPADA PERPULUHAN
-            genTopic4(diff, idx) {
-                const num = this.randInt(1, 9);
-                const fracStr = `${num}/10`;
-                const decStr = (num / 10).toFixed(1);
-
-                const choices = this.shuffle([decStr, `0.0${num}`, `${num}.0`, `0.${num > 5 ? num-1 : num+1}`]);
-
-                return {
-                    id: `T4_${diff}_${idx}_${Date.now()}`,
-                    topicId: 4,
-                    gameType: 'objective',
-                    cognitive: 'Memahami',
-                    questionText: `Tukarkan pecahan persepuluh <b><span class="text-kidBlue text-3xl">${fracStr}</span></b> kepada nombor perpuluhan:`,
-                    visualHtml: VisualRenderer.renderBar(10, num, 250, 60, 'grid10'),
-                    options: choices,
-                    correctAnswer: decStr,
-                    explanation: `${fracStr} bersamaan dengan ${decStr} kerana ${num} bahagian daripada 10 ialah ${decStr}.`
-                };
-            },
-
-            // TOPIK 5: BANDINGKAN PERPULUHAN
-            genTopic5(diff, idx) {
-                const d1 = (this.randInt(1, 9) / 10);
-                let d2 = (this.randInt(1, 9) / 10);
-                if (d1 === d2) d2 = (d1 > 0.5 ? d1 - 0.1 : d1 + 0.1);
-                
-                const d1Str = d1.toFixed(1);
-                const d2Str = d2.toFixed(1);
-
-                let symbol = d1 > d2 ? '>' : '<';
-
-                const visualHtml = `<div class="flex items-center justify-center gap-4 my-2">
-                    <div class="text-center">
-                        ${VisualRenderer.renderBar(10, Math.round(d1*10), 130, 50, 'grid10')}
-                        <span class="font-bold text-lg text-blue-600">${d1Str}</span>
-                    </div>
-                    <div class="text-2xl font-bold text-kidPink">VS</div>
-                    <div class="text-center">
-                        ${VisualRenderer.renderBar(10, Math.round(d2*10), 130, 50, 'fruit')}
-                        <span class="font-bold text-lg text-emerald-600">${d2Str}</span>
-                    </div>
-                </div>`;
-
-                return {
-                    id: `T5_${diff}_${idx}_${Date.now()}`,
-                    topicId: 5,
-                    gameType: 'objective',
-                    cognitive: 'Memahami',
-                    questionText: `Bandingkan nilai perpuluhan berikut: <br><b>${d1Str} &nbsp; [ &nbsp;?&nbsp; ] &nbsp; ${d2Str}</b>`,
-                    visualHtml: visualHtml,
-                    options: ['>', '<', '='],
-                    correctAnswer: symbol,
-                    explanation: `${d1Str} adalah ${symbol === '>' ? 'lebih besar daripada' : 'lebih kecil daripada'} ${d2Str}.`
-                };
-            },
-
-            // TOPIK 6: BANDINGKAN PECAHAN DAN PERPULUHAN
-            genTopic6(diff, idx) {
-                const num = this.randInt(1, 9);
-                const fracStr = `${num}/10`;
-                
-                let targetDecVal;
-                const mode = idx % 3;
-                if (mode === 0) {
-                    targetDecVal = num / 10; // equal
-                } else if (mode === 1) {
-                    targetDecVal = Math.min(0.9, (num + this.randInt(1, 2)) / 10);
-                } else {
-                    targetDecVal = Math.max(0.1, (num - this.randInt(1, 2)) / 10);
-                }
-
-                const targetDecStr = targetDecVal.toFixed(1);
-                const fracVal = num / 10;
-                let symbol = '=';
-                if (fracVal > targetDecVal) symbol = '>';
-                if (fracVal < targetDecVal) symbol = '<';
-
-                return {
-                    id: `T6_${diff}_${idx}_${Date.now()}`,
-                    topicId: 6,
-                    gameType: 'objective',
-                    cognitive: 'Memahami',
-                    questionText: `Pilih simbol perbandingan yang betul antara pecahan dan perpuluhan ini: <br><b><span class="text-kidPurple font-bold">${fracStr}</span> &nbsp; [ &nbsp;?&nbsp; ] &nbsp; <span class="text-kidOrange font-bold">${targetDecStr}</span></b>`,
-                    visualHtml: VisualRenderer.renderBar(10, num, 240, 60, 'grid10'),
-                    options: ['>', '<', '='],
-                    correctAnswer: symbol,
-                    explanation: `${fracStr} adalah bernilai ${(num/10).toFixed(1)}. Jadi ${fracStr} ${symbol === '=' ? 'sama dengan' : (symbol === '>' ? 'lebih besar daripada' : 'lebih kecil daripada')} ${targetDecStr}.`
-                };
-            },
-
-            // TOPIK 7: LENGKAPKAN AYAT MATEMATIK
-            genTopic7(diff, idx) {
-                const num = this.randInt(1, 9);
-                const decVal = (num / 10).toFixed(1);
-
-                return {
-                    id: `T7_${diff}_${idx}_${Date.now()}`,
-                    topicId: 7,
-                    gameType: 'fillBlank',
-                    cognitive: 'Mengaplikasi',
-                    questionText: `Daripada 10 bahagian sama besar, <b>${num}</b> bahagian diwarnakan. <br>Lengkapkan ayat matematik: <b>${num}/10 = ____</b>`,
-                    visualHtml: VisualRenderer.renderBar(10, num, 250, 60, 'grid10'),
-                    correctAnswer: decVal,
-                    explanation: `Daripada 10 bahagian, ${num} bahagian bersamaan pecahan ${num}/10 dan ditukar kepada perpuluhan ${decVal}.`
-                };
-            },
-
-            // TOPIK 8: PENYELESAIAN MASALAH
-            genTopic8(diff, idx) {
-                const items = [
-                    { name: 'Pizza', denom: 4, unit: 'potong pizza', icon: '🍕', theme: 'pizza' },
-                    { name: 'Kek Cawan', denom: 5, unit: 'kek cawan', icon: '🧁', theme: 'cake' },
-                    { name: 'Coklat', denom: 10, unit: 'keping coklat', icon: '🍫', theme: 'chocolate' },
-                    { name: 'Tembikai', denom: 8, unit: 'potong tembikai', icon: '🍉', theme: 'watermelon' }
-                ];
-
-                const item = items[idx % items.length];
-                const eaten = this.randInt(1, item.denom - 1);
-                
-                const isDecimal = item.denom === 10 && (idx % 2 === 0);
-
-                if (isDecimal) {
-                    const ans = (eaten / 10).toFixed(1);
-                    const choices = this.shuffle([ans, `0.0${eaten}`, `${eaten}.0`, `0.${eaten < 5 ? eaten + 2 : eaten - 1}`]);
-                    return {
-                        id: `T8_${diff}_${idx}_${Date.now()}`,
-                        topicId: 8,
-                        gameType: 'objective',
-                        cognitive: 'Mengaplikasi',
-                        questionText: `Ali ada 10 keping coklat ${item.icon}. Dia makan <b>${eaten}</b> keping daripadanya. Berapakah <b>perpuluhan</b> coklat yang telah dimakan Ali?`,
-                        visualHtml: VisualRenderer.renderBar(10, eaten, 240, 60, 'chocolate'),
-                        options: choices,
-                        correctAnswer: ans,
-                        explanation: `Ali makan ${eaten} daripada 10 keping coklat, iaitu ${eaten}/10 = ${ans}.`
-                    };
-                } else {
-                    const ansStr = `${eaten}/${item.denom}`;
-                    const choices = new Set([ansStr]);
-                    choices.add(`${item.denom - eaten}/${item.denom}`);
-                    choices.add(`${eaten}/${item.denom + 1}`);
-                    choices.add(`${eaten + 1}/${item.denom}`);
-                    while (choices.size < 4) choices.add(`${this.randInt(1, 3)}/${item.denom}`);
-
-                    return {
-                        id: `T8_${diff}_${idx}_${Date.now()}`,
-                        topicId: 8,
-                        gameType: 'objective',
-                        cognitive: 'Mengaplikasi',
-                        questionText: `Siti membeli sebiji ${item.name} ${item.icon} yang dibahagikan kepada <b>${item.denom}</b> bahagian sama besar. Dia memberi <b>${eaten}</b> bahagian kepada adiknya. Apakah <b>pecahan</b> bahagian yang diberi?`,
-                        visualHtml: VisualRenderer.renderPie(item.denom, eaten, 160, 160, item.theme),
-                        options: this.shuffle(Array.from(choices)),
-                        correctAnswer: ansStr,
-                        explanation: `Siti memberi ${eaten} daripada ${item.denom} bahagian, maka pecahannya ialah ${ansStr}.`
-                    };
-                }
+                if (q.options) q.options.sort(() => Math.random() - 0.5);
+                return q;
             }
         };
     </script>
@@ -674,28 +475,13 @@
             selectedInteractiveIndices: [],
 
             init() {
-                // Load local database or seed default kid accounts
+                // Load existing local player records
                 const saved = localStorage.getItem('MATHKIDS_USERS_DB');
                 if (saved) {
                     try { this.usersDb = JSON.parse(saved); } catch(e){}
                 }
                 
-                if (Object.keys(this.usersDb).length === 0) {
-                    // Seed initial demo profile
-                    this.usersDb['murid1'] = {
-                        username: 'murid1',
-                        name: 'Aiman Hafiz',
-                        password: '123',
-                        score: 350,
-                        highScore: 95,
-                        totalPlayed: 5,
-                        totalAnswered: 100,
-                        totalCorrect: 82,
-                        totalWrong: 18,
-                        topicProgress: {1: 90, 2: 70, 3: 50, 4: 40, 5: 20, 6: 10, 7: 0, 8: 0}
-                    };
-                    this.saveDb();
-                }
+
             },
 
             saveDb() {
@@ -1257,6 +1043,8 @@
             AudioEngine.playBtnClick();
             AppState.sessionQuestions = QuestionGenerator.generateSessionQuestions(AppState.activeTopic, AppState.activeDifficulty);
             AppState.currentQIdx = 0;
+            AppState.answeredIndex = -1;
+            AppState.resultRecorded = false;
             AppState.score = 0;
             AppState.correctCount = 0;
             AppState.wrongCount = 0;
@@ -1371,6 +1159,8 @@
         }
 
         function processAnswer(userAns, isTimeout = false) {
+            if (AppState.resultRecorded || AppState.answeredIndex === AppState.currentQIdx) return;
+            AppState.answeredIndex = AppState.currentQIdx;
             if (AppState.timerInterval) clearInterval(AppState.timerInterval);
             const q = AppState.sessionQuestions[AppState.currentQIdx];
 
@@ -1378,6 +1168,9 @@
             if (!isTimeout && userAns !== null) {
                 if (typeof q.correctAnswer === 'number') {
                     isCorrect = (Number(userAns) === q.correctAnswer);
+                } else if (q.gameType === 'fillBlank') {
+                    const input = String(userAns).trim();
+                    isCorrect = /^\d+(?:\.\d+)?$/.test(input) && Number(input) === Number(q.correctAnswer);
                 } else {
                     isCorrect = (String(userAns).trim() === String(q.correctAnswer).trim());
                 }
@@ -1414,6 +1207,7 @@
         }
 
         function nextQuestion() {
+            if (AppState.resultRecorded || AppState.answeredIndex !== AppState.currentQIdx) return;
             AudioEngine.playBtnClick();
             document.getElementById('modal-feedback').classList.add('hidden');
             AppState.currentQIdx++;
@@ -1421,6 +1215,8 @@
         }
 
         function finishGameSession() {
+            if (AppState.resultRecorded) return;
+            AppState.resultRecorded = true;
             AudioEngine.playFanfare();
             triggerFireworks();
 

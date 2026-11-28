@@ -566,35 +566,10 @@
                     actualMode = modes[Math.floor(Math.random() * modes.length)];
                 }
 
-                const questionId = `T${topicId}_L${level}_Q${index}_${Math.floor(Math.random() * 10000)}`;
+                const questionId = `T${topicId}_L${level}_Q${index}`;
 
-                let qData = {};
-
-                switch (parseInt(topicId)) {
-                    case 1: // Kenali Wang
-                        qData = this.genTopic1(level, actualMode);
-                        break;
-                    case 2: // Nyatakan Jumlah Nilai
-                        qData = this.genTopic2(level, actualMode);
-                        break;
-                    case 3: // Padankan Jumlah
-                        qData = this.genTopic3(level, actualMode);
-                        break;
-                    case 4: // Tukaran Wang
-                        qData = this.genTopic4(level, actualMode);
-                        break;
-                    case 5: // Ayat Matematik Gambar
-                        qData = this.genTopic5(level, actualMode);
-                        break;
-                    case 6: // Tambah & Tolak
-                        qData = this.genTopic6(level, actualMode);
-                        break;
-                    case 7: // Penyelesaian Masalah
-                        qData = this.genTopic7(level, actualMode);
-                        break;
-                    default:
-                        qData = this.genTopic1(level, actualMode);
-                }
+                const tier = ['mudah', 'sederhana', 'susah'].indexOf(level);
+                const qData = this.buildMoneyQuestion(Number(topicId), tier, index);
 
                 return {
                     id: questionId,
@@ -607,207 +582,90 @@
                 };
             }
 
-            // --- Topic Generators ---
-            genTopic1(level, mode) { // Kenali Wang
-                const items = level === 'mudah' ? 
-                    ['5sen', '10sen', '20sen', '50sen', 'RM1', 'RM5'] :
-                    ['RM1', 'RM5', 'RM10', 'RM20', 'RM50', 'RM100'];
-
-                const target = items[Math.floor(Math.random() * items.length)];
-                const isCoin = target.includes('sen');
-                const valText = target.replace('sen', ' sen');
-
-                const prompt = isCoin ? "Apakah nilai wang syiling ini?" : "Apakah nilai wang kertas ini?";
-                
-                // Formulate choices
-                let choices = [valText];
-                while(choices.length < 4) {
-                    const randItem = items[Math.floor(Math.random() * items.length)].replace('sen', ' sen');
-                    if (!choices.includes(randItem)) choices.push(randItem);
-                }
-                choices.sort(() => Math.random() - 0.5);
-
-                return {
-                    prompt: prompt,
-                    visuals: [target],
-                    choices: choices,
-                    correctAnswer: valText,
-                    targetValue: valText
-                };
+            formatMoney(cents) {
+                return cents < 100 ? `${cents} sen` : `RM${(cents / 100).toFixed(2).replace(/\.00$/, '')}`;
             }
 
-            genTopic2(level, mode) { // Nyatakan Jumlah Nilai
+            moneyPieces(cents) {
+                const pieces = [];
+                for (const value of [10000, 5000, 2000, 1000, 500, 100, 50, 20, 10, 5]) {
+                    while (cents >= value) {
+                        pieces.push(value >= 100 ? `RM${value / 100}` : `${value}sen`);
+                        cents -= value;
+                    }
+                }
+                return pieces;
+            }
+
+            buildMoneyQuestion(topic, tier, index) {
+                const format = cents => this.formatMoney(cents);
+                const pieces = cents => this.moneyPieces(cents);
+                const slot = tier * 20 + index;
+                const price = 5 * (index + 2);
+                const budget = 5 * (slot + 27);
+                let result;
+                let prompt;
                 let visuals = [];
-                let totalCents = 0;
-
-                if (level === 'mudah') {
-                    // Small coins
-                    const pool = ['10sen', '20sen', '50sen'];
-                    const count = Math.floor(Math.random() * 2) + 2; // 2 or 3 coins
-                    for (let i = 0; i < count; i++) {
-                        const item = pool[Math.floor(Math.random() * pool.length)];
-                        visuals.push(item);
-                        totalCents += parseInt(item);
+                let choices;
+                switch (topic) {
+                    case 1: {
+                        const denominations = [[5, 10, 20, 50, 100], [100, 500, 1000, 2000, 5000], [10, 50, 500, 2000, 10000]][tier];
+                        const first = (index - 1) % 5;
+                        const offset = 1 + Math.floor((index - 1) / 5);
+                        const second = (first + offset) % 5;
+                        const values = [denominations[first], denominations[second]];
+                        const at = tier === 0 ? 0 : tier === 1 ? 1 : (values[0] > values[1] ? 0 : 1);
+                        const target = ['wang di sebelah kiri', 'wang di sebelah kanan', 'wang yang bernilai lebih tinggi'][tier];
+                        prompt = `Apakah nilai ${target}?`;
+                        visuals = values.flatMap(pieces);
+                        result = values[at];
+                        choices = [result, ...denominations.filter(value => value !== result)].slice(0, 4).map(format);
+                        break;
                     }
-                } else if (level === 'sederhana') {
-                    // Notes & coins
-                    visuals = ['RM1', 'RM2', 'RM5'][Math.floor(Math.random()*3)] === 'RM5' ? ['RM5', '50sen'] : ['RM1', 'RM1', '20sen', '10sen'];
-                    totalCents = visuals.reduce((acc, v) => acc + (v.includes('RM') ? parseInt(v.replace('RM','')) * 100 : parseInt(v)), 0);
-                } else {
-                    // Hard combo
-                    visuals = ['RM5', 'RM1', 'RM1', '50sen', '20sen'];
-                    totalCents = 770;
-                }
-
-                const totalStr = totalCents >= 100 ? `RM${(totalCents/100).toFixed(2).replace('.00','')}` : `${totalCents} sen`;
-
-                let choices = [totalStr];
-                while(choices.length < 4) {
-                    const delta = (Math.floor(Math.random() * 4) - 2) * 10;
-                    if (delta === 0) continue;
-                    let fake = totalCents + delta;
-                    if (fake <= 0) fake = totalCents + 20;
-                    const fakeStr = fake >= 100 ? `RM${(fake/100).toFixed(2).replace('.00','')}` : `${fake} sen`;
-                    if (!choices.includes(fakeStr)) choices.push(fakeStr);
-                }
-                choices.sort(() => Math.random() - 0.5);
-
-                return {
-                    prompt: "Berapakah jumlah nilai wang di atas?",
-                    visuals: visuals,
-                    choices: choices,
-                    correctAnswer: totalStr,
-                    targetValue: totalStr
-                };
-            }
-
-            genTopic3(level, mode) { // Padankan Jumlah
-                const pairs = [
-                    { vis: ['50sen'], val: '50 sen' },
-                    { vis: ['20sen', '10sen'], val: '30 sen' },
-                    { vis: ['RM1', 'RM1'], val: 'RM2' },
-                    { vis: ['RM5', 'RM1'], val: 'RM6' },
-                    { vis: ['50sen', '50sen'], val: 'RM1' }
-                ];
-                const sel = pairs[Math.floor(Math.random() * pairs.length)];
-
-                let choices = [sel.val, '40 sen', 'RM5', '80 sen', 'RM3'].filter((v, i, a) => a.indexOf(v) === i).slice(0, 4);
-                if (!choices.includes(sel.val)) choices[0] = sel.val;
-                choices.sort(() => Math.random() - 0.5);
-
-                return {
-                    prompt: "Pilih jumlah nilai wang yang sepadan:",
-                    visuals: sel.vis,
-                    choices: choices,
-                    correctAnswer: sel.val,
-                    targetValue: sel.val
-                };
-            }
-
-            genTopic4(level, mode) { // Lengkapkan Tukaran Wang
-                const options = [
-                    { prompt: "50 sen sama nilai dengan berapa keping syiling 10 sen?", ans: "5", vis: ['50sen'] },
-                    { prompt: "20 sen sama nilai dengan berapa keping syiling 10 sen?", ans: "2", vis: ['20sen'] },
-                    { prompt: "RM1 sama nilai dengan berapa keping syiling 50 sen?", ans: "2", vis: ['RM1'] },
-                    { prompt: "RM5 sama nilai dengan berapa keping wang kertas RM1?", ans: "5", vis: ['RM5'] },
-                    { prompt: "RM10 sama nilai dengan berapa keping wang kertas RM5?", ans: "2", vis: ['RM10'] }
-                ];
-                const sel = options[Math.floor(Math.random() * options.length)];
-                
-                let choices = [sel.ans, "3", "4", "10"].filter((v, i, a) => a.indexOf(v) === i);
-                choices.sort(() => Math.random() - 0.5);
-
-                return {
-                    prompt: sel.prompt,
-                    visuals: sel.vis,
-                    choices: choices,
-                    correctAnswer: sel.ans,
-                    targetValue: sel.ans
-                };
-            }
-
-            genTopic5(level, mode) { // Ayat Matematik Gambar
-                const num1 = level === 'mudah' ? Math.floor(Math.random() * 3) + 1 : Math.floor(Math.random() * 5) + 2;
-                const num2 = Math.floor(Math.random() * 3) + 1;
-                const isAdd = Math.random() > 0.3;
-
-                if (isAdd) {
-                    const ans = num1 + num2;
-                    return {
-                        prompt: `Lengkapkan ayat matematik: RM${num1} + RM${num2} = ?`,
-                        visuals: [`RM${num1}`.replace('RM3','RM1').replace('RM4','RM1'), `RM${num2}`.replace('RM3','RM1')],
-                        choices: [`RM${ans}`, `RM${ans+1}`, `RM${ans-1 <= 0 ? 9 : ans-1}`, `RM${ans+2}`],
-                        correctAnswer: `RM${ans}`
-                    };
-                } else {
-                    const top = num1 + num2;
-                    return {
-                        prompt: `Lengkapkan ayat matematik: RM${top} - RM${num2} = ?`,
-                        visuals: [`RM${top}`.replace('RM3','RM5').replace('RM4','RM5')],
-                        choices: [`RM${num1}`, `RM${num1+2}`, `RM${num1+1}`, `RM${num1-1 <= 0 ? 8 : num1-1}`],
-                        correctAnswer: `RM${num1}`
-                    };
-                }
-            }
-
-            genTopic6(level, mode) { // Tambah & Tolak
-                if (level === 'mudah') {
-                    const v1 = (Math.floor(Math.random() * 4) + 1) * 10;
-                    const v2 = (Math.floor(Math.random() * 3) + 1) * 10;
-                    const ans = v1 + v2;
-                    return {
-                        prompt: `Hitung: ${v1} sen + ${v2} sen = ___`,
-                        visuals: [`${v1}sen`.replace('30sen','20sen'), `${v2}sen`.replace('30sen','10sen')],
-                        choices: [`${ans} sen`, `${ans+10} sen`, `${ans-10} sen`, `${ans+20} sen`],
-                        correctAnswer: `${ans} sen`
-                    };
-                } else {
-                    const r1 = Math.floor(Math.random() * 5) + 2;
-                    const r2 = Math.floor(Math.random() * 2) + 1;
-                    const ans = r1 - r2;
-                    return {
-                        prompt: `Hitung baki: RM${r1} - RM${r2} = ___`,
-                        visuals: ['RM5', 'RM1'],
-                        choices: [`RM${ans}`, `RM${ans+1}`, `RM${ans+2}`, `RM${ans-1 <= 0 ? 7 : ans-1}`],
-                        correctAnswer: `RM${ans}`
-                    };
-                }
-            }
-
-            genTopic7(level, mode) { // Penyelesaian Masalah
-                const stories = [
-                    {
-                        name: "Aina",
-                        item: "buku cerita",
-                        cost: 4,
-                        paid: 5,
-                        type: "change"
-                    },
-                    {
-                        name: "Adam",
-                        item: "pensel warna",
-                        cost: 3,
-                        paid: 10,
-                        type: "change"
-                    },
-                    {
-                        name: "Siti",
-                        item: "epal",
-                        cost: 2,
-                        paid: 5,
-                        type: "change"
+                    case 2:
+                        result = 10 + slot * 5;
+                        visuals = pieces(result);
+                        prompt = 'Berapakah jumlah nilai wang yang ditunjukkan?';
+                        break;
+                    case 3:
+                        result = 310 + slot * 5;
+                        visuals = pieces(result);
+                        prompt = 'Padankan kumpulan wang ini dengan jumlah nilainya.';
+                        break;
+                    case 4: {
+                        const value = [5, 10, 50][tier];
+                        const count = index + 2;
+                        const total = count * value;
+                        prompt = `${format(total)} sama nilai dengan berapa keping syiling ${format(value)}?`;
+                        visuals = pieces(total);
+                        return {prompt, visuals, correctAnswer: String(count), targetValue: String(count),
+                            choices: [count, count + 1, count - 1, count + 2].map(String).sort(() => Math.random() - 0.5)};
                     }
-                ];
-
-                const s = stories[Math.floor(Math.random() * stories.length)];
-                const change = s.paid - s.cost;
-
-                return {
-                    prompt: `${s.name} ada RM${s.paid}. Dia membeli ${s.item} berharga RM${s.cost}. Berapakah baki wang ${s.name}?`,
-                    visuals: [`RM${s.paid}`],
-                    choices: [`RM${change}`, `RM${change+1}`, `RM${change+2}`, `RM${s.cost}`],
-                    correctAnswer: `RM${change}`
-                };
+                    case 5: {
+                        const extra = budget + 100;
+                        result = price + extra;
+                        prompt = `Lengkapkan ayat matematik bagi dua kumpulan wang: ${format(price)} + ${format(extra)} = ___`;
+                        visuals = [...pieces(price), '+', ...pieces(extra)];
+                        break;
+                    }
+                    case 6:
+                        result = budget - 5 * (2 + index % 9);
+                        prompt = `Hitung baki wang: ${format(budget)} − ${format(budget - result)} = ___`;
+                        break;
+                    default: {
+                        const names = ['Aina', 'Adam', 'Siti', 'Mei Ling', 'Ravi'];
+                        const goods = ['pemadam', 'sekeping pelekat', 'sebatang pensel', 'sehelai sampul', 'sebatang pembaris kecil'];
+                        const person = names[index % names.length];
+                        const paid = 500 + budget;
+                        result = paid - price;
+                        prompt = `${person} ada ${format(paid)}. Harga ${goods[index % goods.length]} ialah ${format(price)}. Berapakah baki wang ${person}?`;
+                        visuals = pieces(paid);
+                    }
+                }
+                const correctAnswer = format(result);
+                choices ??= [result, result + 5, result + 10, result + 15].map(format);
+                return {prompt, visuals, correctAnswer, targetValue: correctAnswer,
+                    choices: choices.sort(() => Math.random() - 0.5)};
             }
         }
         const questionEngine = new QuestionEngine();
@@ -909,6 +767,7 @@
                 };
                 this.activeQuiz = [];
                 this.currentQuestionIdx = 0;
+                this.answeredIndex = -1;
                 this.quizScore = 0;
                 this.timerInterval = null;
                 this.timeLeft = 30;
@@ -1314,6 +1173,7 @@
                     []
                 );
                 this.currentQuestionIdx = 0;
+                this.answeredIndex = -1;
                 this.quizScore = 0;
                 this.renderQuestion();
             }
@@ -1415,9 +1275,12 @@
             }
 
             submitAnswer(userAns) {
+                if (this.answeredIndex === this.currentQuestionIdx || !this.activeQuiz[this.currentQuestionIdx]) return;
+                this.answeredIndex = this.currentQuestionIdx;
                 clearInterval(this.timerInterval);
                 const q = this.activeQuiz[this.currentQuestionIdx];
-                const isCorrect = userAns && userAns.toString().toLowerCase() === q.correctAnswer.toString().toLowerCase();
+                const normalize = value => String(value).toLowerCase().replace(/\s+/g, '').replace(/\.00$/, '');
+                const isCorrect = userAns != null && normalize(userAns) === normalize(q.correctAnswer);
 
                 if (isCorrect) {
                     this.quizScore += 5;
@@ -1456,6 +1319,7 @@
             }
 
             nextQuestion() {
+                if (this.answeredIndex !== this.currentQuestionIdx) return;
                 document.getElementById('feedbackModal').classList.add('hidden');
                 this.currentQuestionIdx++;
 

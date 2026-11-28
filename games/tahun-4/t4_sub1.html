@@ -145,6 +145,7 @@
                 bank[top.id] = { SENANG: [], SEDERHANA: [], SUSAH: [] };
 
                 for (let difficulty of ['SENANG', 'SEDERHANA', 'SUSAH']) {
+                    const levelIndex = ['SENANG', 'SEDERHANA', 'SUSAH'].indexOf(difficulty);
                     for (let i = 1; i <= 20; i++) {
                         let q = {};
                         const qId = `KPM_T4_${top.id}_${difficulty.substring(0,3)}_${String(i).padStart(3, '0')}`;
@@ -178,7 +179,7 @@
                                         id: qId, topik: top.title, subtopik: 'Nilai Digit', tahap: difficulty,
                                         aras_kognitif: 'Memahami', jenis: 'objektif',
                                         soalan: `Apakah <b>nilai digit</b> bagi digit <b>${targetDigit}</b> dalam nombor <b>${fmt(val)}</b>?`,
-                                        pilihan: shuffleArray([fmt(correctVal), fmt(targetDigit * 100), fmt(targetDigit * 10000), fmt(targetDigit * 10), fmt(targetDigit)]),
+                                        pilihan: shuffleArray([...[1, 10, 100, 1000, 10000].map(place => fmt(targetDigit * place))]),
                                         jawapan: fmt(correctVal), markah: 5,
                                         penerangan: `Digit ${targetDigit} berada di kedudukannya, maka nilai digitnya ialah ${fmt(correctVal)}.`
                                     };
@@ -253,13 +254,13 @@
 
                             case 3: // Nombor Genap & Nombor Ganjil
                                 {
-                                    const val = 12340 + i * 317;
+                                    const val = 12340 + levelIndex * 20000 + i * 317;
                                     const isEven = val % 2 === 0;
                                     q = {
                                         id: qId, topik: top.title, subtopik: 'Nombor Genap & Ganjil', tahap: difficulty,
                                         aras_kognitif: 'Memahami', jenis: 'objektif',
                                         soalan: `Adakah nombor <b>${fmt(val)}</b> merupakan Nombor Genap atau Nombor Ganjil?`,
-                                        pilihan: shuffleArray(['Nombor Genap', 'Nombor Ganjil', 'Nombor Perdana', 'Bukan Nombor Bulat']),
+                                        pilihan: shuffleArray(['Nombor Genap', 'Nombor Ganjil']),
                                         jawapan: isEven ? 'Nombor Genap' : 'Nombor Ganjil', markah: 5,
                                         penerangan: `Digit sa bagi ${fmt(val)} ialah ${val % 10}. Nombor berakhir dengan 0,2,4,6,8 ialah Nombor Genap.`
                                     };
@@ -268,7 +269,7 @@
 
                             case 4: // Anggaran & Pembundaran
                                 {
-                                    const rawVal = 34120 + i * 243;
+                                    const rawVal = 14120 + levelIndex * 23000 + i * 243;
                                     const roundedRatus = Math.round(rawVal / 100) * 100;
                                     const roundedRibu = Math.round(rawVal / 1000) * 1000;
                                     
@@ -277,7 +278,7 @@
                                             id: qId, topik: top.title, subtopik: 'Pembundaran Ratus', tahap: difficulty,
                                             aras_kognitif: 'Mengaplikasi', jenis: 'objektif',
                                             soalan: `Bundarkan nombor <b>${fmt(rawVal)}</b> kepada <b>ratus terdekat</b>.`,
-                                            pilihan: shuffleArray([fmt(roundedRatus), fmt(roundedRatus + 100), fmt(roundedRatus - 100), fmt(roundedRibu)]),
+                                            pilihan: shuffleArray([fmt(roundedRatus), fmt(roundedRatus + 100), fmt(roundedRatus - 100), fmt(roundedRatus + 200)]),
                                             jawapan: fmt(roundedRatus), markah: 5,
                                             penerangan: `Pembundaran ratus terdekat menghasilkan ${fmt(roundedRatus)}.`
                                         };
@@ -286,7 +287,7 @@
                                             id: qId, topik: top.title, subtopik: 'Pembundaran Ribu', tahap: difficulty,
                                             aras_kognitif: 'Mengaplikasi', jenis: 'objektif',
                                             soalan: `Bundarkan nombor <b>${fmt(rawVal)}</b> kepada <b>ribu terdekat</b>.`,
-                                            pilihan: shuffleArray([fmt(roundedRibu), fmt(roundedRibu + 1000), fmt(roundedRibu - 1000), fmt(roundedRatus)]),
+                                            pilihan: shuffleArray([fmt(roundedRibu), fmt(roundedRibu + 1000), fmt(roundedRibu - 1000), fmt(roundedRibu + 2000)]),
                                             jawapan: fmt(roundedRibu), markah: 5,
                                             penerangan: `Pembundaran ribu terdekat menghasilkan ${fmt(roundedRibu)}.`
                                         };
@@ -296,7 +297,7 @@
 
                             case 5: // Tambah & Anu Dalam Tambah
                                 {
-                                    const a = 24150 + i * 410;
+                                    const a = 14150 + levelIndex * 8500 + i * 410;
                                     const b = 13240 + i * 180;
                                     const sum = a + b;
                                     if (difficulty === 'SENANG') {
@@ -323,7 +324,7 @@
 
                             case 6: // Tolak & Anu Dalam Tolak
                                 {
-                                    const total = 68900 + i * 550;
+                                    const total = 38900 + levelIndex * 14000 + i * 550;
                                     const sub = 24300 + i * 220;
                                     const diff = total - sub;
                                     if (difficulty === 'SENANG') {
@@ -350,7 +351,7 @@
 
                             case 7: // Operasi Darab
                                 {
-                                    const m1 = 1234 + i * 85;
+                                    const m1 = 1234 + levelIndex * 2000 + i * 85;
                                     const m2 = (i % 8) + 2;
                                     const prod = m1 * m2;
                                     q = {
@@ -367,7 +368,7 @@
                             case 8: // Operasi Bahagi
                                 {
                                     const divisor = (i % 7) + 3;
-                                    const quotient = 1200 + i * 65;
+                                    const quotient = 1200 + levelIndex * 1500 + i * 65;
                                     const dividend = quotient * divisor;
                                     q = {
                                         id: qId, topik: top.title, subtopik: 'Pembahagian', tahap: difficulty,
@@ -383,12 +384,12 @@
                             case 9: // Penyelesaian Masalah Harian
                                 {
                                     const itemPrice = 120 + i * 15;
-                                    const count = 8;
+                                    const count = [8, 12, 16][levelIndex];
                                     const total = itemPrice * count;
                                     q = {
                                         id: qId, topik: top.title, subtopik: 'Penyelesaian Masalah', tahap: difficulty,
                                         aras_kognitif: 'Mengaplikasi', jenis: 'objektif',
-                                        soalan: `Sebuah sekolah membeli <b>${count} buah</b> komputer ribuan berharga <b>RM${fmt(itemPrice)}</b> setiap satu. Berapakah jumlah keseluruhan bayaran?`,
+                                        soalan: `Sebuah sekolah membeli <b>${count} buah</b> kerusi makmal berharga <b>RM${fmt(itemPrice)}</b> setiap satu. Berapakah jumlah keseluruhan bayaran?`,
                                         pilihan: shuffleArray([`RM${fmt(total)}`, `RM${fmt(itemPrice + count)}`, `RM${fmt(total - 50)}`, `RM${fmt(total + 100)}`]),
                                         jawapan: `RM${fmt(total)}`, markah: 5,
                                         penerangan: `RM${fmt(itemPrice)} × ${count} = RM${fmt(total)}.`
@@ -651,6 +652,7 @@
 
         function submitAnswer(userChoice, isTimeout = false) {
             const session = state.currentSession;
+            if (!session.questions[session.currentQuestionIndex] || session.userAnswers.length !== session.currentQuestionIndex) return;
             if (session.timer) clearInterval(session.timer);
 
             const q = session.questions[session.currentQuestionIndex];
@@ -701,6 +703,7 @@
 
         function nextQuestion() {
             const session = state.currentSession;
+            if (!session.questions[session.currentQuestionIndex] || session.userAnswers.length !== session.currentQuestionIndex + 1) return;
             session.currentQuestionIndex++;
 
             if (session.currentQuestionIndex < session.questions.length) {

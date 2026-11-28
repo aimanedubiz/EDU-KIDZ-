@@ -325,7 +325,9 @@
             let cognitiveLevel = level === 'mudah' ? 'Mengingat' : (level === 'sederhana' ? 'Memahami' : 'Mengaplikasi');
             let gameTypes = ['objective', 'matching', 'dragdrop', 'fillblank'];
 
+            const tier = ["mudah", "sederhana", "sukar"].indexOf(level);
             for (let i = 1; i <= 20; i++) {
+                const slot = i + 20 * tier;
                 let qId = `t${topicId}_${level}_${i}`;
                 let gType = gameTypes[(i - 1) % gameTypes.length];
                 let qData = {};
@@ -341,7 +343,7 @@
                         { item: "panjang sebatang pen dakwat biru", unit: "sentimeter (cm)", alt: "meter (m)", code: "cm" },
                         { item: "lebar kepingan setem pos Malaysia", unit: "sentimeter (cm)", alt: "meter (m)", code: "cm" },
                         { item: "panjang krayon warna hijau", unit: "sentimeter (cm)", alt: "meter (m)", code: "cm" },
-                        { item: "lebar jalur pembaris plastik 15cm", unit: "sentimeter (cm)", alt: "meter (m)", code: "cm" },
+                        { item: "lebar jalur pembaris plastik pendek", unit: "sentimeter (cm)", alt: "meter (m)", code: "cm" },
                         { item: "tinggi sebatang tiang bendera sekolah", unit: "meter (m)", alt: "sentimeter (cm)", code: "m" },
                         { item: "panjang keseluruhan padang bola sepak", unit: "meter (m)", alt: "sentimeter (cm)", code: "m" },
                         { item: "tinggi bangunan dewan sekolah dua tingkat", unit: "meter (m)", alt: "sentimeter (cm)", code: "m" },
@@ -350,16 +352,20 @@
                         { item: "tinggi sebuah bas persiaran sekolah", unit: "meter (m)", alt: "sentimeter (cm)", code: "m" },
                         { item: "panjang koridor bangunan bilik darjah", unit: "meter (m)", alt: "sentimeter (cm)", code: "m" },
                         { item: "tinggi pintu masuk utama kelas tahun dua", unit: "meter (m)", alt: "sentimeter (cm)", code: "m" },
-                        { item: "panjang laluan trek larian 100 meter", unit: "meter (m)", alt: "sentimeter (cm)", code: "m" },
+                        { item: "panjang laluan trek larian sekolah", unit: "meter (m)", alt: "sentimeter (cm)", code: "m" },
                         { item: "tinggi menara tangki air sekolah", unit: "meter (m)", alt: "sentimeter (cm)", code: "m" }
                     ];
 
                     let itemObj = t1MahaPoolGet(t1MudahPool, i);
                     qData = {
                         id: qId, topicId: 1, level: level, cognitive: cognitiveLevel, type: gType,
-                        question: `Pilih unit ukuran panjang piawai yang paling tepat dan logik untuk menyukat ${itemObj.item}.`,
-                        options: [itemObj.unit, itemObj.alt, 'kilogram (kg)', 'liter (l)'],
-                        answer: itemObj.unit,
+                        question: tier === 0
+                            ? `Pilih unit yang sesuai untuk mengukur ${itemObj.item}.`
+                            : tier === 1
+                                ? `Cikgu memilih ${itemObj.item} sebagai contoh. Simbol unit yang manakah sesuai untuk ukuran itu?`
+                                : `Jika ${itemObj.item} ditulis dalam ${itemObj.alt}, unit manakah lebih sesuai untuk menyatakan ukuran itu?`,
+                        options: tier === 1 ? ['cm', 'm', 'kg', 'l'] : [itemObj.unit, itemObj.alt, 'kilogram (kg)', 'liter (l)'],
+                        answer: tier === 1 ? itemObj.code : itemObj.unit,
                         explanation: `Objek tersebut dikategorikan sebagai ukuran berskala ${itemObj.code === 'cm' ? 'pendek' : 'panjang'}, maka unit ${itemObj.unit} adalah tepat.`
                     };
                 } else if (topicId === 2) {
@@ -367,8 +373,8 @@
                     const namesB = ["Reben Oren", "Tali Coklat", "Pita Kelabu", "Kain Emas", "Wayar Merak", "Selendang Oren"];
                     let nA = namesA[(i * 3) % namesA.length];
                     let nB = namesB[(i * 5) % namesB.length];
-                    let vA = 12 + (i * 7) % 75;
-                    let vB = 15 + (i * 11) % 75;
+                    let vA = 12 + slot;
+                    let vB = 20 + (i * 11) % 75;
                     if (vA === vB) vB += 6;
 
                     let diff = Math.abs(vA - vB);
@@ -380,61 +386,61 @@
                         explanation: `Beza ukuran dikira dengan menolak nilai kecil daripada nilai besar: ${Math.max(vA,vB)} cm - ${Math.min(vA,vB)} cm = ${diff} cm.`
                     };
                 } else if (topicId === 3) {
-                    let itemsEst = [
-                        { name: "sebatang pensel pendek tulisan", est: "15 cm" },
-                        { name: "sebuah buku cerita tebal", est: "25 cm" },
-                        { name: "lebar sebuah meja murid sekolah", est: "60 cm" },
-                        { name: "tinggi sebuah pintu bilik darjah", est: "2 m" },
-                        { name: "panjang sebatang pen dakwat", est: "14 cm" }
-                    ];
-                    let chosen = itemsEst[(i * 2) % itemsEst.length];
+                    const reference = 8 + slot;
+                    const estimate = reference + (i % 2 ? 2 : -2);
                     qData = {
-                        id: qId, topicId: 3, level: level, cognitive: cognitiveLevel, type: gType,
-                        question: `Pilih anggaran ukuran panjang yang paling munasabah dan logik bagi ${chosen.name}.`,
-                        options: [chosen.est, '10 km', '400 kg', '3 liter'],
-                        answer: chosen.est,
-                        explanation: `Anggaran di alam nyata yang paling logik bagi ${chosen.name} ialah ${chosen.est}.`
+                        id: qId, topicId, level, cognitive: cognitiveLevel, type: gType,
+                        question: `Pita A kira-kira ${reference} cm panjangnya. Pita B sedikit ${i % 2 ? 'lebih panjang' : 'lebih pendek'} daripada pita A. Pilih anggaran terbaik bagi panjang pita B.`,
+                        options: [estimate, reference, i % 2 ? reference - 2 : reference + 2, reference + 20].map(x => `${x} cm`),
+                        answer: `${estimate} cm`,
+                        explanation: `${estimate} cm hampir dengan ${reference} cm dan mematuhi perbandingan yang diberi.`
                     };
                 } else if (topicId === 4) {
-                    let u = i % 2 === 0 ? 'kilogram (kg)' : 'gram (g)';
+                    const kg = i % 2 === 0;
+                    const quantity = kg ? 1 + Math.floor((slot - 1) / 2) : 5 + slot * 3;
                     qData = {
-                        id: qId, topicId: 4, level: level, cognitive: cognitiveLevel, type: gType,
-                        question: `Apakah unit ukuran jisim yang paling sesuai untuk menyukat ${i % 2 === 0 ? 'sekampit beras 5kg' : 'sebutir guli kaca'}?`,
+                        id: qId, topicId, level, cognitive: cognitiveLevel, type: gType,
+                        question: kg ? `Sebuah guni berisi ${quantity} pek beras yang masing-masing berjisim 1 kilogram. Apakah unit bagi jisim guni itu dalam ukuran ${quantity} ___?`
+                            : `Label makanan menyatakan jisim bersih ${quantity} g. Apakah nama penuh bagi unit g?`,
                         options: ['kilogram (kg)', 'gram (g)', 'meter (m)', 'liter (l)'],
-                        answer: u,
-                        explanation: `Jisim yang ${i % 2 === 0 ? 'berat' : 'ringan'} disukat dengan unit ${u}.`
+                        answer: kg ? 'kilogram (kg)' : 'gram (g)',
+                        explanation: kg ? 'Simbol kg mewakili kilogram.' : 'Simbol g mewakili gram.'
                     };
                 } else if (topicId === 5) {
-                    let vA = 2 + (i * 3) % 10;
-                    let vB = 1 + (i * 2) % 8;
-                    if (vA === vB) vA += 1;
+                    let vA = 2 + Math.floor((slot-1)/6);
+                    let vB = 1 + (slot-1)%6;
+                    
                     qData = {
                         id: qId, topicId: 5, level: level, cognitive: cognitiveLevel, type: gType,
                         question: `Beg A mempunyai jisim ${vA} kg dan Beg B mempunyai jisim ${vB} kg. Beg manakah yang lebih berat?`,
                         options: ['Beg A', 'Beg B', 'Sama berat', 'Tidak pasti'],
-                        answer: vA > vB ? 'Beg A' : 'Beg B',
-                        explanation: `Nilai ${Math.max(vA, vB)} kg lebih besar daripada ${Math.min(vA, vB)} kg.`
+                        answer: vA === vB ? 'Sama berat' : vA > vB ? 'Beg A' : 'Beg B',
+                        explanation: vA === vB ? `Kedua-dua beg berjisim ${vA} kg.` : `Nilai ${Math.max(vA, vB)} kg lebih besar daripada ${Math.min(vA, vB)} kg.`
                     };
                 } else if (topicId === 6) {
-                    let est = level === 'mudah' ? '150 g' : '3 kg';
+                    const reference = 70 + slot * 5;
+                    const sign = i % 2 ? 1 : -1;
+                    const estimate = reference + 5 * sign;
                     qData = {
-                        id: qId, topicId: 6, level: level, cognitive: cognitiveLevel, type: gType,
-                        question: `Anggarkan jisim munasabah bagi ${level === 'mudah' ? 'sebiji epal hijau' : 'sebuah beg sekolah penuh'}.`,
-                        options: [est, '50 kg', '200 m', '5 liter'],
-                        answer: est,
-                        explanation: `Anggaran munasabah bagi objek ini ialah ${est}.`
+                        id: qId, topicId, level, cognitive: cognitiveLevel, type: gType,
+                        question: `Bungkusan A berjisim kira-kira ${reference} g. Bungkusan B sedikit ${sign > 0 ? 'lebih berat' : 'lebih ringan'} daripada A. Pilih anggaran terbaik bagi jisim B.`,
+                        options: [estimate, reference, reference - 5 * sign, reference + 50].map(x => `${x} g`),
+                        answer: `${estimate} g`,
+                        explanation: `${estimate} g paling hampir dalam arah perbandingan yang diberi.`
                     };
                 } else if (topicId === 7) {
-                    let isL = i % 2 === 0;
+                    const litre = i % 2 === 0;
+                    const reading = litre ? slot / 2 : 100 + slot * 5;
                     qData = {
-                        id: qId, topicId: 7, level: level, cognitive: cognitiveLevel, type: gType,
-                        question: `Isipadu cecair di dalam ${isL ? 'sebuah baldi mandi' : 'segelas susu'} disukat dalam unit ______ .`,
+                        id: qId, topicId, level, cognitive: cognitiveLevel, type: gType,
+                        question: litre ? `Kapasiti baldi ialah ${reading} liter. Apakah simbol unit bagi kapasiti itu?`
+                            : `Satu jag mengandungi ${reading} mililiter air. Apakah simbol unit yang sepadan?`,
                         options: ['l', 'ml', 'kg', 'cm'],
-                        answer: isL ? 'l' : 'ml',
-                        explanation: `Unit ${isL ? 'liter (l)' : 'mililiter (ml)'} digunakan untuk kuantiti cecair ${isL ? 'banyak' : 'sedikit'}.`
+                        answer: litre ? 'l' : 'ml',
+                        explanation: litre ? 'Simbol liter ialah l.' : 'Simbol mililiter ialah ml.'
                     };
                 } else if (topicId === 8) {
-                    let volA = 300 + (i * 45) % 600;
+                    let volA = 250 + slot * 10;
                     let volB = 200 + (i * 30) % 500;
                     if (volA === volB) volB += 50;
                     qData = {
@@ -445,12 +451,15 @@
                         explanation: `Isipadu ${Math.max(volA, volB)} ml melebihi ${Math.min(volA, volB)} ml.`
                     };
                 } else if (topicId === 9) {
+                    const reference = 120 + slot * 10;
+                    const sign = i % 2 ? 1 : -1;
+                    const estimate = reference + sign * 10;
                     qData = {
-                        id: qId, topicId: 9, level: level, cognitive: cognitiveLevel, type: gType,
-                        question: `Pilih anggaran isipadu cecair munasabah bagi sebotol air mineral kecil.`,
-                        options: ['500 ml', '50 liter', '5 kg', '50 cm'],
-                        answer: '500 ml',
-                        explanation: `Botol air mineral kecil dianggarkan mengandungi 500 ml cecair.`
+                        id: qId, topicId, level, cognitive: cognitiveLevel, type: gType,
+                        question: `Bekas A mengandungi kira-kira ${reference} ml air. Bekas B mengandungi sedikit ${sign > 0 ? 'lebih banyak' : 'lebih sedikit'} air. Pilih anggaran terbaik bagi isipadu air dalam B.`,
+                        options: [estimate, reference, reference - sign * 10, reference + 100].map(x => `${x} ml`),
+                        answer: `${estimate} ml`,
+                        explanation: `Isipadu ${estimate} ml hampir dengan ${reference} ml dan mematuhi perbandingan yang diberi.`
                     };
                 } else if (topicId === 10) {
                     /* ==========================================
@@ -554,7 +563,7 @@
                         };
                     }
                 } else {
-                    let a = 300 + (i * 25) % 600;
+                    let a = 300 + slot * 15;
                     let b = 100 + (i * 10) % 200;
                     let diffVal = a - b;
                     qData = {
@@ -565,6 +574,7 @@
                         explanation: `Baki santan dikira dengan operasi tolak: ${a} ml - ${b} ml = ${diffVal} ml.`
                     };
                 }
+                qData.options = [...new Set(qData.options)];
                 questions.push(qData);
             }
             return questions;
@@ -903,6 +913,8 @@
             gameState.questionsList = generateQuestions(gameState.selectedTopic.id, gameState.selectedLevel);
             gameState.currentIndex = 0;
             gameState.score = 0;
+            gameState.answeredIndex = -1;
+            gameState.resultRecorded = false;
             gameState.correctCount = 0;
             gameState.wrongCount = 0;
             gameState.answersRecord = [];
@@ -1002,6 +1014,8 @@
         }
 
         function submitAnswer(selected, correct) {
+            if (gameState.resultRecorded || gameState.answeredIndex === gameState.currentIndex) return;
+            gameState.answeredIndex = gameState.currentIndex;
             clearInterval(gameState.timerInterval);
             let isCorrect = selected.toString().trim().toLowerCase() === correct.toString().trim().toLowerCase();
             
@@ -1023,6 +1037,8 @@
         }
 
         function handleTimeout(correct) {
+            if (gameState.resultRecorded || gameState.answeredIndex === gameState.currentIndex) return;
+            gameState.answeredIndex = gameState.currentIndex;
             gameState.wrongCount++;
             showFeedbackModal(false, correct, true);
             gameState.answersRecord.push({
@@ -1057,6 +1073,7 @@
             }
 
             btn.onclick = () => {
+                if (gameState.answeredIndex !== gameState.currentIndex) return;
                 modal.classList.add('hidden');
                 gameState.currentIndex++;
                 loadQuestionToUI();
@@ -1066,6 +1083,8 @@
         }
 
         function finishGame() {
+            if (gameState.resultRecorded) return;
+            gameState.resultRecorded = true;
             clearInterval(gameState.timerInterval);
             if (db.currentUser) {
                 db.currentUser.totalScore = (db.currentUser.totalScore || 0) + gameState.score;

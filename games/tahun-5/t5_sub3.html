@@ -522,6 +522,27 @@
 
     <!-- JAVASCRIPT GAME ENGINE AND QUESTION DATA GENERATOR -->
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t5_sub3_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = legacy && typeof legacy === "object" && !Array.isArray(legacy)
+                ? Object.fromEntries(Object.entries(legacy).filter(([key, u]) => u && u.username === key && Number.isFinite(u.sessionsPlayed) && Number.isFinite(u.questionsAnswered) && Array.isArray(u.history)))
+                : {};
+            localStorage.setItem(usersKey, JSON.stringify(users));
+            const active = localStorage.getItem('math_kids_current_user');
+            if (active && Object.hasOwn(users, active)) {
+                localStorage.setItem('edukidz_t5_sub3_active_user', active);
+            }
+        })();
+
         const DSKP_SUBTOPICS = [
             { id: "TAMBAH", name: "Tambah Wang", icon: "fa-plus-circle", color: "from-blue-500 to-indigo-600" },
             { id: "TOLAK", name: "Tolak Wang", icon: "fa-minus-circle", color: "from-emerald-500 to-teal-600" },
@@ -590,6 +611,7 @@
         function createSingleQuestion(subId, subName, diff, index, qId) {
             let num1, num2, num3, ansVal, qText, options, explanation, cognitive;
             let visualType = null;
+            const seed = index + 20 * ['Senang', 'Sederhana', 'Susah'].indexOf(diff);
 
             if (subId === 'TAMBAH') {
                 if (diff === 'Senang') {
@@ -636,8 +658,8 @@
                 explanation = `RM${num1.toLocaleString()} - RM${num2.toLocaleString()} = RM${ansVal.toLocaleString()}`;
             }
             else if (subId === 'TAMBAH_TOLAK') {
-                num1 = 30000 + index * 1000;
-                num2 = 15000 + index * 500;
+                num1 = 30000 + seed * 1000;
+                num2 = 15000 + seed * 500;
                 num3 = 8000 + index * 200;
                 ansVal = num1 + num2 - num3;
                 qText = `Hitung RM${num1.toLocaleString()} + RM${num2.toLocaleString()} - RM${num3.toLocaleString()}.`;
@@ -645,7 +667,7 @@
                 explanation = `(RM${num1.toLocaleString()} + RM${num2.toLocaleString()}) - RM${num3.toLocaleString()} = RM${ansVal.toLocaleString()}`;
             }
             else if (subId === 'DARAB') {
-                num1 = 2500 + index * 200;
+                num1 = 2500 + seed * 200;
                 num2 = (index % 8) + 2;
                 ansVal = num1 * num2;
                 qText = `Darabkan RM${num1.toLocaleString()} dengan ${num2}.`;
@@ -654,14 +676,14 @@
             }
             else if (subId === 'BAHAGI') {
                 num2 = (index % 5) + 2;
-                ansVal = 1500 + index * 300;
+                ansVal = 1500 + seed * 300;
                 num1 = ansVal * num2;
                 qText = `Bahagikan RM${num1.toLocaleString()} dengan ${num2}.`;
                 cognitive = "Mengaplikasi";
                 explanation = `RM${num1.toLocaleString()} ÷ ${num2} = RM${ansVal.toLocaleString()}`;
             }
             else if (subId === 'OPERASI_BERGABUNG') {
-                num1 = 1000 + index * 100;
+                num1 = 1000 + seed * 100;
                 num2 = (index % 4) + 2;
                 num3 = 500 + index * 50;
                 ansVal = (num1 * num2) - num3;
@@ -671,21 +693,29 @@
             }
             else if (subId === 'CELIK_KEWANGAN') {
                 visualType = "receipt";
-                const itemPrices = [120, 350, 480, 80];
-                ansVal = itemPrices[index % 4];
-                qText = `Antara perbelanjaan berikut, yang manakah merupakan KELENGKAPAN SEKOALAH (Keperluan) dan bukannya Kehendak?`;
-                options = [
-                    `A. RM${ansVal} (Buku & Alat Tulis)`,
-                    `B. RM${ansVal + 200} (Mainan Video)`,
-                    `C. RM${ansVal + 150} (Basikal Hiasan)`,
-                    `D. RM${ansVal + 300} (Jam Tangan Mewah)`
-                ];
-                cognitive = "Memahami";
-                explanation = "Buku dan alat tulis ialah keperluan asas persekolahan.";
+                const budget = 85 + seed * 5;
+                const school = 25 + seed * 2;
+                const supplies = 12 + (index % 7);
+                if (diff === 'Senang') {
+                    qText = `Kelab murid ada bajet RM${budget} untuk alat tulis. Sebuah set alat tulis berharga RM${school}. Berapakah baki bajet selepas membeli set itu?`;
+                    ansVal = budget - school;
+                    explanation = `RM${budget} − RM${school} = RM${ansVal}.`;
+                } else if (diff === 'Sederhana') {
+                    qText = `Aina menerima RM${budget}. Dia asingkan RM${school} sebagai simpanan dan RM${supplies} untuk tambang ke sekolah. Berapakah wang yang belum diperuntukkan?`;
+                    ansVal = budget - school - supplies;
+                    explanation = `RM${budget} − RM${school} − RM${supplies} = RM${ansVal}.`;
+                } else {
+                    qText = `Kelab sekolah menyasarkan simpanan RM${budget} untuk bahan projek. Kelab sudah menyimpan RM${school} dan akan menambah RM${supplies} lagi. Berapakah simpanan tambahan yang masih diperlukan untuk mencapai sasaran?`;
+                    ansVal = budget - school - supplies;
+                    explanation = `Sasaran RM${budget} ditolak jumlah yang sudah dan akan disimpan, iaitu RM${school} + RM${supplies}, meninggalkan RM${ansVal}.`;
+                }
+                options = [ansVal, ansVal + 5, ansVal + 10, ansVal - 5].map((value, index) =>
+                    `${String.fromCharCode(65 + index)}. RM${value}`);
+                cognitive = "Mengaplikasi";
             }
             else { // MASALAH_WANG
                 visualType = "story";
-                num1 = 15000 + index * 500; // Harga asal
+                num1 = 15000 + seed * 500; // Harga asal
                 num2 = 2500; // Diskaun
                 ansVal = num1 - num2;
                 qText = `Encik Ahmad membeli sebuah komputer berharga RM${num1.toLocaleString()}. Beliau mendapat diskaun RM${num2.toLocaleString()}. Berapakah wang yang perlu dibayarnya?`;
@@ -703,6 +733,13 @@
                 ];
             }
 
+            const clean = options.map(option => option.replace(/^[A-D]\. /, ''));
+            const correct = clean[0];
+            for (let i = clean.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [clean[i], clean[j]] = [clean[j], clean[i]];
+            }
+
             return {
                 id: qId,
                 tahun: 5,
@@ -714,8 +751,8 @@
                 aras_kognitif: cognitive,
                 jenis_permainan: "Objektif",
                 soalan: qText,
-                pilihan: options,
-                jawapan: options[0],
+                pilihan: clean,
+                jawapan: correct,
                 nilai_jawapan: ansVal,
                 markah: 5,
                 visual: visualType,
@@ -745,7 +782,7 @@
             const username = document.getElementById('input-username').value.trim();
             if (!username) return;
 
-            let users = JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+            let users = JSON.parse(localStorage.getItem('edukidz_t5_sub3_users') || '{}');
             if (!users[username]) {
                 users[username] = {
                     username: username,
@@ -757,8 +794,8 @@
                 };
             }
             currentUser = users[username];
-            localStorage.setItem('math_kids_current_user', username);
-            localStorage.setItem('math_kids_users', JSON.stringify(users));
+            localStorage.setItem('edukidz_t5_sub3_active_user', username);
+            localStorage.setItem('edukidz_t5_sub3_users', JSON.stringify(users));
 
             updateHeaderUI();
             navigateTo('home');
@@ -777,7 +814,7 @@
 
         function logout() {
             currentUser = null;
-            localStorage.removeItem('math_kids_current_user');
+            localStorage.removeItem('edukidz_t5_sub3_active_user');
             updateHeaderUI();
             navigateTo('auth');
         }
@@ -969,14 +1006,18 @@
         }
 
         function handleAnswer(userChoice, isTimeout = false) {
-            clearInterval(activeSession.timerInterval);
             const q = activeSession.questions[activeSession.currentIndex];
+            if (!q || activeSession.userAnswers.length !== activeSession.currentIndex) return;
+            clearInterval(activeSession.timerInterval);
 
             let isCorrect = false;
 
             if (!isTimeout && userChoice) {
                 if (currentGameConfig.gameType === 'IsiTempatKosong') {
-                    isCorrect = parseFloat(userChoice) === parseFloat(q.nilai_jawapan);
+                    const amount = String(userChoice).trim().replace(/^RM\s*/i, '');
+                    if (/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(amount)) {
+                        isCorrect = Number(amount.replaceAll(',', '')) === q.nilai_jawapan;
+                    }
                 } else {
                     isCorrect = userChoice === q.jawapan;
                 }
@@ -1021,12 +1062,16 @@
         }
 
         function nextQuestion() {
+            if (!activeSession.questions[activeSession.currentIndex] ||
+                activeSession.userAnswers.length !== activeSession.currentIndex + 1) return;
             playSound('click');
             activeSession.currentIndex++;
             renderCurrentQuestion();
         }
 
         function finishGameSession() {
+            if (activeSession.resultSaved || activeSession.currentIndex !== activeSession.questions.length) return;
+            activeSession.resultSaved = true;
             navigateTo('results');
 
             const total = activeSession.questions.length;
@@ -1073,9 +1118,9 @@
                     date: new Date().toLocaleDateString('ms-MY')
                 });
 
-                let users = JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+                let users = JSON.parse(localStorage.getItem('edukidz_t5_sub3_users') || '{}');
                 users[currentUser.username] = currentUser;
-                localStorage.setItem('math_kids_users', JSON.stringify(users));
+                localStorage.setItem('edukidz_t5_sub3_users', JSON.stringify(users));
                 updateHeaderUI();
             }
         }
@@ -1113,7 +1158,7 @@
         }
 
         function renderLeaderboardView() {
-            const users = JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+            const users = JSON.parse(localStorage.getItem('edukidz_t5_sub3_users') || '{}');
             const list = Object.values(users).sort((a, b) => b.totalScore - a.totalScore);
 
             const container = document.getElementById('leaderboard-list-container');
@@ -1154,8 +1199,8 @@
             questionBank = generateCompleteQuestionBank();
 
             // Load saved user session
-            const savedUser = localStorage.getItem('math_kids_current_user');
-            const users = JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+            const savedUser = localStorage.getItem('edukidz_t5_sub3_active_user');
+            const users = JSON.parse(localStorage.getItem('edukidz_t5_sub3_users') || '{}');
             
             if (savedUser && users[savedUser]) {
                 currentUser = users[savedUser];

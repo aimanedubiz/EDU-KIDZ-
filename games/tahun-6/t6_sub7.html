@@ -115,6 +115,27 @@
     </div>
 
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t6_sub7_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = legacy && typeof legacy === "object" && !Array.isArray(legacy)
+                ? Object.fromEntries(Object.entries(legacy).filter(([key, u]) => u && u.name === key && Number.isFinite(u.gamesPlayed) && Number.isFinite(u.totalAnswered) && Number.isFinite(u.totalCorrect)))
+                : {};
+            localStorage.setItem(usersKey, JSON.stringify(users));
+            const active = localStorage.getItem('math_kids_active_user');
+            if (active && Object.hasOwn(users, active)) {
+                localStorage.setItem('edukidz_t6_sub7_active_user', active);
+            }
+        })();
+
         // --- DATA BANK GENERATOR & APP CONTROLLER ---
         
         class MathKidsApp {
@@ -142,10 +163,10 @@
             }
 
             loadDatabase() {
-                const storedUsers = localStorage.getItem('math_kids_users');
+                const storedUsers = localStorage.getItem('edukidz_t6_sub7_users');
                 this.users = storedUsers ? JSON.parse(storedUsers) : {};
                 
-                const activeSession = localStorage.getItem('math_kids_active_user');
+                const activeSession = localStorage.getItem('edukidz_t6_sub7_active_user');
                 if (activeSession && this.users[activeSession]) {
                     this.currentUser = activeSession;
                     this.currentScreen = 'menu';
@@ -153,11 +174,11 @@
             }
 
             saveDatabase() {
-                localStorage.setItem('math_kids_users', JSON.stringify(this.users));
+                localStorage.setItem('edukidz_t6_sub7_users', JSON.stringify(this.users));
                 if (this.currentUser) {
-                    localStorage.setItem('math_kids_active_user', this.currentUser);
+                    localStorage.setItem('edukidz_t6_sub7_active_user', this.currentUser);
                 } else {
-                    localStorage.removeItem('math_kids_active_user');
+                    localStorage.removeItem('edukidz_t6_sub7_active_user');
                 }
             }
 
@@ -171,9 +192,9 @@
                 // --- TOPIC 1 MUDAH (20) ---
                 for (let i = 1; i <= 20; i++) {
                     const x1 = (i % 3);
-                    const y1 = 2;
+                    const y1 = 1 + Math.floor((i - 1) / 5);
                     const x2 = x1 + (i % 5) + 1;
-                    const y2 = 2;
+                    const y2 = y1;
                     const dist = x2 - x1;
                     this.questionBank.push({
                         id: `K1-M-${String(i).padStart(3, '0')}`,
@@ -192,8 +213,8 @@
 
                 // --- TOPIC 1 SEDERHANA (20) ---
                 for (let i = 1; i <= 20; i++) {
-                    const x1 = 1, y1 = 1;
-                    const x2 = 1, y2 = 1 + (i % 6) + 2;
+                    const x1 = 1 + (i - 1) % 4, y1 = 1;
+                    const x2 = x1, y2 = y1 + 2 + Math.floor((i - 1) / 4);
                     const dist = y2 - y1;
                     const scaleVal = (i % 2 === 0) ? 2 : 5;
                     const totalDist = dist * scaleVal;
@@ -215,10 +236,10 @@
                 // --- TOPIC 1 SUSAH (20) ---
                 for (let i = 1; i <= 20; i++) {
                     const xA = 2, yA = 2;
-                    const xB = 2 + (i % 4) + 2; // mengufuk
+                    const xB = xA + 2 + (i - 1) % 5; // mengufuk
                     const yB = yA;
                     const xC = xB;
-                    const yC = yB + (i % 3) + 3; // mencancang
+                    const yC = yB + 2 + Math.floor((i - 1) / 5); // mencancang
                     const distAB = xB - xA;
                     const distBC = yC - yB;
                     const totalDistGrid = distAB + distBC;
@@ -525,7 +546,7 @@
 
                 // --- TOPIC 4 SEDERHANA (20 Unique Questions) ---
                 const t4MedScenarios = [
-                    { context: 'Jisim 3 bungkusan tepung yang sama ialah 1.5 kg. Berapakah jisim, dalam g, bagi 8 bungkusan tepung yang serupa?', ans: 4000, opts: ['3500 g', '4000 g', '4500 g', '3000 g'], exp: '1 bungkusan = 1.5 kg ÷ 3 = 0.5 kg (500 g). 8 bungkusan = 8 × 500 g = 4000 g.' },
+                    { context: 'Jisim 3 bungkusan tepung yang sama ialah 1.5 kg. Berapakah jisim, dalam g, bagi 8 bungkusan tepung yang serupa?', ans: '4000 g', opts: ['3500 g', '4000 g', '4500 g', '3000 g'], exp: '1 bungkusan = 1.5 kg ÷ 3 = 0.5 kg (500 g). 8 bungkusan = 8 × 500 g = 4000 g.' },
                     { context: 'Isi padu 4 botol jus oren ialah 2.0 liter. Berapakah isi padu, dalam ml, bagi 7 botol jus oren yang sama?', ans: '3500 ml', opts: ['3000 ml', '3500 ml', '4000 ml', '2800 ml'], exp: '1 botol = 2000 ml ÷ 4 = 500 ml. 7 botol = 7 × 500 ml = 3500 ml.' },
                     { context: 'Siti menyusun 5 baris kerusi dewan dan setiap baris mempunyai bilangan kerusi yang sama. Jika jumlah kerusi ialah 120 buah, berapakah bilangan kerusi untuk 8 baris sedemikian?', ans: '192 buah', opts: ['180 buah', '192 buah', '204 buah', '168 buah'], exp: '1 baris = 120 ÷ 5 = 24 kerusi. 8 baris = 8 × 24 = 192 buah kerusi.' },
                     { context: 'Jarak dari Bandar A ke Bandar B pada peta ialah 6 cm. Jika skala peta ialah 1 cm mewakili 15 km, berapakah jarak sebenar, dalam km, perjalanan tersebut pergi dan balik?', ans: '180 km', opts: ['90 km', '150 km', '180 km', '210 km'], exp: 'Jarak sehala = 6 × 15 km = 90 km. Pergi dan balik = 90 km × 2 = 180 km.' },
@@ -605,7 +626,7 @@
                     });
                 }
 
-                this.questionBank = this.questionBank.slice(0, 240);
+                for (const question of this.questionBank) question.options = [...new Set(question.options)];
             }
 
             // --- NAVIGATION & UI RENDERING ---
@@ -1348,6 +1369,7 @@
             }
 
             nextQuestion() {
+                if (!this.isAnswered || !this.activeQuestions[this.currentQuestionIndex]) return;
                 this.isAnswered = false;
                 this.currentQuestionIndex++;
 

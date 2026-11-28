@@ -384,6 +384,21 @@
     </main>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t3_sub5_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('mk_users');
+            const users = legacy && typeof legacy === "object" && !Array.isArray(legacy)
+                ? Object.fromEntries(Object.entries(legacy).filter(([key, u]) => u && Number.isFinite(u.totalScore) && u.progress && Array.isArray(u.badges)))
+                : {};
+            localStorage.setItem(key, JSON.stringify(users));
+        })();
+
         const TOPICS_DATA = [
             { id: 'rekod_waktu', name: 'Rekod Waktu', icon: '🕐', desc: 'Membaca jam analog, digital & jadual waktu aktiviti.' },
             { id: 'kenal_kalendar', name: 'Kenal Kalendar', icon: '📅', desc: 'Hari, tarikh, bulan Masihi & maklumat kalendar.' },
@@ -414,7 +429,9 @@
                     bank[topic.id] = { Mudah: [], Sederhana: [], Sukar: [] };
                     ['Mudah', 'Sederhana', 'Sukar'].forEach(diff => {
                         for (let i = 1; i <= 20; i++) {
-                            bank[topic.id][diff].push(this.createQuestion(topic.id, diff, i));
+                            const question = this.createQuestion(topic.id, diff, i);
+                            question.options = [...new Set(question.options)];
+                            bank[topic.id][diff].push(question);
                         }
                     });
                 });
@@ -453,39 +470,39 @@
             }
 
             static getRekodWaktuQuestion(diff, index, idStr, ctx) {
+                const step = index - 1;
+                const displayTime = total => {
+                    const hour = Math.floor(total / 60);
+                    const minute = String(total % 60).padStart(2, '0');
+                    const suffix = hour < 12 ? 'pagi' : hour === 12 ? 'tengah hari' : hour < 19 ? 'petang' : 'malam';
+                    return `${hour % 12 || 12}:${minute} ${suffix}`;
+                };
                 if (diff === 'Mudah') {
-                    const hours = (index % 12) + 1;
+                    const hour = 1 + step % 10;
+                    const start = (step < 10 ? hour : hour + 12) * 60;
+                    const period = step < 10 ? 'pagi' : hour < 7 ? 'petang' : 'malam';
                     return {
-                        id: idStr, topic: 'Rekod Waktu', difficulty: 'Mudah', cognitiveLevel: 'Mengingat', gameType: 'Objektif',
-                        question: `Jam di dinding bilik ${ctx} menunjukkan jarum pendek pada angka ${hours} dan jarum panjang tepat pada angka 12. Apakah waktu tersebut?`,
-                        visual: `<div class="bg-indigo-900 text-white p-4 rounded-2xl text-center font-bold text-2xl shadow">🕒 Pukul ${hours}:00 pagi</div>`,
-                        options: [`Pukul ${hours}:00 pagi`, `Pukul ${hours}:30 pagi`, `Pukul ${(hours%12)+1}:00 pagi`, `Pukul ${hours}:15 pagi`],
-                        correctAnswer: `Pukul ${hours}:00 pagi`,
-                        explanation: `Jarum panjang pada angka 12 bermaksud tepat pada jam ${hours}.`,
-                        marks: 5
-                    };
-                } else if (diff === 'Sederhana') {
-                    const hours = (index % 12) + 1;
-                    return {
-                        id: idStr, topic: 'Rekod Waktu', difficulty: 'Sederhana', cognitiveLevel: 'Memahami', gameType: 'Objektif',
-                        question: `Ahmad mula ${ctx} pada pukul 3:00 petang dan selesai 30 minit kemudian. Pukul berapakah aktiviti itu tamat?`,
-                        visual: `<div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl text-indigo-900 font-semibold">Mula: 3:00 petang | Tempoh: 30 minit</div>`,
-                        options: [`3:30 petang`, `3:15 petang`, `4:00 petang`, `3:45 petang`],
-                        correctAnswer: `3:30 petang`,
-                        explanation: `3:00 petang tambah 30 minit menjadi 3:30 petang.`,
-                        marks: 5
-                    };
-                } else {
-                    return {
-                        id: idStr, topic: 'Rekod Waktu', difficulty: 'Sukar', cognitiveLevel: 'Mengaplikasi', gameType: 'Objektif',
-                        question: `Jadual ${ctx} menunjukkan bas bertolak pada pukul 8:15 pagi dan perjalanan mengambil masa 45 minit. Pukul berapakah bas itu sampai?`,
-                        visual: `<div class="bg-slate-900 text-cyan-400 p-4 rounded-xl font-mono text-xl">Jadual Perjalanan Bas</div>`,
-                        options: [`9:00 pagi`, `8:45 pagi`, `9:15 pagi`, `8:55 pagi`],
-                        correctAnswer: `9:00 pagi`,
-                        explanation: `8:15 pagi + 45 minit = 8:60 pagi = 9:00 pagi.`,
+                        id: idStr, topic: 'Rekod Waktu', difficulty: diff, cognitiveLevel: 'Mengingat', gameType: 'Objektif',
+                        question: `Pada waktu ${period}, jarum pendek pada angka ${hour} dan jarum panjang pada angka 12. Apakah waktu tersebut?`,
+                        options: [start, start + 15, start + 30, start + 45].map(displayTime).sort(() => Math.random() - 0.5),
+                        correctAnswer: displayTime(start),
+                        explanation: `Jarum panjang pada angka 12 menunjukkan minit sifar. Waktunya ${displayTime(start)}.`,
                         marks: 5
                     };
                 }
+                const medium = diff === 'Sederhana';
+                const start = (medium ? 14 : 8) * 60 + (step % 5) * 5;
+                const duration = (medium ? 20 : 45) + Math.floor(step / 5) * 10;
+                const end = start + duration;
+                const subject = medium ? 'kelas seni' : 'perjalanan bas';
+                return {
+                    id: idStr, topic: 'Rekod Waktu', difficulty: diff, cognitiveLevel: medium ? 'Memahami' : 'Mengaplikasi', gameType: 'Objektif',
+                    question: `${subject[0].toUpperCase() + subject.slice(1)} bermula pada pukul ${displayTime(start)} dan berlangsung selama ${duration} minit. Pukul berapakah ${subject} itu tamat?`,
+                    options: [end, end - 15, end - 5, end + 10].map(displayTime).sort(() => Math.random() - 0.5),
+                    correctAnswer: displayTime(end),
+                    explanation: `${displayTime(start)} ditambah ${duration} minit menjadi ${displayTime(end)}.`,
+                    marks: 5
+                };
             }
 
             static getKenalKalendarQuestion(diff, index, idStr, ctx) {
@@ -496,27 +513,27 @@
                 if (diff === 'Mudah') {
                     const dayIndex = index % 7;
                     const currentDay = daysOfWeek[dayIndex];
-                    const nextDay = daysOfWeek[(dayIndex + 1) % 7];
+                    const nextDay = daysOfWeek[(dayIndex + 1 + Math.floor(index / 7)) % 7];
                     const prevDay = daysOfWeek[(dayIndex + 6) % 7];
                     
                     const questionTypes = [
                         {
-                            q: `Hari ini ialah hari ${currentDay}. Apakah hari esok bagi menyertai aktiviti ${ctx} di sekolah?`,
+                            q: `Hari ini ialah hari ${currentDay}. Apakah hari ${1 + Math.floor(index / 7)} hari selepas hari ini?`,
                             ans: nextDay,
-                            opts: [nextDay, prevDay, daysOfWeek[(dayIndex + 2) % 7], currentDay],
-                            exp: `Selepas hari ${currentDay} ialah hari ${nextDay}.`
+                            opts: [0, 1, 2, 3].map(offset => daysOfWeek[(dayIndex + 1 + Math.floor(index / 7) + offset) % 7]),
+                            exp: `${1 + Math.floor(index / 7)} hari selepas ${currentDay} ialah ${nextDay}.`
                         },
                         {
-                            q: `Semalam ialah hari ${prevDay}. Apakah hari ini jika hari ini cuti ${ctx}?`,
-                            ans: currentDay,
-                            opts: [currentDay, prevDay, nextDay, daysOfWeek[(dayIndex + 3) % 7]],
-                            exp: `Selepas hari ${prevDay} ialah hari ${currentDay}.`
+                            q: `Semalam ialah hari ${prevDay}. Apakah hari ${1 + Math.floor(index / 7)} hari selepas semalam?`,
+                            ans: daysOfWeek[(dayIndex + Math.floor(index / 7)) % 7],
+                            opts: [0, 1, 2, 3].map(offset => daysOfWeek[(dayIndex + Math.floor(index / 7) + offset) % 7]),
+                            exp: `Bermula daripada ${prevDay}, kira ${1 + Math.floor(index / 7)} hari ke hadapan.`
                         },
                         {
-                            q: `Antara hari berikut, yang manakah hari hujung minggu (weekend) untuk cuti ${ctx}?`,
-                            ans: index % 2 === 0 ? 'Sabtu' : 'Ahad',
-                            opts: [index % 2 === 0 ? 'Sabtu' : 'Ahad', 'Isnin', 'Rabu', 'Khamis'],
-                            exp: `Sabtu dan Ahad ialah hari cuti hujung minggu di sesetengah negeri atau cuti umum.`
+                            q: `Jika hari ini ialah ${daysOfWeek[(index + 2) % 7]}, apakah hari 7 hari kemudian?`,
+                            ans: daysOfWeek[(index + 2) % 7],
+                            opts: [2, 3, 4, 5].map(offset => daysOfWeek[(index + offset) % 7]),
+                            exp: `Tujuh hari bersamaan satu minggu, jadi nama hari kekal sama.`
                         }
                     ];
                     const qt = questionTypes[index % questionTypes.length];
@@ -549,10 +566,10 @@
                             exp: `Sebelum bulan ${currentMonth} ialah bulan ${prevMonth}.`
                         },
                         {
-                            q: `Berapakah bilangan hari dalam sebulan bagi bulan Februari (tahun biasa) semasa cuti ${ctx}?`,
-                            ans: '28 hari',
-                            opts: ['28 hari', '29 hari', '30 hari', '31 hari'],
-                            exp: `Bulan Februari pada tahun biasa mempunyai 28 hari (dan 29 hari pada tahun lompat).`
+                            q: `Jika 1 Februari tahun biasa ialah hari ${daysOfWeek[Math.floor(index / 3) % 7]}, hari apakah 28 Februari?`,
+                            ans: daysOfWeek[(Math.floor(index / 3) + 27) % 7],
+                            opts: [27, 28, 29, 30].map(offset => daysOfWeek[(Math.floor(index / 3) + offset) % 7]),
+                            exp: `Dari 1 Februari hingga 28 Februari ada sela 27 hari, iaitu 3 minggu dan 6 hari.`
                         }
                     ];
                     const qt = questionTypes[index % questionTypes.length];
@@ -566,10 +583,11 @@
                         marks: 5
                     };
                 } else {
-                    const baseDate = (index % 20) + 1;
+                    const baseDate = index + 1;
                     const dayName = daysOfWeek[index % 7];
                     const futureDate = baseDate + 7;
-                    const farFutureDate = baseDate + 14;
+                    const daysToAdd = 8 + index;
+                    const endingDay = daysOfWeek[(index + daysToAdd) % 7];
 
                     const questionTypes = [
                         {
@@ -579,13 +597,13 @@
                             exp: `Tarikh ${baseDate}hb (${dayName}) tambah 7 hari (1 minggu) akan jatuh pada hari yang sama iaitu ${dayName}.`
                         },
                         {
-                            q: `Jika 1hb ${monthsOfYear[(index + 2) % 12]} ialah hari Isnin, berapakah bilangan hari dalam bulan tersebut jika ia mempunyai 31 hari?`,
-                            ans: '31 hari',
-                            opts: ['31 hari', '30 hari', '28 hari', '29 hari'],
-                            exp: `Bulan Masihi seperti Januari, Mac, Mei, Julai, Ogos, Oktober, dan Disember mempunyai 31 hari.`
+                            q: `Jika 1 haribulan ialah hari ${dayName}, hari apakah ${1 + daysToAdd} haribulan dalam bulan yang sama?`,
+                            ans: endingDay,
+                            opts: [endingDay, daysOfWeek[(index + daysToAdd + 1) % 7], daysOfWeek[(index + daysToAdd + 2) % 7], daysOfWeek[(index + daysToAdd + 3) % 7]],
+                            exp: `Beza tarikh ialah ${daysToAdd} hari. Selepas mengira ${daysToAdd} hari dari ${dayName}, tarikhnya jatuh pada hari ${endingDay}.`
                         },
                         {
-                            q: `Ahmad menyertai kem ${ctx} selama 2 minggu bermula 4hb ${monthsOfYear[index % 12]}. Pada tarikh berapakah kem tersebut tamat?`,
+                            q: `Ahmad menyertai kem ${ctx} selama 2 minggu bermula 4hb ${monthsOfYear[index % 12]}. Pada tarikh berapakah genap 14 hari selepas kem bermula?`,
                             ans: `${4 + 14}hb`,
                             opts: [`${4 + 14}hb`, `${4 + 7}hb`, `${4 + 10}hb`, `${4 + 21}hb`],
                             exp: `2 minggu = 14 hari. 4hb + 14 hari = 18hb.`
@@ -608,10 +626,9 @@
                 // Fully refined, distinct, highly rigorous Topic 3 (Perkaitan Dalam Masa) questions
                 if (diff === 'Mudah') {
                     // Week & Day combinations and alternate unit relations
-                    const weekMultipliers = [2, 3, 4, 5, 6, 7, 8, 9, 10];
-                    const w = weekMultipliers[(index * 3) % weekMultipliers.length];
+                    const w = 2 + index;
                     const daysTotal = w * 7;
-                    const extraDays = (index % 4);
+                    const extraDays = 1 + (index % 6);
                     const totalDaysWithExtra = daysTotal + extraDays;
 
                     const qOptionsGroup = [
@@ -649,7 +666,7 @@
                     const minValues = [2, 3, 4, 5, 6, 8, 10, 12, 15];
                     const m = minValues[(index * 2) % minValues.length];
                     const secondsTotal = m * 60;
-                    const extraSecs = (index * 10) % 50;
+                    const extraSecs = 5 + (index % 10) * 5;
                     const totalSecsWithExtra = secondsTotal + extraSecs;
 
                     const qOptionsGroup = [
@@ -728,7 +745,7 @@
             }
 
             static ambahMasaQuestion(diff, index, idStr, ctx) {
-                const m1 = 20 + (index % 30);
+                const m1 = 10 + index + 20 * ['Mudah', 'Sederhana', 'Sukar'].indexOf(diff);
                 const m2 = 15 + (index % 25);
                 const total = m1 + m2;
                 const h = Math.floor(total / 60);
@@ -746,7 +763,7 @@
             }
 
             static tolakMasaQuestion(diff, index, idStr, ctx) {
-                const m1 = 50 + (index % 20);
+                const m1 = 40 + index + 20 * ['Mudah', 'Sederhana', 'Sukar'].indexOf(diff);
                 const m2 = 10 + (index % 15);
                 const total = m1 - m2;
                 return {
@@ -887,7 +904,7 @@
             }
 
             static darabMasaQuestion(diff, index, idStr, ctx) {
-                const baseMins = 10 + (index % 15);
+                const baseMins = 5 + index + 20 * ['Mudah', 'Sederhana', 'Sukar'].indexOf(diff);
                 const factor = 2 + (index % 4); // 2 to 5
                 const totalMins = baseMins * factor;
                 const h = Math.floor(totalMins / 60);
@@ -907,7 +924,7 @@
 
             static bahagiMasaQuestion(diff, index, idStr, ctx) {
                 const divisor = 2 + (index % 4); // 2 to 5
-                const quotient = 10 + (index % 12);
+                const quotient = 5 + index + 20 * ['Mudah', 'Sederhana', 'Sukar'].indexOf(diff);
                 const totalMins = quotient * divisor;
 
                 return {
@@ -922,19 +939,22 @@
             }
 
             static getPenyelesaianMasalahRefined(diff, index, idStr, ctx) {
-                const duration = 15 + (index * 5 % 45);
-                const startHour = 8 + (index % 4);
-                const endHour = startHour + Math.floor((30 + duration) / 60);
-                const endMin = (30 + duration) % 60;
-                const endMinStr = String(endMin).padStart(2, '0');
-
+                const level = ['Mudah', 'Sederhana', 'Sukar'].indexOf(diff);
+                const start = (8 + level * 2) * 60 + 5 * ((index - 1) % 5);
+                const duration = 20 + 5 * Math.floor((index - 1) / 5) + level * 30;
+                const end = start + duration;
+                const clock = total => {
+                    const hour = Math.floor(total / 60);
+                    const minute = String(total % 60).padStart(2, '0');
+                    const period = hour < 12 ? 'pagi' : hour === 12 ? 'tengah hari' : 'petang';
+                    return `${hour % 12 || 12}:${minute} ${period}`;
+                };
                 return {
                     id: idStr, topic: 'Penyelesaian Masalah', difficulty: diff, cognitiveLevel: 'Mengaplikasi', gameType: 'Objektif',
-                    question: `Murid memulakan aktiviti ${ctx} pada pukul ${startHour}:30 pagi. Tempoh aktiviti tersebut ialah ${duration} minit. Pukul berapakah aktiviti tersebut tamat?`,
-                    visual: `<div class="bg-purple-50 border border-purple-200 p-4 rounded-xl text-purple-900 font-semibold flex items-center justify-center space-x-2"><i class="fa-solid fa-brain text-xl text-purple-600"></i><span>Mula: ${startHour}:30 pagi | Tempoh: ${duration} minit</span></div>`,
-                    options: [`${endHour}:${endMinStr} pagi`, `${endHour}:${String((endMin+15)%60).padStart(2,'0')} pagi`, `${startHour}:${endMinStr} pagi`, `${endHour + 1}:${endMinStr} pagi`].sort(() => Math.random() - 0.5),
-                    correctAnswer: `${endHour}:${endMinStr} pagi`,
-                    explanation: `${startHour}:30 pagi + ${duration} minit = ${endHour}:${endMinStr} pagi.`,
+                    question: `Aktiviti sekolah bermula pada pukul ${clock(start)} dan mengambil masa ${duration} minit. Bilakah aktiviti selesai?`,
+                    options: [end, end - 5, end + 5, end + 15].map(clock).sort(() => Math.random() - 0.5),
+                    correctAnswer: clock(end),
+                    explanation: `${clock(start)} ditambah ${duration} minit menjadi ${clock(end)}.`,
                     marks: 5
                 };
             }
@@ -944,7 +964,7 @@
         class MathKidsApp {
             constructor() {
                 this.currentUser = 'Ahmad Fikri';
-                this.users = JSON.parse(localStorage.getItem('mk_users')) || {
+                this.users = JSON.parse(localStorage.getItem('edukidz_t3_sub5_users')) || {
                     'Ahmad Fikri': { totalScore: 0, progress: {}, badges: ['MATH_STAR'] }
                 };
                 this.questionBank = QuestionBank.generateAll();
@@ -955,6 +975,8 @@
                 this.activeSession = {
                     questions: [],
                     currentIndex: 0,
+                    answered: false,
+                    saved: false,
                     score: 0,
                     timer: null,
                     timeLeft: 0
@@ -1103,10 +1125,17 @@
             }
 
             handleTimeout() {
-                this.showFeedback(false, "Masa telah tamat untuk soalan ini!");
+                const session = this.activeSession;
+                const question = session?.questions[session.currentIndex];
+                if (!question || session.answered) return;
+                session.answered = true;
+                this.showFeedback(false, "Masa telah tamat untuk soalan ini!", question.correctAnswer);
             }
 
             submitAnswer(userAns) {
+                const session = this.activeSession;
+                if (!session?.questions[session.currentIndex] || session.answered) return;
+                session.answered = true;
                 if (this.activeSession.timer) clearInterval(this.activeSession.timer);
 
                 const currentQ = this.activeSession.questions[this.activeSession.currentIndex];
@@ -1145,11 +1174,17 @@
             }
 
             nextQuestion() {
-                this.activeSession.currentIndex++;
+                const session = this.activeSession;
+                if (!session?.answered || !session.questions[session.currentIndex]) return;
+                session.answered = false;
+                session.currentIndex++;
                 this.loadCurrentQuestion();
             }
 
             finishGameSession() {
+                const session = this.activeSession;
+                if (!session || session.saved || session.currentIndex !== session.questions.length) return;
+                session.saved = true;
                 const finalScore = this.activeSession.score;
                 document.getElementById('finalScoreText').innerText = `${finalScore} / 100`;
 
@@ -1166,7 +1201,7 @@
                 }
                 userObj.progress[this.selectedTopic] = Math.max(userObj.progress[this.selectedTopic], Math.round((finalScore / 100) * 100));
 
-                localStorage.setItem('mk_users', JSON.stringify(this.users));
+                localStorage.setItem('edukidz_t3_sub5_users', JSON.stringify(this.users));
                 this.updateHeaderUser();
                 this.renderProgressBars();
 
@@ -1253,7 +1288,7 @@
                 if (val) {
                     if (!this.users[val]) {
                         this.users[val] = { totalScore: 0, progress: {}, badges: ['MATH_STAR'] };
-                        localStorage.setItem('mk_users', JSON.stringify(this.users));
+                        localStorage.setItem('edukidz_t3_sub5_users', JSON.stringify(this.users));
                     }
                     this.selectUser(val);
                 }

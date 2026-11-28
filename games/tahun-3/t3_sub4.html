@@ -203,6 +203,23 @@
 
     <!-- Main Game Logic & Question Bank Script -->
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t3_sub4_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && typeof u.password === "string" && Number.isFinite(u.gamesPlayed) && Array.isArray(u.history))
+                : [];
+            localStorage.setItem(usersKey, JSON.stringify(users));
+        })();
+
         
         // Malaysian Ringgit visual SVG or badge helper
         const moneyImages = {
@@ -253,8 +270,8 @@
                 if (level === 'Senang') {
                     q.subtopik = 'Tambah Wang Dalam Ratus';
                     q.aras_kognitif = 'Mengingat';
-                    let a = Math.floor(Math.random() * 40 + 10) * 5;
-                    let b = Math.floor(Math.random() * 30 + 10) * 5;
+                    let a = (10 + index) * 5;
+                    let b = (10 + index) * 5;
                     let sum = a + b;
                     q.soalan = `Berapakah jumlah bagi RM${a} + RM${b}?`;
                     q.jenis = 'Objektif';
@@ -268,7 +285,7 @@
                 } else if (level === 'Sederhana') {
                     q.subtopik = 'Tambah Wang Dalam Ribu';
                     q.aras_kognitif = 'Memahami';
-                    let a = Math.floor(Math.random() * 300 + 100);
+                    let a = 100 + index * 7;
                     let b = Math.floor(Math.random() * 200 + 50);
                     let sum = a + b;
                     q.soalan = `Hitung jumlah berikut: RM${a} + RM${b} = ?`;
@@ -283,7 +300,7 @@
                 } else {
                     q.subtopik = 'Tambah Wang Tiga Nilai / Kompleks';
                     q.aras_kognitif = 'Mengaplikasi';
-                    let a = Math.floor(Math.random() * 200 + 100);
+                    let a = 100 + index * 9;
                     let b = Math.floor(Math.random() * 150 + 50);
                     let c = Math.floor(Math.random() * 100 + 20);
                     let sum = a + b + c;
@@ -301,7 +318,7 @@
                     if (subVariant === 0) {
                         q.subtopik = 'Tolak Wang Asas Duit Syiling & Kertas';
                         q.aras_kognitif = 'Mengingat';
-                        let a = Math.floor(Math.random() * 20 + 20) * 5; // e.g., RM100 - RM25
+                        let a = (20 + index) * 5; // e.g., RM100 - RM25
                         let b = Math.floor(Math.random() * 5 + 1) * 5;
                         let diff = a - b;
                         q.soalan = `Kira hasil tolak nilai ringgit berikut: RM${a} – RM${b} = ?`;
@@ -316,8 +333,8 @@
                     } else if (subVariant === 1) {
                         q.subtopik = 'Cari Nilai yang Hilang (Pendaraban Tolak)';
                         q.aras_kognitif = 'Memahami';
-                        let diff = Math.floor(Math.random() * 30 + 10) * 5;
-                        let b = Math.floor(Math.random() * 20 + 5) * 5;
+                        let diff = (10 + index) * 5;
+                        let b = (5 + index) * 5;
                         let a = diff + b;
                         q.soalan = `Apakah nilai tempat kosong? RM${a} – ______ = RM${diff}`;
                         q.jenis = 'Objektif';
@@ -332,7 +349,7 @@
                         q.subtopik = 'Baki Wang Jajan Sekolah';
                         q.aras_kognitif = 'Mengingat';
                         let a = 50; // RM50 note
-                        let b = Math.floor(Math.random() * 7 + 3) * 5; // e.g., RM15, RM20, RM25
+                        let b = 5 + index; // e.g., RM15, RM20, RM25
                         let diff = a - b;
                         q.soalan = `Amin membawa wang sebanyak RM${a} ke kantin sekolah. Dia membelanjakan RM${b} untuk membeli makanan. Berapakah baki wang Amin?`;
                         q.jenis = 'Objektif';
@@ -350,7 +367,7 @@
                     if (subVariant === 0) {
                         q.subtopik = 'Tolak Wang Dalam Ribu';
                         q.aras_kognitif = 'Memahami';
-                        let a = Math.floor(Math.random() * 5 + 5) * 100 + 50; // cth: RM750.50
+                        let a = 500 + index * 10 + 0.50; // cth: RM750.50
                         let b = Math.floor(Math.random() * 3 + 1) * 100 + 25; // cth: RM225.25
                         let diffNum = parseFloat((a - b).toFixed(2));
                         q.soalan = `Selesaikan operasi tolak berikut:\nRM${a.toFixed(2)} – RM${b.toFixed(2)} = RM ______`;
@@ -362,7 +379,7 @@
                         q.subtopik = 'Tolak Berturut-turut Dua Kali (Two-step Subtraction)';
                         q.aras_kognitif = 'Mengaplikasi';
                         let awal = 800;
-                        let t1 = Math.floor(Math.random() * 10 + 10) * 10; // e.g. 150
+                        let t1 = 100 + index * 10; // e.g. 150
                         let t2 = Math.floor(Math.random() * 5 + 5) * 10;   // e.g. 80
                         let diff = awal - t1 - t2;
                         q.soalan = `Puan Aishah mempunyai wang RM${awal}. Dia membayar bil elektrik sebanyak RM${t1} dan bil air sebanyak RM${t2}. Berapakah baki wang Puan Aishah sekarang?`;
@@ -377,7 +394,7 @@
                     } else {
                         q.subtopik = 'Perbandingan Wang (Siapa Lebih Banyak)';
                         q.aras_kognitif = 'Memahami';
-                        let valA = Math.floor(Math.random() * 3 + 4) * 100 + 50; // e.g. RM550
+                        let valA = 400 + index * 10 + 50; // e.g. RM550
                         let valB = Math.floor(Math.random() * 2 + 1) * 100 + 20; // e.g. RM220
                         let diff = valA - valB;
                         q.soalan = `Tabung Raju mengandungi RM${valA}. Tabung Devi pula mengandungi RM${valB}. Berapakah lebihnya wang Raju berbanding wang Devi?`;
@@ -397,7 +414,7 @@
                         q.subtopik = 'Masalah Kompleks Pembelian & Baki Tabung';
                         q.aras_kognitif = 'Mengaplikasi';
                         let simpanan = 1500;
-                        let beg = Math.floor(Math.random() * 15 + 25) * 5; // e.g. RM125
+                        let beg = (25 + index) * 5; // e.g. RM125
                         let kasut = Math.floor(Math.random() * 20 + 35) * 5; // e.g. RM210
                         let totalBelanja = beg + kasut;
                         let baki = simpanan - totalBelanja;
@@ -413,7 +430,7 @@
                     } else if (subVariant === 1) {
                         q.subtopik = 'Tolak Wang Dengan Pendermaan & Amal';
                         q.aras_kognitif = 'Mengaplikasi';
-                        let derma = Math.floor(Math.random() * 10 + 10) * 10; // e.g. RM120
+                        let derma = 100 + index * 10; // e.g. RM120
                         let tabungAsal = Math.floor(Math.random() * 5 + 8) * 100; // e.g. RM900
                         let baki = tabungAsal - derma;
                         q.soalan = `Kelab Matematik Sekolah mengumpul dana sebanyak RM${tabungAsal}. Sebanyak RM${derma} telah disumbangkan kepada rumah anak yatim. Berapakah baki dana yang masih ada dalam simpanan kelab?`;
@@ -429,7 +446,7 @@
                         q.subtopik = 'Tolak Wang Berangkai (Tiga Nombor)';
                         q.aras_kognitif = 'Mengaplikasi';
                         let v1 = 2000;
-                        let v2 = Math.floor(Math.random() * 3 + 2) * 100 + 50; // e.g. RM350
+                        let v2 = 200 + index * 10 + 50; // e.g. RM350
                         let v3 = Math.floor(Math.random() * 2 + 1) * 100 + 20; // e.g. RM120
                         let akhir = v1 - v2 - v3;
                         q.soalan = `Cari nilai bagi: RM${v1} – RM${v2} – RM${v3} = RM ______`;
@@ -444,7 +461,7 @@
                 if (level === 'Senang') {
                     q.subtopik = 'Darab Nilai Wang Asas';
                     q.aras_kognitif = 'Mengingat';
-                    let price = Math.floor(Math.random() * 8 + 2) * 5;
+                    let price = 5 + index;
                     let qty = Math.floor(Math.random() * 4 + 2);
                     let prod = price * qty;
                     q.soalan = `Sebuah buku nota berharga RM${price}. Berapakah harga untuk ${qty} buah buku nota yang sama?`;
@@ -459,7 +476,7 @@
                 } else if (level === 'Sederhana') {
                     q.subtopik = 'Darab Wang Sifir Sederhana';
                     q.aras_kognitif = 'Memahami';
-                    let price = Math.floor(Math.random() * 15 + 10) * 2;
+                    let price = (10 + index) * 2;
                     let qty = Math.floor(Math.random() * 5 + 3);
                     let prod = price * qty;
                     q.soalan = `Harga sebuah beg mainan ialah RM${price}. Hitung jumlah harga bagi ${qty} buah beg tersebut.`;
@@ -470,7 +487,7 @@
                 } else {
                     q.subtopik = 'Darab Wang Nilai Lebih Besar';
                     q.aras_kognitif = 'Mengaplikasi';
-                    let price = Math.floor(Math.random() * 50 + 40);
+                    let price = 40 + index;
                     let qty = Math.floor(Math.random() * 6 + 4);
                     let prod = price * qty;
                     q.soalan = `Sekolah membeli ${qty} set peralatan sukan dengan harga RM${price} setiap satu. Berapakah jumlah keseluruhan bayaran?`;
@@ -489,7 +506,7 @@
                     q.subtopik = 'Bahagi Wang Asas Sama Rata';
                     q.aras_kognitif = 'Mengingat';
                     let div = Math.floor(Math.random() * 4 + 2); // 2, 3, 4, 5
-                    let ans = Math.floor(Math.random() * 10 + 5) * 5;
+                    let ans = (5 + index) * 5;
                     let total = div * ans;
                     q.soalan = `RM${total} dibahagikan sama rata kepada ${div} orang murid. Berapakah wang yang diterima oleh setiap murid?`;
                     q.jenis = 'Objektif';
@@ -504,7 +521,7 @@
                     q.subtopik = 'Pembahagian Kos Sama Rata';
                     q.aras_kognitif = 'Memahami';
                     let div = 5;
-                    let ans = Math.floor(Math.random() * 20 + 12);
+                    let ans = 12 + index;
                     let total = div * ans;
                     q.soalan = `Jumlah bayaran untuk ${div} tiket ke muzium ialah RM${total}. Berapakah harga bagi satu tiket? RM ______`;
                     q.jenis = 'Isi Tempat Kosong';
@@ -515,7 +532,7 @@
                     q.subtopik = 'Bahagi Wang Situasi Harian';
                     q.aras_kognitif = 'Mengaplikasi';
                     let div = Math.floor(Math.random() * 4 + 3); // 3, 4, 5, 6
-                    let ans = Math.floor(Math.random() * 30 + 20);
+                    let ans = 32 + index;
                     let total = div * ans;
                     q.soalan = `Puan Aminah mempunyai wang sebanyak RM${total}. Dia membahagikan wang itu sama rata kepada ${div} orang anaknya untuk tabung simpanan. Berapakah wang yang didapati oleh setiap anak?`;
                     q.jenis = 'Objektif';
@@ -546,17 +563,18 @@
                 if (level === 'Senang') {
                     q.subtopik = 'Kenal Nama Matawang Negara';
                     q.aras_kognitif = 'Mengingat';
-                    q.soalan = `Apakah nama matawang bagi negara ${c.negara}?`;
+                    q.soalan = index <= 10 ? `Apakah nama mata wang bagi ${c.negara}?` : `Negara manakah menggunakan ${c.matawang}?`;
                     q.jenis = 'Objektif';
                     let others = currencies.filter(x => x.matawang !== c.matawang).sort(() => 0.5 - Math.random()).slice(0, 3).map(x => x.matawang);
-                    q.pilihan = shuffleArray([c.matawang, ...others]);
-                    q.jawapan = c.matawang;
+                    q.pilihan = index <= 10 ? shuffleArray([c.matawang, ...others])
+                        : shuffleArray([c.negara, ...[1, 2, 3].map(delta => currencies[(index + delta) % currencies.length].negara)]);
+                    q.jawapan = index <= 10 ? c.matawang : c.negara;
                     q.penerangan = `Negara ${c.negara} menggunakan matawang ${c.matawang}.`;
                     q.visual = `Paparkan bendera ${c.negara}`;
                 } else if (level === 'Sederhana') {
                     q.subtopik = 'Padanan Negara dan Matawang';
                     q.aras_kognitif = 'Memahami';
-                    q.soalan = `Pilih pasangan negara dan matawang yang BETUL di bawah:`;
+                    q.soalan = index <= 10 ? `Pilih pasangan mata wang ${c.negara} yang betul.` : `Pilih pasangan yang memadankan ${c.matawang} dengan negaranya.`;
                     q.jenis = 'Objektif';
                     let wrongC1 = currencies[(index + 1) % currencies.length];
                     let wrongC2 = currencies[(index + 2) % currencies.length];
@@ -573,12 +591,18 @@
                 } else {
                     q.subtopik = 'Kenal Simbol & Ciri Matawang Luar';
                     q.aras_kognitif = 'Mengaplikasi';
-                    q.soalan = `Antara berikut, yang manakah matawang rasmi bagi negara ${c.negara}?`;
+                    const code = c.matawang.match(/\(([A-Z]{3})\)$/)[1];
+                    const symbols = ['RM', 'S$', 'US$', '£', '¥', '₹', '฿', 'Rp', 'A$'];
+                    const otherCodes = [1, 2, 3].map(delta => currencies[(index + delta) % currencies.length].matawang.match(/\(([A-Z]{3})\)$/)[1]);
+                    q.soalan = index <= 10
+                        ? `Apakah kod tiga huruf bagi mata wang ${c.negara}?`
+                        : `Apakah simbol mata wang dengan kod ${code}?`;
                     q.jenis = 'Objektif';
-                    let others = currencies.filter(x => x.matawang !== c.matawang).sort(() => 0.5 - Math.random()).slice(0, 3).map(x => x.matawang);
-                    q.pilihan = shuffleArray([c.matawang, ...others]);
-                    q.jawapan = c.matawang;
-                    q.penerangan = `${c.negara} menggunakan ${c.matawang}. Ringgit Malaysia (MYR) adalah untuk Malaysia sahaja.`;
+                    q.pilihan = index <= 10
+                        ? shuffleArray([code, ...otherCodes])
+                        : shuffleArray([c.simpan, ...symbols.filter(symbol => symbol !== c.simpan).slice(0, 3)]);
+                    q.jawapan = index <= 10 ? code : c.simpan;
+                    q.penerangan = `${c.matawang} menggunakan kod ${code} dan simbol ${c.simpan}.`;
                     q.visual = 'Paparkan ilustrasi wang antarabangsa';
                 }
             } else if (catId === 'masalah') {
@@ -586,7 +610,7 @@
                 if (level === 'Senang') {
                     q.subtopik = 'Membeli Makanan dan Alat Tulis';
                     q.aras_kognitif = 'Mengingat';
-                    let item1 = Math.floor(Math.random() * 5 + 2);
+                    let item1 = 1 + index;
                     let item2 = Math.floor(Math.random() * 4 + 1);
                     let sum = item1 + item2;
                     q.soalan = `Amir membeli sebuah buku tulis berharga RM${item1} dan sebatang pensel berharga RM${item2}. Berapakah jumlah harga barang tersebut?`;
@@ -602,7 +626,7 @@
                     q.subtopik = 'Baki Wang Pembelian';
                     q.aras_kognitif = 'Memahami';
                     let duit = 50;
-                    let belanja = Math.floor(Math.random() * 25 + 15);
+                    let belanja = 15 + index;
                     let baki = duit - belanja;
                     q.soalan = `Siti mempunyai wang RM${50}. Dia membeli sepasang kasut sekolah berharga RM${belanja}. Berapakah baki wang Siti?`;
                     q.jenis = 'Isi Tempat Kosong';
@@ -613,7 +637,7 @@
                     q.subtopik = 'Masalah Dua Langkah Wang';
                     q.aras_kognitif = 'Mengaplikasi';
                     let awal = 100;
-                    let h1 = Math.floor(Math.random() * 15 + 10);
+                    let h1 = 10 + index;
                     let h2 = Math.floor(Math.random() * 12 + 8);
                     let baki = awal - (h1 + h2);
                     q.soalan = `Abu mempunyai wang RM${awal}. Dia membeli sebuah beg galas berharga RM${h1} dan sebotol air berharga RM${h2}. Berapakah baki wang Abu sekarang?`;
@@ -643,7 +667,7 @@
         
         let gameState = {
             currentUser: null,
-            users: JSON.parse(localStorage.getItem('math_kids_users') || '[]'),
+            users: JSON.parse(localStorage.getItem('edukidz_t3_sub4_users') || '[]'),
             currentScreen: 'home', // 'home', 'auth', 'categories', 'levels', 'timers', 'game', 'results', 'progress', 'leaderboard', 'settings'
             authMode: 'login', // 'login' or 'register'
             selectedCategory: null,
@@ -675,7 +699,7 @@
                         gamesPlayed: 2,
                         history: []
                     });
-                    localStorage.setItem('math_kids_users', JSON.stringify(gameState.users));
+                    localStorage.setItem('edukidz_t3_sub4_users', JSON.stringify(gameState.users));
                 }
                 // Auto login default or guest
                 gameState.currentUser = gameState.users[0];
@@ -922,7 +946,7 @@
                     history: []
                 };
                 gameState.users.push(newUser);
-                localStorage.setItem('math_kids_users', JSON.stringify(gameState.users));
+                localStorage.setItem('edukidz_t3_sub4_users', JSON.stringify(gameState.users));
                 gameState.currentUser = newUser;
                 this.showModal('Pendaftaran Berjaya!', `Akaun anda telah dicipta. Selamat bermain, ${name}!`, 'success', () => {
                     this.navigate('home');
@@ -1298,7 +1322,7 @@
                     const idx = gameState.users.findIndex(x => x.username === gameState.currentUser.username);
                     if (idx !== -1) {
                         gameState.users[idx] = gameState.currentUser;
-                        localStorage.setItem('math_kids_users', JSON.stringify(gameState.users));
+                        localStorage.setItem('edukidz_t3_sub4_users', JSON.stringify(gameState.users));
                     }
                 }
 
@@ -1486,7 +1510,7 @@
             },
 
             resetData() {
-                localStorage.removeItem('math_kids_users');
+                localStorage.setItem('edukidz_t3_sub4_users', '[]');
                 gameState.users = [];
                 gameState.currentUser = null;
                 this.showModal('Reset Berjaya', 'Semua data akaun telah dikosongkan.', 'success', () => {

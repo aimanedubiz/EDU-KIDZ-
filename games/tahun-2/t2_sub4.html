@@ -106,6 +106,23 @@
     </div>
 
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t2_sub4_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = legacy && typeof legacy === "object" && !Array.isArray(legacy)
+                ? Object.fromEntries(Object.entries(legacy).filter(([key, u]) => u && typeof u.password === "string" && Number.isFinite(u.totalGames) && Number.isFinite(u.incorrectAnswers) && u.categoryProgress))
+                : {};
+            localStorage.setItem(usersKey, JSON.stringify(users));
+        })();
+
         const categories = [
             { id: 1, title: "Kenali Jam dan Masa", icon: "⏰", desc: "Mengenal jam analog, jarum jam, jarum minit dan baca waktu." },
             { id: 2, title: "Rekod Waktu", icon: "🕐", desc: "Memadankan jam analog, waktu digital dan bacaan minit." },
@@ -136,14 +153,13 @@
 
         function generateQuestionBank() {
             const bank = {};
-            const names = ['Ali', 'Siti', 'Ahmad', 'Mei Ling', 'Rani', 'John', 'Fatimah', 'Zul'];
             
             categories.forEach(cat => {
                 bank[cat.id] = {};
                 levels.forEach(lvl => {
                     bank[cat.id][lvl.id] = [];
                     for (let i = 1; i <= 20; i++) {
-                        let q = generateSingleQuestion(cat.id, lvl.id, i, names);
+                        let q = generateSingleQuestion(cat.id, lvl.id, i);
                         bank[cat.id][lvl.id].push(q);
                     }
                 });
@@ -151,8 +167,7 @@
             return bank;
         }
 
-        function generateSingleQuestion(catId, lvlId, index, names) {
-            const name = names[index % names.length];
+        function generateSingleQuestion(catId, lvlId, index) {
             let qObj = {
                 id: `Q-${catId}-${lvlId}-${index}`,
                 category: catId,
@@ -161,103 +176,60 @@
                 explanation: "Syabas! Teruskan kefahaman tentang konsep masa dan waktu."
             };
 
-            if (catId === 1) { // Kenali Jam dan Masa
+            if (catId === 1 || catId === 2) {
+                const level = ['mudah', 'sederhana', 'sukar'].indexOf(lvlId);
+                const minutePairs = catId === 1 ? [[0, 15], [30, 45], [5, 10]] : [[20, 25], [35, 40], [50, 55]];
+                const usesPeriod = catId === 2 && level > 0;
+                const hoursPerGroup = usesPeriod ? 10 : 12;
+                const hour = (index - 1) % hoursPerGroup + 1;
+                const minute = minutePairs[level][Math.floor((index - 1) / hoursPerGroup)];
+                const digital = (h, m) => {
+                    const period = !usesPeriod ? '' : level === 1 ? ' pagi' : h < 7 ? ' petang' : ' malam';
+                    return `${h}:${String(m).padStart(2, '0')}${period}`;
+                };
+                qObj.type = 'objektif';
+                qObj.clockTime = { hour, minute };
+                qObj.question = catId === 1
+                    ? 'Baca jam analog. Pukul berapakah waktu yang ditunjukkan?'
+                    : `Rekodkan masa pada jam analog dalam bentuk digital${usesPeriod ? (level === 1 ? ' dengan label pagi' : ' dengan label petang atau malam (jam menunjukkan waktu selepas tengah hari)') : ''}.`;
+                qObj.answer = digital(hour, minute);
+                qObj.options = shuffleArray([
+                    qObj.answer,
+                    digital(hour % 12 + 1, minute),
+                    digital(hour, (minute + 15) % 60),
+                    digital(hour, (minute + 30) % 60)
+                ]);
+                qObj.explanation = `Baca kedudukan jarum pendek untuk jam dan tanda jarum panjang untuk minit. Waktunya ${qObj.answer}.`;
+            } else if (catId === 3) {
+                const group = (index - 1) % 4;
+                const step = Math.floor((index - 1) / 4);
+                let amount, converted, target;
                 if (lvlId === 'mudah') {
-                    const hours = (index % 12) + 1;
-                    qObj.question = `Apakah waktu yang ditunjukkan pada jam analog di atas (jarum panjang di 12)?`;
-                    qObj.clockTime = { hour: hours, minute: 0 };
-                    const correctStr = `${hours}:00`;
-                    qObj.answer = correctStr;
-                    qObj.type = 'objektif';
-                    qObj.options = shuffleArray([correctStr, `${(hours%12)+1}:00`, `${(hours-2+12)%12+1}:00`, `${(hours+3)%12+1}:00`]);
-                    qObj.explanation = `Jarum pendek menunjuk ke nombor ${hours} dan jarum panjang di nombor 12 bermaksud pukul ${hours}:00.`;
+                    const [unit, destination, factor] = [['jam','minit',60], ['hari','jam',24], ['minggu','hari',7], ['tahun','bulan',12]][group];
+                    amount = (group === 0 ? 5 : 6) + step;
+                    target = destination;
+                    converted = amount * factor;
+                    qObj.question = `${amount} ${unit} bersamaan dengan berapa ${target}?`;
+                    qObj.explanation = `${amount} × ${factor} = ${converted} ${target}.`;
                 } else if (lvlId === 'sederhana') {
-                    const hours = (index % 12) + 1;
-                    const mins = (index % 4) * 15; // 0, 15, 30, 45
-                    qObj.question = `Jarum pendek pada ${hours} dan jarum minit pada ${(mins===0?12:mins/5)}. Pukul berapakah itu?`;
-                    qObj.clockTime = { hour: hours, minute: mins };
-                    const correctStr = `${hours}:${mins < 10 ? '0'+mins : mins}`;
-                    qObj.answer = correctStr;
-                    qObj.type = 'objektif';
-                    qObj.options = shuffleArray([correctStr, `${(hours%12)+1}:${mins}`, `${hours}:${(mins+15)%60 < 10 ? '0'+((mins+15)%60) : (mins+15)%60}`, `${(hours-1+12)%12+1}:30`]);
-                    qObj.explanation = `Setiap nombor pada jam mewakili 5 minit. Suku jam ialah 15 minit dan setengah jam ialah 30 minit.`;
-                } else { // sukar
-                    const hours = (index % 12) + 1;
-                    const mins = ((index * 5) % 12) * 5;
-                    qObj.question = `Perhatikan kedudukan jarum jam dan minit. Jika jarum minit bergerak melepasi beberapa angka, apakah waktu yang tepat?`;
-                    qObj.clockTime = { hour: hours, minute: mins };
-                    const correctStr = `${hours}:${mins < 10 ? '0'+mins : mins}`;
-                    qObj.answer = correctStr;
-                    qObj.type = 'objektif';
-                    qObj.options = shuffleArray([correctStr, `${(hours%12)+1}:${(mins+10)%60 < 10 ? '0'+(mins+10)%60 : (mins+10)%60}`, `${hours}:${(mins+30)%60 < 10 ? '0'+((mins+30)%60) : (mins+30)%60}`, `${(hours-1+12)%12+1}:15`]);
-                    qObj.explanation = `Bacaan jarum pendek dahulu diikuti jarum minit (darab 5 setiap angka). Jawapannya ialah ${correctStr}.`;
-                }
-            } else if (catId === 2) { // Rekod Waktu
-                if (lvlId === 'mudah') {
-                    const h = (index % 12) + 1;
-                    qObj.question = `Padankan jam analog berikut dengan waktu digital yang sepadan.`;
-                    qObj.clockTime = { hour: h, minute: 0 };
-                    qObj.answer = `${h}:00`;
-                    qObj.type = 'objektif';
-                    qObj.options = shuffleArray([`${h}:00`, `${h}:30`, `${(h%12)+1}:00`, `${(h+2)%12+1}:15`]);
-                    qObj.explanation = `Waktu tepat ditunjukkan apabila jarum minit di angka 12.`;
-                } else if (lvlId === 'sederhana') {
-                    const h = (index % 12) + 1;
-                    qObj.question = `${name} melihat jam menunjukkan pukul ${h}:30 pagi. Apakah rekod waktu digital yang betul?`;
-                    qObj.clockTime = { hour: h, minute: 30 };
-                    qObj.answer = `${h}:30 pagi`;
-                    qObj.type = 'objektif';
-                    qObj.options = shuffleArray([`${h}:30 pagi`, `${h}:15 pagi`, `${(h%12)+1}:30 pagi`, `${h}:00 pagi`]);
-                    qObj.explanation = `Setengah jam bersamaan 30 minit. Jadi rekodnya ialah ${h}:30 pagi.`;
+                    const [unit, destination, factor] = [['minit','jam',60], ['jam','hari',24], ['hari','minggu',7], ['bulan','tahun',12]][group];
+                    converted = 7 + step;
+                    amount = converted * factor;
+                    target = destination;
+                    qObj.question = `${amount} ${unit} bersamaan dengan berapa ${target}?`;
+                    qObj.explanation = `${amount} ÷ ${factor} = ${converted} ${target}.`;
                 } else {
-                    const h = (index % 11) + 1;
-                    qObj.question = `Pilih waktu petang yang betul bagi jarum jam di angka ${h} dan jarum minit di angka 6 (30 minit).`;
-                    qObj.clockTime = { hour: h, minute: 30 };
-                    qObj.answer = `${h}:30 petang`;
-                    qObj.type = 'objektif';
-                    qObj.options = shuffleArray([`${h}:30 petang`, `${h}:00 petang`, `${(h%12)+1}:30 petang`, `${h}:15 petang`]);
-                    qObj.explanation = `Waktu petang merujuk kepada aktiviti selepas tengah hari sehingga senja.`;
+                    const [major, minor, factor] = [['jam','minit',60], ['hari','jam',24], ['minggu','hari',7], ['tahun','bulan',12]][group];
+                    amount = 3 + step;
+                    const remainder = [40, 10, 6, 8][group];
+                    target = minor;
+                    converted = amount * factor + remainder;
+                    qObj.question = `Tukarkan ${amount} ${major} ${remainder} ${minor} kepada unit ${target} sahaja.`;
+                    qObj.explanation = `${amount} × ${factor} + ${remainder} = ${converted} ${target}.`;
                 }
-            } else if (catId === 3) { // Perkaitan Waktu
-                if (lvlId === 'mudah') {
-                    const val = index % 3;
-                    if (val === 0) {
-                        qObj.question = `1 jam bersamaan dengan berapa minit?`;
-                        qObj.answer = `60 minit`;
-                        qObj.options = shuffleArray([`60 minit`, `30 minit`, `24 minit`, `12 minit`]);
-                    } else if (val === 1) {
-                        qObj.question = `1 hari bersamaan dengan berapa jam?`;
-                        qObj.answer = `24 jam`;
-                        qObj.options = shuffleArray([`24 jam`, `12 jam`, `60 jam`, `7 jam`]);
-                    } else {
-                        qObj.question = `1 minggu bersamaan dengan berapa hari?`;
-                        qObj.answer = `7 hari`;
-                        qObj.options = shuffleArray([`7 hari`, `30 hari`, `12 hari`, `24 hari`]);
-                    }
-                    qObj.type = 'objektif';
-                } else if (lvlId === 'sederhana') {
-                    const val = index % 3;
-                    if (val === 0) {
-                        qObj.question = `½ jam bersamaan dengan berapa minit?`;
-                        qObj.answer = `30 minit`;
-                        qObj.options = shuffleArray([`30 minit`, `15 minit`, `45 minit`, `60 minit`]);
-                    } else if (val === 1) {
-                        qObj.question = `¼ jam bersamaan dengan berapa minit?`;
-                        qObj.answer = `15 minit`;
-                        qObj.options = shuffleArray([`15 minit`, `30 minit`, `10 minit`, `20 minit`]);
-                    } else {
-                        qObj.question = `1 tahun bersamaan dengan berapa bulan?`;
-                        qObj.answer = `12 bulan`;
-                        qObj.options = shuffleArray([`12 bulan`, `7 bulan`, `24 bulan`, `365 bulan`]);
-                    }
-                    qObj.type = 'objektif';
-                } else {
-                    qObj.question = `Berapakah jumlah minit dalam 2 jam?`;
-                    qObj.answer = `120 minit`;
-                    qObj.type = 'objektif';
-                    qObj.options = shuffleArray([`120 minit`, `60 minit`, `90 minit`, `180 minit`]);
-                    qObj.explanation = `1 jam = 60 minit. Maka 2 jam = 60 + 60 = 120 minit.`;
-                }
+                qObj.type = 'objektif';
+                qObj.answer = `${converted} ${target}`;
+                qObj.options = shuffleArray([converted, converted - 2, converted + 3, converted + 5].map(value => `${value} ${target}`));
             } else if (catId === 4) { // KATEGORI 4: LENGKAPKAN AYAT MATEMATIK (REFINED: COMPLETELY UNIQUE, TEXT-ONLY, NO DUPLICATES)
                 const uniqueQuestions = {
                     mudah: [
@@ -271,8 +243,8 @@
                         { q: "Lengkapkan ayat tolak mudah waktu:\n4 jam - 1 jam = ____ jam", ans: "3", opts: ["3", "4", "2", "5"], exp: "4 jam ditolak 1 jam baki 3 jam." },
                         { q: "Lengkapkan ayat matematik waktu pagi:\nPukul 8:00 pagi ke 9:00 pagi melibatkan tempoh ____ jam", ans: "1", opts: ["1", "2", "60", "30"], exp: "Jarak masa dari pukul 8:00 pagi hingga 9:00 pagi ialah 1 jam." },
                         { q: "Lengkapkan ayat matematik tempoh minit:\nPukul 2:00 petang hingga 2:30 petang ialah ____ minit", ans: "30", opts: ["30", "15", "60", "45"], exp: "Dari 2:00 ke 2:30 ialah 30 minit." },
-                        { q: "Lengkapkan ayat matematik hari bekerja sekolah:\nDalam seminggu, hari persekolahan ialah ____ hari", ans: "5", opts: ["5", "7", "2", "6"], exp: "Hari persekolahan kebiasaannya adalah 5 hari (Isnin hingga Jumaat)." },
-                        { q: "Lengkapkan ayat matematik hujung minggu:\nHujung minggu (Sabtu dan Ahad) berjumlah ____ hari", ans: "2", opts: ["2", "5", "7", "1"], exp: "Sabtu dan Ahad ialah 2 hari cuti hujung minggu." },
+                        { q: "Lengkapkan ayat matematik hari bekerja sekolah:\nJika sekolah dibuka dari Isnin hingga Jumaat, sekolah dibuka selama ____ hari", ans: "5", opts: ["5", "7", "2", "6"], exp: "Isnin, Selasa, Rabu, Khamis dan Jumaat berjumlah 5 hari." },
+                        { q: "Lengkapkan ayat matematik hujung minggu:\nCuti pada hari Sabtu dan Ahad berjumlah ____ hari", ans: "2", opts: ["2", "5", "7", "1"], exp: "Sabtu dan Ahad ialah 2 hari cuti hujung minggu." },
                         { q: "Lengkapkan ayat matematik pertukaran jam:\n2 jam = ____ minit", ans: "120", opts: ["120", "60", "90", "180"], exp: "2 darab 60 minit = 120 minit." },
                         { q: "Lengkapkan ayat matematik separuh jam:\n½ jam = ____ minit", ans: "30", opts: ["30", "15", "60", "45"], exp: "Setengah jam bernilai 30 minit." },
                         { q: "Lengkapkan ayat matematik suku jam:\n¼ jam = ____ minit", ans: "15", opts: ["15", "30", "60", "10"], exp: "Suku jam bernilai 15 minit." },
@@ -308,7 +280,7 @@
                         { q: "Lengkapkan ayat penukaran minit kompleks:\n90 minit = ____ jam ____ minit", ans: "1 jam 30 minit", opts: ["1 jam 30 minit", "1 jam 15 minit", "2 jam 30 minit", "1 jam 45 minit"], exp: "90 minit = 60 minit (1 jam) + 30 minit." },
                         { q: "Lengkapkan ayat penukaran minit 75:\n75 minit = ____ jam ____ minit", ans: "1 jam 15 minit", opts: ["1 jam 15 minit", "1 jam 30 minit", "1 jam 10 minit", "2 jam 15 minit"], exp: "75 minit = 60 minit (1 jam) + 15 minit." },
                         { q: "Lengkapkan ayat penukaran minit 105:\n105 minit = ____ jam ____ minit", ans: "1 jam 45 minit", opts: ["1 jam 45 minit", "1 jam 30 minit", "2 jam 15 minit", "1 jam 15 minit"], exp: "105 minit = 60 minit (1 jam) + 45 minit." },
-                        { q: "Lengkapkan ayat operasi tambah masa:\n1 jam 20 minit + 40 minit = ____ jam", ans: "2 jam", opts: ["2 jam", "1 jam 60 minit", "3 jam", "1 jam 45 minit"], exp: "20 minit + 40 minit = 60 minit (1 jam). 1 jam + 1 jam = 2 jam." },
+                        { q: "Lengkapkan ayat operasi tambah masa:\n1 jam 20 minit + 40 minit = ____ jam", ans: "2 jam", opts: ["2 jam", "1 jam 40 minit", "3 jam", "1 jam 45 minit"], exp: "20 minit + 40 minit = 60 minit (1 jam). 1 jam + 1 jam = 2 jam." },
                         { q: "Lengkapkan ayat operasi tolak masa kompleks:\n2 jam 30 minit - 30 minit = ____ jam", ans: "2 jam", opts: ["2 jam", "1 jam 30 minit", "2 jam 30 minit", "1 jam"], exp: "30 minit tolak 30 minit habis, tinggal 2 jam." },
                         { q: "Lengkapkan ayat tambah jam dan minit:\n1 jam 15 minit + 1 jam 15 minit = ____ jam ____ minit", ans: "2 jam 30 minit", opts: ["2 jam 30 minit", "2 jam", "3 jam", "1 jam 45 minit"], exp: "1 jam + 1 jam = 2 jam; 15 minit + 15 minit = 30 minit." },
                         { q: "Lengkapkan ayat penukaran 150 minit:\n150 minit = ____ jam ____ minit", ans: "2 jam 30 minit", opts: ["2 jam 30 minit", "2 jam 15 minit", "1 jam 30 minit", "3 jam"], exp: "150 minit = 120 minit (2 jam) + 30 minit." },
@@ -316,7 +288,7 @@
                         { q: "Lengkapkan ayat tempoh hari ke minggu:\n21 hari = ____ minggu", ans: "3 minggu", opts: ["3 minggu", "2 minggu", "4 minggu", "5 minggu"], exp: "21 bahagi 7 hari = 3 minggu." },
                         { q: "Lengkapkan ayat tempoh hari ke minggu 28:\n28 hari = ____ minggu", ans: "4 minggu", opts: ["4 minggu", "3 minggu", "5 minggu", "2 minggu"], exp: "28 bahagi 7 hari = 4 minggu." },
                         { q: "Lengkapkan ayat jumlah jam sehari semalam:\nBilangan jam dalam 2 hari = ____ jam", ans: "48 jam", opts: ["48 jam", "24 jam", "36 jam", "60 jam"], exp: "24 jam × 2 = 48 jam." },
-                        { q: "Lengkapkan ayat pengiraan tempoh hari:\nDari 1 Mei hingga 8 Mei ialah ____ hari", ans: "7 hari", opts: ["7 hari", "8 hari", "6 hari", "5 hari"], exp: "8 - 1 = 7 hari tempoh." },
+                        { q: "Lengkapkan ayat pengiraan tempoh hari:\nDari pukul 8:00 pagi pada 1 Mei hingga pukul 8:00 pagi pada 8 Mei ialah ____ hari", ans: "7 hari", opts: ["7 hari", "8 hari", "6 hari", "5 hari"], exp: "8 - 1 = 7 hari tempoh." },
                         { q: "Lengkapkan ayat penukaran 3 tahun 6 bulan:\n3 tahun 6 bulan = ____ bulan", ans: "42 bulan", opts: ["42 bulan", "36 bulan", "40 bulan", "48 bulan"], exp: "3 tahun × 12 = 36 bulan + 6 bulan = 42 bulan." },
                         { q: "Lengkapkan ayat penukaran 2 tahun 3 bulan:\n2 tahun 3 bulan = ____ bulan", ans: "27 bulan", opts: ["27 bulan", "24 bulan", "25 bulan", "30 bulan"], exp: "2 tahun × 12 = 24 bulan + 3 bulan = 27 bulan." },
                         { q: "Lengkapkan ayat perbezaan minit:\nPerbezaan antara 2 jam dengan 90 minit ialah ____ minit", ans: "30 minit", opts: ["30 minit", "60 minit", "15 minit", "45 minit"], exp: "120 minit - 90 minit = 30 minit." },
@@ -346,7 +318,7 @@
                         { q: "Aktiviti senamrobik di sekolah bermula pada pukul 8:00 pagi dan berlangsung selama 1 jam. Pukul berapakah tamat?", ans: "9:00 pagi", opts: ["9:00 pagi", "8:30 pagi", "10:00 pagi", "7:30 pagi"], exp: "8:00 pagi + 1 jam = 9:00 pagi." },
                         { q: "Mei Ling mengulang kaji pelajaran selama 1 jam bermula pada pukul 7:00 malam. Pukul berapakah dia berehat?", ans: "8:00 malam", opts: ["8:00 malam", "7:30 malam", "9:00 malam", "6:00 malam"], exp: "7:00 malam + 1 jam = 8:00 malam." },
                         { q: "Zul membantu datuknya di kebun selama 2 jam dari pukul 9:00 pagi. Pukul berapakah mereka berhenti?", ans: "11:00 pagi", opts: ["11:00 pagi", "10:00 pagi", "12:00 tengah hari", "10:30 pagi"], exp: "9:00 pagi + 2 jam = 11:00 pagi." },
-                        { q: "Sebuah bas sekolah bertolak pada pukul 1:00 tengah hari dan perjalanan mengambil masa 1 jam. Pukul berapakah bas sampai?", ans: "2:00 petang", opts: ["2:00 petang", "1:30 petang", "3:00 petang", "12:30 tengah hari"], exp: "1:00 tengah hari + 1 jam = 2:00 petang." },
+                        { q: "Sebuah bas sekolah bertolak pada pukul 1:00 petang dan perjalanan mengambil masa 1 jam. Pukul berapakah bas sampai?", ans: "2:00 petang", opts: ["2:00 petang", "1:30 petang", "3:00 petang", "12:30 tengah hari"], exp: "1:00 petang + 1 jam = 2:00 petang." },
                         { q: "Fatimah menyiram pokok bunga selama setengah jam (30 minit) bermula pukul 5:00 petang. Pukul berapakah selesai?", ans: "5:30 petang", opts: ["5:30 petang", "6:00 petang", "5:15 petang", "4:30 petang"], exp: "5:00 petang + 30 minit = 5:30 petang." },
                         { q: "Rani menonton rancangan televisyen selama 1 jam bermula pukul 4:00 petang. Pukul berapakah rancangan tamat?", ans: "5:00 petang", opts: ["5:00 petang", "4:30 petang", "6:00 petang", "3:30 petang"], exp: "4:00 petang + 1 jam = 5:00 petang." },
                         { q: "John menyiapkan kerja sekolah dalam masa 2 jam bermula pukul 3:00 petang. Pukul berapakah dia siap?", ans: "5:00 petang", opts: ["5:00 petang", "4:00 petang", "6:00 petang", "4:30 petang"], exp: "3:00 petang + 2 jam = 5:00 petang." },
@@ -445,12 +417,12 @@
         };
 
         function getUsers() {
-            const users = localStorage.getItem('math_kids_users');
+            const users = localStorage.getItem('edukidz_t2_sub4_users');
             return users ? JSON.parse(users) : {};
         }
 
         function saveUsers(users) {
-            localStorage.setItem('math_kids_users', JSON.stringify(users));
+            localStorage.setItem('edukidz_t2_sub4_users', JSON.stringify(users));
         }
 
         appState.navigateTo = function(viewName) {
@@ -825,6 +797,8 @@
             let pool = [...questionBank[appState.selectedCategory][appState.selectedLevel]];
             appState.gameQuestions = shuffleArray(pool).slice(0, 20);
             appState.currentQuestionIndex = 0;
+            appState.answeredCurrent = false;
+            appState.resultSaved = false;
             appState.score = 0;
             appState.correctCount = 0;
             appState.incorrectCount = 0;
@@ -949,6 +923,8 @@
 
         function handleTimeOut() {
             const q = appState.gameQuestions[appState.currentQuestionIndex];
+            if (!q || appState.answeredCurrent) return;
+            appState.answeredCurrent = true;
             appState.incorrectCount++;
             showModal("⏰ Masa Tamat!", `Maaf, masa telah tamat.\nJawapan yang betul ialah: ${q.answer}\n\n${q.explanation}`, false, nextQuestion);
         }
@@ -956,7 +932,9 @@
         function submitAnswer(selectedOpt) {
             if (appState.timer) clearInterval(appState.timer);
             const q = appState.gameQuestions[appState.currentQuestionIndex];
-            
+            if (!q || appState.answeredCurrent) return;
+            appState.answeredCurrent = true;
+
             const isCorrect = String(selectedOpt).trim().toLowerCase() === String(q.answer).trim().toLowerCase();
 
             if (isCorrect) {
@@ -970,6 +948,8 @@
         }
 
         function nextQuestion() {
+            if (!appState.answeredCurrent || !appState.gameQuestions[appState.currentQuestionIndex]) return;
+            appState.answeredCurrent = false;
             appState.currentQuestionIndex++;
             if (appState.currentQuestionIndex >= appState.gameQuestions.length || appState.currentQuestionIndex >= 20) {
                 finishGame();
@@ -979,6 +959,8 @@
         }
 
         function finishGame() {
+            if (appState.resultSaved || appState.currentQuestionIndex < Math.min(20, appState.gameQuestions.length)) return;
+            appState.resultSaved = true;
             if (appState.timer) clearInterval(appState.timer);
             
             if (appState.currentUser) {

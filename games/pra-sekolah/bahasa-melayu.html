@@ -699,6 +699,7 @@
         let sessionScore = 0;
         let sessionCorrect = 0;
         let sessionWrong = 0;
+        let questionAnswered = false;
         let timerInterval = null;
         let timeRemaining = 0;
         let currentSelectedAvatar = '🐱';
@@ -768,14 +769,14 @@
                             if (age === 4) {
                                 // Age 4: Cam Huruf Vokal Asas (Visual Emoji Vokal)
                                 const vowels4 = [
-                                    { v: 'a', pic: '🍎', name: 'Epal' }, { v: 'e', pic: '🐘', name: 'Gajah' }, 
+                                    { v: 'a', pic: '🐔', name: 'Ayam' }, { v: 'e', pic: '🍎', name: 'Epal' }, 
                                     { v: 'i', pic: '🐟', name: 'Ikan' }, { v: 'o', pic: '🔥', name: 'Obor' }, 
                                     { v: 'u', pic: '🐍', name: 'Ular' }, { v: 'a', pic: '☁️', name: 'Awan' },
                                     { v: 'e', pic: '🐒', name: 'Ekor' }, { v: 'i', pic: '🦆', name: 'Itik' },
                                     { v: 'o', pic: '🧠', name: 'Otak' }, { v: 'u', pic: '🦐', name: 'Udang' }
                                 ];
                                 const item = vowels4[q-1];
-                                prompt = `Pilih huruf vokal '${item.v}' untuk gambar ini:`;
+                                prompt = `Pilih huruf vokal pertama bagi perkataan «${item.name}».`;
                                 answer = item.v;
                                 options = [item.v, 'b', 't'];
                                 visual = item.pic;
@@ -1300,7 +1301,10 @@
                             kategoriId: cat,
                             peringkat: age,
                             soalan: prompt,
-                            pilihan: options,
+                            pilihan: [...new Set((options.includes(answer)
+                                ? options
+                                : [answer, ...options.slice(0, -1)]))]
+                                .sort(() => Math.random() - 0.5),
                             jawapan: answer,
                             markah: 10,
                             penerangan: explanation,
@@ -1535,6 +1539,7 @@
         }
 
         function renderCurrentQuestion() {
+            questionAnswered = false;
             clearInterval(timerInterval);
             document.getElementById('feedbackBanner').classList.add('hidden');
             document.getElementById('nextBtn').classList.add('hidden');
@@ -1608,39 +1613,46 @@
                     <div id="dropTarget" class="p-6 border-4 border-dashed border-indigo-300 bg-indigo-50 rounded-2xl text-indigo-400 font-black text-sm min-h-[80px] flex items-center justify-center">
                         Seret &amp; Lepas Jawapan Di Sini
                     </div>
-                    <div class="flex justify-center space-x-2">
-                        ${q.pilihan.map(opt => `
-                            <div draggable="true" ondragstart="event.dataTransfer.setData('text', '${opt}')" onclick="submitAnswer('${opt}', '${q.jawapan}', '${q.penerangan}')" class="px-4 py-3 bg-yellow-300 border-2 border-yellow-500 font-black rounded-xl cursor-pointer btn-bounce">
-                                ${opt}
-                            </div>
-                        `).join('')}
-                    </div>
+                    <div class="flex flex-wrap justify-center gap-2" data-drag-options></div>
                 `;
+                const options = ddBox.querySelector('[data-drag-options]');
+                q.pilihan.forEach(opt => {
+                    const tile = document.createElement('button');
+                    tile.type = 'button';
+                    tile.draggable = true;
+                    tile.className = 'quiz-opt-btn px-4 py-3 bg-yellow-300 border-2 border-yellow-500 font-black rounded-xl cursor-pointer btn-bounce';
+                    tile.textContent = opt;
+                    tile.ondragstart = e => e.dataTransfer.setData('text', opt);
+                    tile.onclick = () => submitAnswer(opt, q.jawapan, q.penerangan);
+                    options.appendChild(tile);
+                });
+                const target = ddBox.querySelector('#dropTarget');
+                target.ondragover = e => { e.preventDefault(); target.classList.add('drop-zone-active'); };
+                target.ondragleave = () => target.classList.remove('drop-zone-active');
+                target.ondrop = e => {
+                    e.preventDefault();
+                    target.classList.remove('drop-zone-active');
+                    const answer = e.dataTransfer.getData('text');
+                    if (q.pilihan.includes(answer)) submitAnswer(answer, q.jawapan, q.penerangan);
+                };
                 zone.appendChild(ddBox);
-
-                // Attach Drag/Drop events
-                setTimeout(() => {
-                    const target = document.getElementById('dropTarget');
-                    if (target) {
-                        target.ondragover = (e) => { e.preventDefault(); target.classList.add('drop-zone-active'); };
-                        target.ondragleave = () => target.classList.remove('drop-zone-active');
-                        target.ondrop = (e) => {
-                            e.preventDefault();
-                            const data = e.dataTransfer.getData('text');
-                            submitAnswer(data, q.jawapan, q.penerangan);
-                        };
-                    }
-                }, 50);
             }
         }
 
         function submitAnswer(userAns, correctAns, exp) {
+            if (questionAnswered) return;
+            questionAnswered = true;
             clearInterval(timerInterval);
             
             // Disable option buttons
             document.querySelectorAll('.quiz-opt-btn').forEach(b => b.disabled = true);
 
-            const isCorrect = String(userAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase();
+            const requiresLowercase = selectedCategory === 1 && selectedAge === 5;
+            const submitted = String(userAns).trim();
+            const expected = String(correctAns).trim();
+            const isCorrect = requiresLowercase
+                ? submitted === expected
+                : submitted.toLowerCase() === expected.toLowerCase();
             const banner = document.getElementById('feedbackBanner');
             const title = document.getElementById('feedbackTitle');
             const desc = document.getElementById('feedbackDesc');
@@ -1671,6 +1683,8 @@
         }
 
         function handleAnswerTimeout() {
+            if (questionAnswered) return;
+            questionAnswered = true;
             sessionWrong++;
             const q = currentQuizQuestions[currentQuestionIdx];
             const banner = document.getElementById('feedbackBanner');
@@ -1687,6 +1701,7 @@
         }
 
         function nextQuestion() {
+            if (!questionAnswered || currentQuestionIdx >= currentQuizQuestions.length) return;
             currentQuestionIdx++;
             if (currentQuestionIdx < 10) {
                 renderCurrentQuestion();

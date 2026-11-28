@@ -94,6 +94,24 @@
     <div id="modal-container"></div>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t6_sub3_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edu_kidz_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && u.levelStars && Number.isFinite(u.correctAnswers) && Number.isFinite(u.totalAnswered))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const previous = read('edu_kidz_active_user');
+            const active = previous && Object.values(users).find(u => u.username === previous.username);
+            if (active) localStorage.setItem('edukidz_t6_sub3_active_user', JSON.stringify(active));
+        })();
+
         function triggerFireworks() {
             const container = document.body;
             for(let i=0; i<30; i++) {
@@ -173,14 +191,14 @@
 
         const GameState = {
             currentUser: null,
-            users: JSON.parse(localStorage.getItem('edu_kidz_users') || '[]'),
+            users: JSON.parse(localStorage.getItem('edukidz_t6_sub3_users') || '[]'),
             currentTopic: 1,
             currentLevel: 'mudah',
             timeLimit: 60,
             activeSession: null,
             
             init() {
-                const savedUser = localStorage.getItem('edu_kidz_active_user');
+                const savedUser = localStorage.getItem('edukidz_t6_sub3_active_user');
                 if (savedUser) {
                     this.currentUser = JSON.parse(savedUser);
                     document.getElementById('user-badge').classList.remove('hidden');
@@ -193,16 +211,16 @@
             },
 
             saveUsers() {
-                localStorage.setItem('edu_kidz_users', JSON.stringify(this.users));
+                localStorage.setItem('edukidz_t6_sub3_users', JSON.stringify(this.users));
                 if (this.currentUser) {
-                    localStorage.setItem('edu_kidz_active_user', JSON.stringify(this.currentUser));
+                    localStorage.setItem('edukidz_t6_sub3_active_user', JSON.stringify(this.currentUser));
                     const index = this.users.findIndex(u => u.username === this.currentUser.username);
                     if (index !== -1) {
                         this.users[index] = this.currentUser;
                     } else {
                         this.users.push(this.currentUser);
                     }
-                    localStorage.setItem('edu_kidz_users', JSON.stringify(this.users));
+                    localStorage.setItem('edukidz_t6_sub3_users', JSON.stringify(this.users));
                 }
             },
 
@@ -254,7 +272,7 @@
             },
 
             logout() {
-                localStorage.removeItem('edu_kidz_active_user');
+                localStorage.removeItem('edukidz_t6_sub3_active_user');
                 this.currentUser = null;
                 document.getElementById('user-badge').classList.add('hidden');
                 this.renderAuthScreen();
@@ -295,7 +313,7 @@
         }
 
         function generateSingleOtherQuestion(topic, level, index) {
-            let qId = `WANG-T${topic}-${level.charAt(0).toUpperCase()}-${String(index).padStart(3, '0')}`;
+            let qId = `WANG-T${topic}-${({ mudah: 'M', sederhana: 'S', sukar: 'K' })[level]}-${String(index).padStart(3, '0')}`;
             let cognitive = level === 'mudah' ? 'Mengingat' : (level === 'sederhana' ? 'Memahami' : 'Mengaplikasi');
             let names = ['Amir', 'Siti', 'Raju', 'Mei Ling', 'Aiman', 'Zack', 'Nurul', 'David', 'Farah', 'Kumar'];
             let name = names[(index + topic) % names.length];
@@ -312,17 +330,24 @@
                 explanation = `Keuntungan = Harga Jual − Harga Kos = RM${sell} − RM${cost} = RM${profit}.`;
             } else if (topic === 3) {
                 visualType = "resit";
-                let item1 = 12 + index;
-                let item2 = 18 + (index * 2);
-                let total = item1 + item2;
-                qText = `Dalam sebuah resit kedai buku, ${name} membeli pen bernilai RM${item1}.00 dan buku nota bernilai RM${item2}.00. Berapakah jumlah harga barang sebelum cukai?`;
-                answer = `RM${total}.00`;
-                options = [`RM${total}.00`, `RM${total - 5}.00`, `RM${total + 5}.00`, `RM${total + 10}.00`].sort(() => Math.random() - 0.5);
-                explanation = `Jumlah = RM${item1} + RM${item2} = RM${total}.00.`;
+                const pen = 12 + index;
+                const notebook = 18 + index * 2;
+                const notebooks = level === 'mudah' ? 1 : 2;
+                const subtotal = pen + notebook * notebooks;
+                const discount = level === 'sukar' ? 3 + index : 0;
+                const total = subtotal - discount;
+                const money = amount => `RM${amount.toFixed(2)}`;
+                const receipt = `${name} membeli sebatang pen berharga ${money(pen)} dan ${notebooks} buku nota yang berharga ${money(notebook)} sebuah.`;
+                qText = discount
+                    ? `${receipt} Baucar ${money(discount)} ditolak daripada jumlah harga. Berapakah bayaran sebelum cukai selepas baucar?`
+                    : `${receipt} Berapakah jumlah harga pada resit sebelum cukai?`;
+                answer = money(total);
+                options = [total, total - 5, total + 5, total + 10].map(money).sort(() => Math.random() - 0.5);
+                explanation = `${money(pen)} + (${notebooks} × ${money(notebook)})${discount ? ` − ${money(discount)}` : ''} = ${answer}.`;
             } else if (topic === 4) {
                 visualType = "bank";
                 let principal = 1000 + (index * 200);
-                let rate = level === 'mudah' ? 2 : 3;
+                let rate = ({ mudah: 2, sederhana: 3, sukar: 4 })[level];
                 let interest = (principal * rate) / 100;
                 qText = `${name} menyimpan wang sebanyak RM${principal} di sebuah bank dengan kadar faedah ${rate}% setahun. Berapakah faedah yang diterima selepas 1 tahun?`;
                 answer = `RM${interest.toFixed(2)}`;
@@ -386,7 +411,7 @@
                 QuestionBank[2].sukar.push({
                     id: `WANG-T2-K-${String(i).padStart(3, '0')}`, topic: 2, level: 'sukar', cognitive: 'Mengaplikasi', type: 'objektif',
                     question: `Sebuah basikal berharga RM${pOrig}. Kedai memberikan diskaun 25% dan pelanggan menggunakan baucar tunai RM${pVoucher}. Hitung harga akhir basikal itu.`,
-                    options: [`RM${pFinal.toFixed(2)}`, `RM${(pFinal + 15).toFixed(2)}`, `RM${(pOrig - pDisc).toFixed(2)}`, `RM${(pFinal - 10).toFixed(2)}`].sort(() => Math.random() - 0.5),
+                    options: [`RM${pFinal.toFixed(2)}`, `RM${(pOrig - pVoucher).toFixed(2)}`, `RM${(pOrig - pDisc).toFixed(2)}`, `RM${(pFinal - 10).toFixed(2)}`].sort(() => Math.random() - 0.5),
                     correctAnswer: `RM${pFinal.toFixed(2)}`, explanation: `1. Harga selepas diskaun 25% = RM${pOrig - pDisc}. 2. Tolak baucar RM${pVoucher} = RM${pFinal.toFixed(2)}.`, visual: 'troli'
                 });
             }
@@ -480,7 +505,7 @@
                 QuestionBank[6].sederhana.push({
                     id: `WANG-T6-S-${String(i).padStart(3, '0')}`, topic: 6, level: 'sederhana', cognitive: 'Memahami', type: 'objektif',
                     question: `Aiman mempunyai simpanan sebanyak RM${baseAmt}.00. Dia membelanjakan RM${spendAmt}.00 dan bakinya disimpan. Berapakah baki simpanan baharu Aiman?`,
-                    options: [`RM${saveAmt}.00`, `RM${saveAmt + 20}.00`, `RM${spendAmt}.00`, `RM${saveAmt - 10}.00`].sort(() => Math.random() - 0.5),
+                    options: [`RM${saveAmt}.00`, `RM${saveAmt + 20}.00`, `RM${saveAmt + 50}.00`, `RM${saveAmt - 10}.00`].sort(() => Math.random() - 0.5),
                     correctAnswer: `RM${saveAmt}.00`, explanation: `Baki simpanan = RM${baseAmt} − RM${spendAmt} = RM${saveAmt}.00.`, visual: 'troli'
                 });
 
@@ -758,6 +783,8 @@
             this.activeSession = {
                 questions: shuffled,
                 currentIndex: 0,
+                answered: false,
+                resultSaved: false,
                 score: 0,
                 correctCount: 0,
                 wrongCount: 0,
@@ -845,9 +872,10 @@
 
         GameState.handleTimeout = function() {
             const session = this.activeSession;
+            if (!session || session.answered || !session.questions[session.currentIndex]) return;
+            session.answered = true;
             const q = session.questions[session.currentIndex];
             session.wrongCount++;
-            session.currentIndex++;
 
             showModal('Masa Tamat! ⏰', `
                 <div class="text-center space-y-3">
@@ -857,12 +885,14 @@
                     <p class="text-xs text-slate-500 mt-2">${q.explanation}</p>
                 </div>
             `, [
-                { text: "Soalan Seterusnya ➡️", onclick: "closeModal(); GameState.renderGameQuestion();", class: "bg-indigo-600 hover:bg-indigo-700 text-white" }
+                { text: "Soalan Seterusnya ➡️", onclick: "closeModal(); GameState.nextQuestion();", class: "bg-indigo-600 hover:bg-indigo-700 text-white" }
             ]);
         };
 
         GameState.submitAnswer = function(selectedOption) {
             const session = this.activeSession;
+            if (!session || session.answered || !session.questions[session.currentIndex]) return;
+            session.answered = true;
             if (session.timerInterval) clearInterval(session.timerInterval);
             
             const q = session.questions[session.currentIndex];
@@ -901,12 +931,16 @@
 
         GameState.nextQuestion = function() {
             const session = this.activeSession;
+            if (!session?.answered) return;
+            session.answered = false;
             session.currentIndex++;
             this.renderGameQuestion();
         };
 
         GameState.renderGameSummary = function() {
             const session = this.activeSession;
+            if (!session || session.resultSaved || session.currentIndex !== session.questions.length) return;
+            session.resultSaved = true;
             const accuracy = Math.round((session.correctCount / 20) * 100);
 
             this.currentUser.totalScore += session.score;

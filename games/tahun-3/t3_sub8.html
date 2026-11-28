@@ -542,8 +542,9 @@
         let timerInterval = null;
         let timeLeft = 0;
         let interactiveGridSelected = null;
+        let answeredCurrent = false;
 
-        const iconsList = ['🐱', '🐶', '🚗', '🏠', '🍎', '🌳', '🚀', '⚽', '🎒', '⭐', '🎁', '🐻', '👑', '🍦', '🎈', '⛵'];
+        const iconsList = ['🐱', '🐶', '🚗', '🏠', '🍎', '🌳', '🚀', '⚽', '🎒', '⭐', '🎁', '🐻', '👑', '🍦', '🎈', '⛵', '🚌', '☂️', '🔑', '🦋'];
 
         const questionBank = {
             "Kenal Kedudukan": { "Senang": [], "Sederhana": [], "Susah": [] },
@@ -571,8 +572,9 @@
             if (num % 3 === 2) qType = "Isi Tempat Kosong";
             if (num % 3 === 0) qType = "Petak Grid Interaktif";
 
-            const col = Math.floor(Math.random() * 4) + 1;
-            const row = Math.floor(Math.random() * 4) + 1;
+            const level = ['Senang', 'Sederhana', 'Susah'].indexOf(tahap);
+            const col = ((num - 1 + level) % (topik === 'Kenal Kedudukan' && level === 2 ? 3 : 4)) + 1;
+            const row = ((Math.floor((num - 1) / 4) + level) % (topik === 'Tentukan Kedudukan' && level === 2 ? 3 : 4)) + 1;
             const colLetter = String.fromCharCode(64 + col);
 
             let qText = "";
@@ -604,7 +606,7 @@
                     explanation = `Format koordinat ialah (Lajur, Baris) iaitu (${colLetter}, ${row}).`;
                 } else {
                     qText = `Jika objek ${icon} bergerak 1 petak ke kanan dari (${colLetter}, ${row}), apakah lajur baharunya?`;
-                    const nextCol = String.fromCharCode(64 + Math.min(4, col + 1));
+                    const nextCol = String.fromCharCode(65 + col);
                     answer = `${nextCol}`;
                     visualOptions = [
                         { label: 'A', text: 'Lajur A', icon: '➡️' },
@@ -626,7 +628,7 @@
                     ].sort(() => 0.5 - Math.random());
                     explanation = `Objek ${icon} berada di persilangan Lajur ${colLetter} dan Baris ${row}.`;
                 } else if (tahap === "Sederhana") {
-                    qText = `Objek manakah yang berada di koordinat (${colLetter}, ${row})?`;
+                    qText = `Objek manakah yang berada di koordinat (${colLetter}, ${row}) pada grid ini?`;
                     answer = `${icon}`;
                     const wrong1 = iconsList[(num + 1) % iconsList.length];
                     const wrong2 = iconsList[(num + 2) % iconsList.length];
@@ -640,7 +642,7 @@
                     explanation = `Pada koordinat (${colLetter}, ${row}), wujud objek ${icon}.`;
                 } else {
                     qText = `Tentukan koordinat jika ${icon} dinaikkan 1 baris ke atas.`;
-                    const nextRow = Math.min(4, row + 1);
+                    const nextRow = row + 1;
                     answer = `(${colLetter}, ${nextRow})`;
                     visualOptions = [
                         { label: 'A', text: `(${colLetter}, ${nextRow})`, icon: '⬆️' },
@@ -651,15 +653,28 @@
                     explanation = `Bila bergerak 1 baris ke atas, nombor baris bertambah menjadi (${colLetter}, ${nextRow}).`;
                 }
             } else { // Penyelesaian Masalah
-                qText = `Cari lokasi target ${icon} yang berada pada lajur ${colLetter} dan baris ${row}.`;
-                answer = `(${colLetter}, ${row})`;
-                visualOptions = [
-                    { label: 'A', text: `(${colLetter}, ${row})`, icon: icon },
-                    { label: 'B', text: `(${colLetter}, 1)`, icon: '🔍' },
-                    { label: 'C', text: `(A, ${row})`, icon: '🧭' },
-                    { label: 'D', text: `(B, 4)`, icon: '🗺️' }
-                ].sort(() => 0.5 - Math.random());
-                explanation = `Lokasi persilangan sasaran ialah (${colLetter}, ${row}).`;
+                const startCol = level === 0 ? col : 1 + (col - 1) % 3;
+                const startRow = level === 2 ? 1 + (row - 1) % 3 : row;
+                const goalCol = startCol + (level > 0 ? 1 : 0);
+                const goalRow = startRow + (level === 2 ? 1 : 0);
+                const startLetter = String.fromCharCode(64 + startCol);
+                const goalLetter = String.fromCharCode(64 + goalCol);
+                diagramData = {...diagramData, col: startCol, row: startRow};
+                qText = level === 0
+                    ? `Cari lokasi ${icon} yang berada pada lajur ${startLetter} dan baris ${startRow}.`
+                    : `${icon} bermula di (${startLetter}, ${startRow}) dan bergerak 1 petak ke kanan${level === 2 ? ' kemudian 1 petak ke atas' : ''}. Apakah koordinat akhirnya?`;
+                answer = `(${goalLetter}, ${goalRow})`;
+                explanation = `Kedudukan akhir ialah lajur ${goalLetter}, baris ${goalRow}.`;
+            }
+
+            if (answer.startsWith('(')) {
+                const coordinates = Array.from({length: 16}, (_, index) =>
+                    `(${String.fromCharCode(65 + index % 4)}, ${1 + Math.floor(index / 4)})`);
+                const choices = [answer, ...coordinates.filter(position => position !== answer)
+                    .sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+                visualOptions = choices.map((text, index) => ({label: String.fromCharCode(65 + index), text, icon: '📍'}));
+            } else {
+                qType = "Objektif Visual";
             }
 
             return {
@@ -786,6 +801,7 @@
         }
 
         function loadQuestion() {
+            answeredCurrent = false;
             clearInterval(timerInterval);
             interactiveGridSelected = null;
 
@@ -943,6 +959,8 @@
         function checkAnswer(userAns) {
             clearInterval(timerInterval);
             const q = currentSessionQuestions[currentQuestionIdx];
+            if (!q || answeredCurrent) return;
+            answeredCurrent = true;
             const cleanUser = userAns.replace(/\s+/g, '');
             const cleanTarget = q.jawapan.replace(/\s+/g, '');
             const isCorrect = cleanUser === cleanTarget;
@@ -977,6 +995,8 @@
         }
 
         function nextQuestion() {
+            if (!answeredCurrent || !currentSessionQuestions[currentQuestionIdx]) return;
+            answeredCurrent = false;
             currentQuestionIdx++;
             if (currentQuestionIdx >= currentSessionQuestions.length) {
                 finishGameSession();

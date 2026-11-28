@@ -127,8 +127,12 @@
         // Local Storage Users DB
         function getUsersDB() {
             try {
-                const db = localStorage.getItem('math_kids_users');
-                return db ? JSON.parse(db) : {};
+                const db = localStorage.getItem('edukidz_t2_sub5_users');
+                if (db) return JSON.parse(db);
+                const previous = JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+                return Object.fromEntries(Object.entries(previous || {}).filter(([key, user]) =>
+                    user?.username === key && typeof user.coins === 'number' && typeof user.correctTotal === 'number'
+                ));
             } catch (e) {
                 return {};
             }
@@ -136,7 +140,7 @@
 
         function saveUsersDB(db) {
             try {
-                localStorage.setItem('math_kids_users', JSON.stringify(db));
+                localStorage.setItem('edukidz_t2_sub5_users', JSON.stringify(db));
             } catch (e) {}
         }
 
@@ -637,6 +641,11 @@
             gameState.timeLeft = seconds;
             gameState.currentQuestionIndex = 0;
             gameState.score = 0;
+            gameState.coins = 0;
+            gameState.answeredIndex = -1;
+            gameState.resultRecorded = false;
+            clearInterval(gameState.timerInterval);
+            clearTimeout(gameState.advanceTimer);
             gameState.correctCount = 0;
             gameState.wrongCount = 0;
             
@@ -667,8 +676,8 @@
         }
 
         function createSingleQuestion(topicId, level, qNum) {
-            const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-            
+            const tier = ['mudah', 'sederhana', 'sukar'].indexOf(level);
+            const slot = tier * 20 + qNum;
             let q = {
                 id: qNum,
                 topicId: topicId,
@@ -682,29 +691,31 @@
             };
 
             switch(topicId) {
-                case 1: // Kenali Mata Wang Malaysia
-                    const coinsList = ['5 sen', '10 sen', '20 sen', '50 sen'];
-                    const notesList = ['RM1', 'RM5', 'RM10', 'RM20', 'RM50', 'RM100'];
-                    if (Math.random() > 0.5) {
-                        const c = coinsList[randInt(0, coinsList.length - 1)];
-                        q.question = `Apakah nilai syiling Malaysia ini?`;
-                        q.imageVisual = `<div class="w-20 h-20 rounded-full bg-amber-400 border-4 border-amber-600 flex items-center justify-center font-extrabold text-amber-950 text-xl shadow-lg mx-auto mb-3">${c}</div>`;
-                        q.correctAnswer = c;
-                        q.options = shuffleArray([c, coinsList[randInt(0, 3)] !== c ? coinsList[randInt(0, 3)] : '5 sen', 'RM1', 'RM5']);
-                        q.explanation = `Syiling rasmi Malaysia yang sah bernilai ${c}.`;
+                case 1: {
+                    const count = 1 + Math.floor((qNum - 1) / 4);
+                    const position = (qNum - 1) % 4;
+                    const denominations = tier === 1 ? [1, 5, 10, 20] : [5, 10, 20, 50];
+                    const value = denominations[position];
+                    const total = count * value;
+                    const money = amount => tier === 1 ? `RM${amount}` : `${amount} sen`;
+                    if (tier === 2) {
+                        q.question = `${count + 5} keping syiling ${money(value)} digunakan. Nyatakan jumlah nilai dalam sen.`;
+                        q.correctAnswer = money((count + 5) * value);
+                        q.options = [q.correctAnswer, money((count + 6) * value), money((count + 4) * value), money((count + 7) * value)];
                     } else {
-                        const n = notesList[randInt(0, notesList.length - 1)];
-                        q.question = `Kenal pasti wang kertas Malaysia ini:`;
-                        q.imageVisual = `<div class="w-32 h-20 rounded-xl bg-emerald-500 border-2 border-emerald-700 flex items-center justify-center font-extrabold text-white text-2xl shadow-lg mx-auto mb-3">${n}</div>`;
-                        q.correctAnswer = n;
-                        q.options = shuffleArray([n, notesList[randInt(0, 5)] !== n ? notesList[randInt(0, 5)] : 'RM2', '50 sen', '10 sen']);
-                        q.explanation = `Wang kertas tersebut adalah sah bernilai ${n} mengikut Bank Negara Malaysia.`;
+                        const type = tier === 0 ? 'syiling' : 'wang kertas';
+                        q.question = `Ada ${count} keping ${type} bernilai ${money(value)} setiap satu. Berapakah jumlah nilainya?`;
+                        q.correctAnswer = money(total);
+                        q.options = [q.correctAnswer, money(total + value), money(total + 2 * value), money(total + 3 * value)];
                     }
+                    q.options = shuffleArray(q.options);
+                    q.explanation = `Darabkan bilangan keping dengan nilai sekeping. Hasilnya ${q.correctAnswer}.`;
                     break;
+                }
 
                 case 2: // Nilai Wang
-                    const r1 = randInt(1, 10);
-                    const r2 = randInt(1, 9);
+                    const r1 = 1 + slot;
+                    const r2 = 1 + qNum % 9;
                     q.question = `Berapakah jumlah nilai wang berikut? [RM${r1}] + [RM${r2}]`;
                     q.imageVisual = `<div class="flex justify-center gap-3 mb-3"><div class="px-4 py-3 bg-emerald-100 text-emerald-800 font-bold rounded-xl border border-emerald-300">RM${r1}</div><div class="px-4 py-3 bg-emerald-100 text-emerald-800 font-bold rounded-xl border border-emerald-300">RM${r2}</div></div>`;
                     const sumVal = `RM${r1 + r2}`;
@@ -714,8 +725,8 @@
                     break;
 
                 case 3: // Tambah Wang
-                    const t1 = randInt(2, 20);
-                    const t2 = randInt(1, 15);
+                    const t1 = 5 + slot;
+                    const t2 = 12 + qNum % 9;
                     q.question = `Hitung hasil tambah berikut: RM${t1} + RM${t2} = ?`;
                     q.imageVisual = `<div class="text-3xl font-extrabold text-indigo-600 mb-3">RM${t1} + RM${t2} = ?</div>`;
                     q.correctAnswer = `RM${t1 + t2}`;
@@ -724,8 +735,8 @@
                     break;
 
                 case 4: // Tolak Wang
-                    const m1 = randInt(10, 50);
-                    const m2 = randInt(1, m1 - 2);
+                    const m1 = 15 + slot;
+                    const m2 = 2 + qNum % 8;
                     q.question = `Selesaikan operasi tolak: RM${m1} - RM${m2} = ?`;
                     q.imageVisual = `<div class="text-3xl font-extrabold text-rose-600 mb-3">RM${m1} - RM${m2} = ?</div>`;
                     q.correctAnswer = `RM${m1 - m2}`;
@@ -734,8 +745,8 @@
                     break;
 
                 case 5: // Darab Wang
-                    const d1 = randInt(2, 5);
-                    const d2 = randInt(2, 4);
+                    const d1 = 2 + (qNum - 1) % 5 + tier * 5;
+                    const d2 = 2 + Math.floor((qNum - 1) / 5);
                     q.question = `1 batang pensel berharga RM${d1}. Berapakah harga untuk ${d2} batang pensel?`;
                     q.imageVisual = `<div class="flex justify-center gap-2 text-3xl mb-3">✏️ × ${d2} (RM${d1} setiap satu)</div>`;
                     q.correctAnswer = `RM${d1 * d2}`;
@@ -744,8 +755,8 @@
                     break;
 
                 case 6: // Bahagi Wang
-                    const b1 = [10, 20, 30, 40, 50][randInt(0, 4)];
-                    const b2 = [2, 5, 10][randInt(0, 2)];
+                    const b2 = [2, 4, 5, 10][(qNum - 1) % 4];
+                    const b1 = b2 * (2 + Math.floor((qNum - 1) / 4) + 5 * tier);
                     q.question = `RM${b1} dibahagikan sama rata kepada ${b2} orang murid. Berapakah bahagian setiap orang?`;
                     q.imageVisual = `<div class="text-2xl font-bold text-indigo-700 mb-3">💰 RM${b1} ÷ ${b2} orang</div>`;
                     q.correctAnswer = `RM${b1 / b2}`;
@@ -754,8 +765,8 @@
                     break;
 
                 case 7: // Lengkapkan Ayat Matematik
-                    const num1 = randInt(5, 20);
-                    const num2 = randInt(2, 10);
+                    const num1 = 9 + slot;
+                    const num2 = 24 + qNum % 8;
                     q.question = `Lengkapkan ruang kosong: RM${num1} + RM${num2} = RM ___`;
                     q.imageVisual = `<div class="text-3xl font-extrabold text-purple-600 mb-3">RM${num1} + RM${num2} = RM [ ? ]</div>`;
                     q.correctAnswer = `${num1 + num2}`;
@@ -763,67 +774,26 @@
                     q.explanation = `Nilai tempat kosong ialah RM${num1 + num2}.`;
                     break;
 
-                case 8: // Penyelesaian Masalah (Refined: unique storytelling stories, no duplicate patterns, diverse contexts)
-                    const problemScenarios = [
-                        {
-                            desc: "Farah menyimpan RM3 di dalam tabung pada hari Isnin dan RM4 pada hari Selasa. Berapakah jumlah wang simpanan Farah dalam masa dua hari itu?",
-                            ans: "RM7",
-                            options: ["RM7", "RM8", "RM6", "RM9"],
-                            expl: "Jumlah simpanan = RM3 + RM4 = RM7."
-                        },
-                        {
-                            desc: "Haziq ada RM12. Dia membeli sebuah buku cerita berharga RM5. Hitung baki wang yang ada pada Haziq.",
-                            ans: "RM7",
-                            options: ["RM7", "RM6", "RM8", "RM5"],
-                            expl: "Baki = RM12 - RM5 = RM7."
-                        },
-                        {
-                            desc: "Ibu memberi Zulaikha wang saku sebanyak RM6 setiap hari. Berapakah jumlah wang saku Zulaikha untuk 3 hari persekolahan?",
-                            ans: "RM18",
-                            options: ["RM18", "RM12", "RM15", "RM20"],
-                            expl: "Jumlah wang = RM6 × 3 = RM18."
-                        },
-                        {
-                            desc: "Encik Ali mempuntai RM40. Dia membahagikan wang itu sama rata kepada 4 orang anaknya. Berapakah wang yang diterima oleh setiap anak?",
-                            ans: "RM10",
-                            options: ["RM10", "RM8", "RM12", "RM15"],
-                            expl: "Bahagian setiap anak = RM40 ÷ 4 = RM10."
-                        },
-                        {
-                            desc: "Amir mempunyai RM15. Dia membeli sebatang pen berharga RM3 dan sebuah buku nota berharga RM4. Berapakah baki wang Amir?",
-                            ans: "RM8",
-                            options: ["RM8", "RM7", "RM9", "RM10"],
-                            expl: "Jumlah perbelanjaan = RM3 + RM4 = RM7. Baki = RM15 - RM7 = RM8."
-                        },
-                        {
-                            desc: "Puan Salmah membeli 2 bungkus nasi lemak. Harga sebungkus nasi lemak ialah RM2. Dia membayar dengan sekeping wang kertas RM10. Berapakah baki wang yang diterima?",
-                            ans: "RM6",
-                            options: ["RM6", "RM4", "RM8", "RM5"],
-                            expl: "Harga 2 bungkus = RM2 × 2 = RM4. Baki = RM10 - RM4 = RM6."
-                        },
-                        {
-                            desc: "Dalam sebuah tabung terdapat 5 keping syiling 20 sen. Berapakah jumlah nilai syiling tersebut dalam sen?",
-                            ans: "100 sen",
-                            options: ["100 sen", "80 sen", "60 sen", "120 sen"],
-                            expl: "Jumlah nilai = 20 sen × 5 = 100 sen (atau RM1.00)."
-                        },
-                        {
-                            desc: "Adib ada RM20. Dia mendermakan RM8 kepada tabung anak yatim sekolah. Berapakah baki wang Adib sekarang?",
-                            ans: "RM12",
-                            options: ["RM12", "RM10", "RM14", "RM15"],
-                            expl: "Baki = RM20 - RM8 = RM12."
-                        }
+                case 8: {
+                    const amount = 12 + slot;
+                    const cost = 3 + qNum % 5;
+                    const variants = [
+                        [`Farah menyimpan RM${amount} pada bulan ini dan RM${cost} pada bulan berikutnya. Berapakah jumlah simpanannya?`, amount + cost, `${amount} + ${cost}`],
+                        [`Haziq ada RM${amount}. Dia membeli buku berharga RM${cost}. Berapakah baki wangnya?`, amount - cost, `${amount} - ${cost}`],
+                        [`Sebuah kelab membeli ${cost} kotak pensel. Setiap kotak berharga RM${amount}. Berapakah jumlah bayaran?`, amount * cost, `${amount} × ${cost}`],
+                        [`Wang sebanyak RM${amount * cost} dikongsi sama rata oleh ${cost} orang murid. Berapakah bahagian seorang murid?`, amount, `${amount * cost} ÷ ${cost}`],
+                        [`Puan Salmah membawa RM${amount + 20}. Dia membeli dua barang yang masing-masing berharga RM${cost}. Berapakah baki wangnya?`, amount + 20 - 2 * cost, `${amount + 20} - (2 × ${cost})`]
                     ];
-                    
-                    const p = problemScenarios[randInt(0, problemScenarios.length - 1)];
-                    q.question = p.desc;
-                    q.imageVisual = `<div class="p-3 bg-indigo-50 border border-indigo-200 rounded-2xl mb-3 text-sm font-semibold text-indigo-900">🛒 Cerita Matematik Wang</div>`;
-                    q.correctAnswer = p.ans;
-                    q.options = shuffleArray([...p.options]);
-                    q.explanation = p.expl;
+                    const [question, result, calculation] = variants[(qNum - 1) % variants.length];
+                    q.question = question;
+                    q.correctAnswer = `RM${result}`;
+                    q.options = shuffleArray([result, result + 1, result + 4, result - 2].map(n => `RM${n}`));
+                    q.explanation = `Pengiraan: ${calculation} = ${q.correctAnswer}.`;
                     break;
+                }
             }
 
+            q.options = [...new Set(q.options)];
             return q;
         }
 
@@ -882,6 +852,8 @@
         }
 
         function checkAnswer(selectedOpt) {
+            if (gameState.currentScreen !== "game" || gameState.resultRecorded || gameState.answeredIndex === gameState.currentQuestionIndex) return;
+            gameState.answeredIndex = gameState.currentQuestionIndex;
             const q = gameState.questions[gameState.currentQuestionIndex];
             const isCorrect = selectedOpt.toString().trim() === q.correctAnswer.toString().trim();
             
@@ -916,7 +888,8 @@
                 feedbackArea.innerHTML = `❌ Belum tepat! Jawapan betul ialah: <span class="text-emerald-700 underline">${q.correctAnswer}</span><br><span class="text-xs font-normal text-rose-700">${q.explanation}</span>`;
             }
 
-            setTimeout(() => {
+            gameState.advanceTimer = setTimeout(() => {
+                if (gameState.currentScreen !== "game" || gameState.resultRecorded) return;
                 gameState.currentQuestionIndex++;
                 if (gameState.currentQuestionIndex >= gameState.questions.length) {
                     endGame();
@@ -927,6 +900,9 @@
         }
 
         function endGame() {
+            if (gameState.resultRecorded) return;
+            gameState.resultRecorded = true;
+            clearTimeout(gameState.advanceTimer);
             if (gameState.timerInterval) {
                 clearInterval(gameState.timerInterval);
                 gameState.timerInterval = null;
@@ -1011,7 +987,7 @@
                     <div class="bg-white border-2 border-slate-100 rounded-3xl shadow-sm overflow-hidden mb-6">
                         ${usersArr.length === 0 ? '<p class="p-6 text-center text-slate-500">Belum ada pemain berdaftar.</p>' : 
                             usersArr.map((u, index) => `
-                                <div class="flex items-center justify-between p-4 border-b border-slate-100 hover:bg-slate-50 transition ${u.username === gameState.user.username ? 'bg-indigo-50/70' : ''}">
+                                <div class="flex items-center justify-between p-4 border-b border-slate-100 hover:bg-slate-50 transition ${u.username === gameState.user?.username ? 'bg-indigo-50/70' : ''}">
                                     <div class="flex items-center space-x-4">
                                         <div class="w-10 h-10 rounded-2xl flex items-center justify-center font-extrabold text-white text-lg ${index === 0 ? 'bg-amber-400' : index === 1 ? 'bg-slate-400' : index === 2 ? 'bg-amber-600' : 'bg-indigo-500'}">
                                             ${index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}

@@ -621,6 +621,7 @@
                 ['Mudah', 'Sederhana', 'Susah'].forEach(diff => {
                     for (let i = 1; i <= 20; i++) {
                         let qObj = createUniqueQuestion(topic.id, diff, i, qIdCounter++);
+                        qObj.options = [...new Set(qObj.options)];
                         QUESTION_BANK.push(qObj);
                     }
                 });
@@ -650,13 +651,9 @@
             if (topicId === 1) {
                 visualType = "fraction-bar";
                 if (diff === 'Mudah') {
-                    let numerators = [1, 3, 1, 3, 1, 2, 3, 1, 3, 5, 1, 3, 7, 1, 3, 1, 5, 3, 1, 3];
-                    let denominators = [2, 4, 4, 4, 8, 3, 4, 6, 8, 8, 5, 5, 10, 3, 5, 10, 6, 10, 4, 6];
-                    let divisors = [2, 3, 2, 4, 2, 3, 3, 2, 4, 5, 2, 3, 2, 4, 2, 5, 3, 2, 6, 3];
-                    
-                    let num = numerators[(index - 1) % numerators.length];
-                    let denom = denominators[(index - 1) % denominators.length];
-                    let div = divisors[(index - 1) % divisors.length];
+                    const denom = 3 + Math.floor((index - 1) / 4);
+                    const num = index % 2 + 1;
+                    const div = 2 + (index - 1) % 4;
 
                     qText = `Berapakah hasil bahagi ${num}/${denom} ÷ ${div} ?`;
                     let correctNum = num;
@@ -665,14 +662,14 @@
                     
                     let wrong1 = `${num + 1}/${correctDenom}`;
                     let wrong2 = `${num}/${denom}`;
-                    let wrong3 = `${correctNum}/${denom}`;
+                    let wrong3 = `${correctNum + 2}/${correctDenom}`;
                     options = [correctAns, wrong1, wrong2, wrong3];
                     explanation = `Darabkan penyebut dengan nombor bulat: (${num}/${denom}) ÷ ${div} = ${num} / (${denom} × ${div}) = ${correctNum}/${correctDenom}.`;
                 } else if (diff === 'Sederhana') {
-                    let whole = (index % 4) + 1;
+                    const whole = 1 + Math.floor((index - 1) / 4);
                     let num = (index % 2 === 0) ? 1 : 3;
-                    let denom = 2;
-                    let div = (index % 3) + 2;
+                    let denom = 4;
+                    const div = 2 + (index - 1) % 4;
 
                     qText = `Selesaikan: ${whole} ${num}/${denom} ÷ ${div} = ?`;
                     let improperNum = (whole * denom) + num;
@@ -688,8 +685,8 @@
                     explanation = `Tukarkan nombor bercampur kepada pecahan tak wajar (${improperNum}/${denom}), kemudian darab salingan ${div}: ${ansNum}/${ansDenom}.`;
                 } else {
                     let kids = (index % 4) + 2;
-                    let baseVal = (index % 3 + 2) * 2;
-                    qText = `Ibu membahagikan ${baseVal} 1/2 kg tepung sama rata ke dalam ${kids} bekas kecil. Berapakah jisim tepung dalam setiap bekas?`;
+                    const baseVal = 3 + index;
+                    qText = `Ibu membahagikan ${baseVal} 1/2 kg tepung sama rata ke dalam ${kids} bekas kecil. Berapakah jisim tepung dalam setiap bekas? Berikan jawapan kepada dua tempat perpuluhan.`;
                     let totalVal = (baseVal * 2 + 1) / 2;
                     let ansVal = (totalVal / kids).toFixed(2);
                     correctAns = `${ansVal} kg`;
@@ -728,24 +725,21 @@
             else if (topicId === 3) {
                 visualType = "grid-100";
                 if (diff === 'Mudah') {
-                    let vals = [0.1, 0.2, 0.25, 0.4, 0.5, 0.75, 0.8, 0.15, 0.35, 0.65];
-                    let val = vals[(index - 1) % vals.length];
-                    let pct = val * 100;
+                    const pct = 5 + index * 2;
+                    const val = pct / 100;
                     qText = `Tukarkan nilai perpuluhan ${val} kepada peratus.`;
                     correctAns = `${pct}%`;
                     options = [`${pct}%`, `${pct+10}%`, `${Math.max(0, pct-5)}%`, `${pct*2}%`];
                     explanation = `Darabkan nilai perpuluhan dengan 100%: ${val} × 100% = ${pct}%.`;
                 } else if (diff === 'Sederhana') {
-                    let vals = [0.03, 0.08, 0.12, 0.35, 0.65, 0.95, 0.01, 0.45, 0.55, 0.85];
-                    let val = vals[(index - 1) % vals.length];
-                    let pct = val * 100;
+                    const pct = 45 + index * 2;
+                    const val = pct / 100;
                     qText = `Tukarkan ${val} kepada peratus.`;
                     correctAns = `${pct}%`;
                     options = [`${pct}%`, `${pct*10}%`, `${(val*10)}%`, `${pct+5}%`];
                     explanation = `${val} × 100% = ${pct}%.`;
                 } else {
-                    let pcts = [115, 125, 150, 175, 200, 250, 105, 300, 120, 140];
-                    let pct = pcts[(index - 1) % pcts.length];
+                    const pct = 100 + index * 5;
                     let dec = pct / 100;
                     qText = `Antara berikut, yang manakah setara dengan ${pct}% dalam bentuk perpuluhan?`;
                     correctAns = `${dec}`;
@@ -756,7 +750,7 @@
             else if (topicId === 4) {
                 visualType = "bar-chart";
                 if (diff === 'Mudah') {
-                    let p1 = ((index % 4) + 1) * 10;
+                    const p1 = index * 2 + 10;
                     let p2 = ((index % 3) + 1) * 10;
                     let sum = p1 + p2;
                     qText = `Hitung: ${p1}% + ${p2}% = ?`;
@@ -772,8 +766,8 @@
                     options = [`${ans}%`, `${ans + 5}%`, `${ans - 5}%`, `${ans + 10}%`];
                     explanation = `Tolak nilai peratus: ${base}% - ${sub}% = ${ans}%.`;
                 } else {
-                    let total = 500 + (index * 50);
-                    let pBoys = 40 + (index % 15);
+                    let total = 500 + (index * 100);
+                    let pBoys = 40 + (index % 10);
                     let pGirls = 100 - pBoys;
                     qText = `Dalam sebuah dewan, ${pBoys}% daripada ${total} orang murid ialah murid lelaki. Berapakah peratus murid perempuan?`;
                     correctAns = `${pGirls}%`;
@@ -784,29 +778,27 @@
             else if (topicId === 5) {
                 visualType = "calculator";
                 if (diff === 'Mudah') {
-                    let totals = [200, 300, 400, 500, 600, 800, 1000, 1200, 1500, 2000];
                     let pcts = [5, 10, 15, 20, 25, 30, 40, 50, 75, 80];
-                    let total = totals[(index - 1) % totals.length];
+                    const total = 100 + index * 100;
                     let pct = pcts[(index - 1) % pcts.length];
-                    let ans = (pct / 100) * total;
+                    let ans = pct * total / 100;
 
                     qText = `Berapakah nilai bagi ${pct}% daripada ${total} biji guli?`;
                     correctAns = `${ans}`;
                     options = [`${ans}`, `${ans + 20}`, `${Math.max(0, ans - 15)}`, `${ans * 2}`];
                     explanation = `Cari nilai kuantiti dengan mendarab peratus dengan jumlah: (${pct}/100) × ${total} = ${ans}.`;
                 } else if (diff === 'Sederhana') {
-                    let parts = [12, 18, 24, 35, 42, 50, 64, 75, 88, 95];
                     let pcts = [20, 25, 40, 50, 60, 75, 80, 10, 30, 45];
-                    let part = parts[(index - 1) % parts.length];
-                    let pct = pcts[(index - 1) % pcts.length];
-                    let totalVal = Math.round((part * 100) / pct);
+                    const pct = pcts[(index - 1) % pcts.length];
+                    const totalVal = 100 + index * 100;
+                    const part = pct * totalVal / 100;
 
                     qText = `Jika ${pct}% daripada suatu wang simpanan ialah RM${part}, berapakah jumlah keseluruhan wang simpanan itu?`;
                     correctAns = `RM${totalVal}`;
                     options = [`RM${totalVal}`, `RM${totalVal + 20}`, `RM${Math.max(10, totalVal - 30)}`, `RM${part * 2}`];
                     explanation = `Jika ${pct}% = RM${part}, maka 100% = (RM${part} ÷ ${pct}) × 100 = RM${totalVal}.`;
                 } else {
-                    let originalPrice = 250 + (index * 35);
+                    const originalPrice = 250 + index * 40;
                     let discPct = (index % 2 === 0) ? 30 : 40;
                     let discountAmount = (discPct / 100) * originalPrice;
                     let finalPrice = originalPrice - discountAmount;
@@ -820,26 +812,25 @@
             else if (topicId === 6) {
                 visualType = "lightning";
                 if (diff === 'Mudah') {
-                    let addDecs = [2.5, 4.2, 3.8, 6.4, 5.1, 7.3, 8.5, 1.9, 9.2, 3.4];
-                    let val = addDecs[(index - 1) % addDecs.length];
+                    const val = (10 + index * 3) / 10;
                     let ans = (val + 1.5).toFixed(1);
                     qText = `Selesaikan operasi bergabung mudah berikut: ${val} + (0.5 × 3) = ?`;
                     correctAns = `${ans}`;
                     options = [`${ans}`, `${(parseFloat(ans) + 1.0).toFixed(1)}`, `${(Math.max(0, parseFloat(ans) - 0.8)).toFixed(1)}`, `${(parseFloat(ans) * 1.2).toFixed(1)}`];
                     explanation = `Ikut tertib operasi (kurungan didahulukan): 0.5 × 3 = 1.5. Kemudian ${val} + 1.5 = ${ans}.`;
                 } else if (diff === 'Sederhana') {
-                    let fracParts = ['3/4', '1/2', '4/5', '1/4', '7/10'];
-                    let fStr = fracParts[(index - 1) % fracParts.length];
-                    let ansMap = { '3/4': '0.60', '1/2': '0.35', '4/5': '0.65', '1/4': '0.20', '7/10': '0.55' };
-                    let targetAns = ansMap[fStr] || '0.50';
-                    
-                    qText = `Hitung nilai bagi operasi berikut: (${fStr} − 0.15) × 1.0 = ?`;
+                    const fracParts = ['3/4', '1/2', '4/5', '1/4', '7/10'];
+                    const fraction = fracParts[(index - 1) % fracParts.length];
+                    const [numerator, denominator] = fraction.split('/').map(Number);
+                    const offset = (5 + Math.floor((index - 1) / 5) * 5) / 100;
+                    const targetAns = (numerator / denominator - offset).toFixed(2);
+
+                    qText = `Hitung nilai bagi operasi berikut: (${fraction} − ${offset}) × 1.0 = ?`;
                     correctAns = `${targetAns}`;
                     options = [`${targetAns}`, `${(parseFloat(targetAns) + 0.20).toFixed(2)}`, `${(Math.max(0, parseFloat(targetAns) - 0.15)).toFixed(2)}`, `${(parseFloat(targetAns) * 2).toFixed(2)}`];
-                    explanation = `Tukarkan pecahan ${fStr} kepada perpuluhan terlebih dahulu, kemudian tolak 0.15 untuk mendapat ${targetAns}.`;
+                    explanation = `Tukarkan pecahan ${fraction} kepada perpuluhan terlebih dahulu, kemudian tolak ${offset} untuk mendapat ${targetAns}.`;
                 } else {
-                    let baseVals = [200, 400, 500, 250, 300];
-                    let v = baseVals[(index - 1) % baseVals.length];
+                    const v = 200 + index * 20;
                     let pctVal = (index % 2 === 0) ? 20 : 10;
                     let ansNum = (v * (1 + pctVal / 100)) - 50;
                     
@@ -869,7 +860,7 @@
                         options = [`RM${ans}`, `RM${ans + 10}`, `RM${ans - 5}`, `RM${price}`];
                         explanation = `Harga selepas rebat = RM${price} − RM${disc} = RM${ans}.`;
                     } else if (subType === 2) {
-                        let pack = 4 + (index % 3);
+                        const pack = 3 + index;
                         let pricePerPack = 12;
                         let total = pack * pricePerPack;
                         qText = `Amir membeli ${pack} kotak pensel warna dengan harga RM${pricePerPack} setiap kotak. Hitung jumlah bayaran yang perlu dijelaskan oleh Amir.`;
@@ -888,7 +879,7 @@
                 } else if (diff === 'Sederhana') {
                     let subType = index % 4;
                     if (subType === 0) {
-                        let correctCount = 15 + (index % 5);
+                        const correctCount = 11 + Math.floor(index / 4);
                         let totalQ = 20;
                         let pct = (correctCount / totalQ) * 100;
                         qText = `Dalam satu ujian Matematik, Ali menjawab betul ${correctCount} daripada ${totalQ} soalan. Berapakah peratus markah yang diperoleh Ali?`;
@@ -905,7 +896,7 @@
                         options = [`${kids}`, `${adults}`, `${kids + 4}`, `${Math.max(2, kids - 5)}`];
                         explanation = `Peratus kanak-kanak = 100% - 60% = 40%. 40% daripada ${totalPpl} = ${kids} orang.`;
                     } else if (subType === 2) {
-                        let itemA = 45.50;
+                        let itemA = 45.50 + index;
                         let itemB = 22.80;
                         let voucher = 10.00;
                         let net = (itemA + itemB) - voucher;
@@ -914,7 +905,7 @@
                         options = [`RM${net.toFixed(2)}`, `RM${(net + 5).toFixed(2)}`, `RM${(net - 5).toFixed(2)}`, `RM${(itemA + itemB).toFixed(2)}`];
                         explanation = `Jumlah asal = RM${itemA} + RM${itemB} = RM${(itemA+itemB).toFixed(2)}. Tolak baucar RM${voucher} = RM${net.toFixed(2)}.`;
                     } else {
-                        let totalMeters = 120;
+                        const totalMeters = 120 + index * 20;
                         let usedPct = 35;
                         let used = (usedPct / 100) * totalMeters;
                         let remaining = totalMeters - used;
@@ -945,7 +936,7 @@
                         options = [`RM${totalRevenue.toFixed(0)}`, `RM${capital}`, `RM${(totalRevenue + 200).toFixed(0)}`, `RM${(totalRevenue - 150).toFixed(0)}`];
                         explanation = `Keuntungan = ${profitPct}% daripada RM${capital} = RM${profit}. Jumlah keseluruhan = RM${capital} + RM${profit} = RM${totalRevenue.toFixed(0)}.`;
                     } else if (subType === 2) {
-                        let totalBoxes = 1200;
+                        const totalBoxes = 1200 + index * 80;
                         let damagedPct = 5;
                         let soldPct = 75;
                         let damaged = (damagedPct / 100) * totalBoxes;
@@ -958,11 +949,11 @@
                         explanation = `Kotak rosak = ${damaged}. Baki baik = ${goodBoxes}. Dijual = ${sold}. Baki belum dijual = ${goodBoxes} - ${sold} = ${unsold} kotak.`;
                     } else {
                         let workers = 8;
-                        let days = 15;
+                        const days = 12 + (Math.floor(index / 4) + 1) * 3;
                         let totalManDays = workers * days;
                         let newWorkers = 12;
                         let newDays = totalManDays / newWorkers;
-                        qText = `Seramai ${workers} orang pekerja boleh menyiapkan sebuah projek landskap dalam masa ${days} hari. Jika bilangan pekerja dikurangkan atau ditambah kepada ${newWorkers} orang dengan kadar kerja yang sama, berapakah hari yang diperlukan?`;
+                        qText = `Seramai ${workers} orang pekerja boleh menyiapkan sebuah projek landskap dalam masa ${days} hari. Jika bilangan pekerja ditambah kepada ${newWorkers} orang dengan kadar kerja yang sama, berapakah hari yang diperlukan?`;
                         correctAns = `${newDays} hari`;
                         options = [`${newDays} hari`, `${newDays + 3} hari`, `${days} hari`, `${newDays - 2} hari`];
                         explanation = `Jumlah hari orang (man-days) = ${workers} × ${days} = ${totalManDays}. Untuk ${newWorkers} pekerja, masa diperlukan = ${totalManDays} ÷ ${newWorkers} = ${newDays} hari.`;

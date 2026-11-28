@@ -539,6 +539,7 @@
         let activeQuestions = [];
         let currentQuestionIndex = 0;
         let currentScore = 0;
+        let resultRecorded = false;
         let correctAnswersCount = 0;
         let wrongAnswersCount = 0;
         let timerInterval = null;
@@ -598,6 +599,7 @@
                 difficulties.forEach(diff => {
                     for (let i = 1; i <= 20; i++) {
                         let qObj = createQuestionData(topic.id, diff, i);
+                        qObj.pilihan = [...new Set(qObj.pilihan)];
                         QUESTION_BANK.push(qObj);
                     }
                 });
@@ -605,6 +607,8 @@
         }
 
         function createQuestionData(topicId, diff, index) {
+            const level = ["Senang", "Sederhana", "Susah"].indexOf(diff);
+            const slot = 20 * level + index;
             let id = `T${topicId}_${diff.toUpperCase()}_${index}`;
             let question = "";
             let options = [];
@@ -615,27 +619,27 @@
 
             if (topicId === 1) {
                 if (diff === "Senang") {
-                    let num = 5 + index;
+                    let num = 4 * (1 + Math.floor((index - 1) / 3)) + 1 + (index - 1) % 3;
                     let den = 4;
                     let whole = Math.floor(num / den);
                     let rem = num % den;
                     question = `Tukarkan pecahan tak wajar ${num}/${den} kepada nombor bercampur.`;
                     answer = `${whole} ${rem}/${den}`;
-                    options = [answer, `${whole + 1} 1/${den}`, `${whole} 1/2`, `${whole - 1} ${rem}/${den}`];
+                    options = [answer, `${whole + 1} 1/${den}`, `${whole} ${rem % 3 + 1}/${den}`, `${whole - 1} ${rem}/${den}`];
                     explanation = `Bahagikan pengangka dengan penyebut: ${num} ÷ ${den} = ${whole} baki ${rem}. Maka nombor bercampur ialah ${whole} ${rem}/${den}.`;
                     diagram = `<div class="flex gap-2 justify-center items-center"><div class="text-2xl font-bold font-display text-blue-600">${num}/${den}</div><i class="fa-solid fa-arrow-right text-slate-400"></i><div class="text-2xl font-bold font-display text-emerald-600">?</div></div>`;
                 } else if (diff === "Sederhana") {
-                    let whole = 2 + (index % 4);
+                    let whole = 1 + Math.ceil(index / 3);
                     let den = 5;
                     let num = (whole * den) + (index % 3) + 1;
                     let ansNum = (whole * den) + (index % 3) + 1;
                     question = `Tukarkan nombor bercampur ${whole} ${index % 3 + 1}/${den} kepada pecahan tak wajar.`;
                     answer = `${ansNum}/${den}`;
-                    options = [answer, `${ansNum - 1}/${den}`, `${ansNum + 2}/${den}`, `${whole * den}/${den}`];
+                    options = [answer, `${ansNum - 1}/${den}`, `${ansNum + 2}/${den}`, `${ansNum + den}/${den}`];
                     explanation = `Darabkan nombor bulat dengan penyebut, kemudian tambah pengangka: (${whole} × ${den}) + ${index % 3 + 1} = ${ansNum}. Penyebut kekal ${den}.`;
                     diagram = `<div class="text-xl font-bold text-slate-700">Model Pecahan Bercampur: ${whole} ${index % 3 + 1}/${den}</div>`;
                 } else {
-                    let multiplier = (index % 5) + 2;
+                    let multiplier = index + 1;
                     let num = 2 * multiplier;
                     let den = 3 * multiplier;
                     question = `Antara berikut, yang manakah pecahan setara bagi 2/3 dengan pengangka ${num}?`;
@@ -648,38 +652,36 @@
                 // Topik 2: Tambah Pecahan (Refined with dynamic unique parameters per difficulty)
                 if (diff === "Senang") {
                     // Pecahan penyebut sama
-                    let denOptions = [4, 5, 6, 8, 10];
-                    let den = denOptions[(index - 1) % denOptions.length];
-                    let num1 = 1 + ((index - 1) % (den - 2));
-                    let num2 = 1 + ((index * 2) % (den - num1));
-                    if (num2 === 0) num2 = 1;
+                    const den = 5 + (index - 1) % 5;
+                    const num1 = 1 + Math.floor((index - 1) / 5);
+                    const num2 = 1 + (index - 1) % 5;
                     let sumNum = num1 + num2;
                     question = `Hitung hasil tambah pecahan penyebut sama: ${num1}/${den} + ${num2}/${den} = ?`;
                     answer = `${sumNum}/${den}`;
-                    options = [answer, `${sumNum + 1}/${den}`, `${sumNum}/${den + 1}`, `${num1 + num2 + 1}/${den}`];
+                    options = [answer, `${sumNum + 1}/${den}`, `${sumNum}/${den + 2}`, `${sumNum + 2}/${den}`];
                     explanation = `Oleh kerana penyebutnya sama (${den}), tambahkan pengangkanya sahaja: ${num1} + ${num2} = ${sumNum}. Jawapannya ialah ${sumNum}/${den}.`;
                     diagram = `<div class="flex items-center justify-center gap-3"><div class="bg-blue-100 px-3 py-2 rounded-xl text-blue-700 font-bold">${num1}/${den}</div><i class="fa-solid fa-plus text-slate-400"></i><div class="bg-emerald-100 px-3 py-2 rounded-xl text-emerald-700 font-bold">${num2}/${den}</div><i class="fa-solid fa-equals text-slate-400"></i><div class="bg-yellow-100 px-3 py-2 rounded-xl text-yellow-800 font-bold">?</div></div>`;
                 } else if (diff === "Sederhana") {
                     // Pecahan penyebut tak sama (satu penyebut adalah gandaan penyebut yang lain)
-                    let baseDen = 2 + ((index - 1) % 4); // 2, 3, 4, 5
+                    let baseDen = 3 + ((index - 1) % 5);
                     let mult = 2; // e.g. 2->4, 3->6, 4->8, 5->10
                     let den1 = baseDen;
                     let den2 = baseDen * mult;
                     let num1 = 1;
-                    let num2 = 1 + ((index - 1) % 3);
+                    let num2 = 1 + Math.floor((index - 1) / 5);
                     let equivNum1 = num1 * mult;
                     let sumNum = equivNum1 + num2;
                     question = `Cari hasil tambah bagi pecahan penyebut tak sama: ${num1}/${den1} + ${num2}/${den2} = ?`;
                     answer = `${sumNum}/${den2}`;
-                    options = [answer, `${num1 + num2}/${den1 + den2}`, `${sumNum - 1}/${den2}`, `${sumNum + 1}/${den2}`];
+                    options = [answer, `${sumNum + 2}/${den2}`, `${sumNum - 1}/${den2}`, `${sumNum + 1}/${den2}`];
                     explanation = `Sama kan penyebut dahulu: ${num1}/${den1} = ${equivNum1}/${den2}. Kemudian tambahkan pengangka: ${equivNum1} + ${num2} = ${sumNum}. Jawapannya ialah ${sumNum}/${den2}.`;
                     diagram = `<div class="text-sm font-semibold text-slate-700">Tukarkan ${num1}/${den1} kepada penyebut ${den2} → ${equivNum1}/${den2}</div>`;
                 } else {
                     // Penambahan Nombor Bercampur dan Pecahan
-                    let whole = 1 + ((index - 1) % 4);
+                    let whole = 1 + Math.ceil(index / 3);
                     let den = 6 + ((index - 1) % 3); // 6, 7, 8
                     let num1 = 1 + ((index - 1) % 2);
-                    let num2 = 2 + ((index * 2) % (den - num1 - 1));
+                    let num2 = 2 + index % (den - num1 - 2);
                     let sumNum = num1 + num2;
                     question = `Hitung penambahan nombor bercampur: ${whole} ${num1}/${den} + ${num2}/${den} = ?`;
                     answer = `${whole} ${sumNum}/${den}`;
@@ -688,20 +690,20 @@
                     diagram = `<div class="text-sm font-semibold text-slate-700">Nombor Bercampur: ${whole} ${num1}/${den} ditambah dengan ${num2}/${den}</div>`;
                 }
             } else if (topicId === 3) {
-                let den = 10;
-                let num1 = 7 + (index % 3);
-                let num2 = 1 + (index % 4);
+                let den = 8 + (index - 1) % 5 + level * 5;
+                let num1 = den - 1;
+                let num2 = 1 + Math.floor((index - 1) / 5);
                 let diffVal = num1 - num2;
                 question = `Selesaikan operasi tolak berikut: ${num1}/${den} - ${num2}/${den} = ?`;
                 answer = `${diffVal}/${den}`;
-                options = [answer, `${diffVal + 1}/${den}`, `${diffVal}/${den - 2}`, `${num1}/${den}`];
+                options = [answer, `${diffVal + 1}/${den}`, `${diffVal}/${den + 2}`, `${num1}/${den}`];
                 explanation = `Penyebut sama (${den}), tolakkan pengangka: ${num1} - ${num2} = ${diffVal}. Jawapan ialah ${diffVal}/${den}.`;
                 diagram = `<div class="text-sm font-semibold text-slate-700">Cari baki pecahan: ${num1}/${den} - ${num2}/${den}</div>`;
             } else if (topicId === 4) {
-                let den = 9 + (index % 2);
-                let a = 2 + (index % 3);
-                let b = 1 + (index % 2);
-                let c = 1 + (index % 2);
+                let den = 9 + (index - 1) % 5 + level * 5;
+                let a = 2 + Math.floor((index - 1) / 5);
+                let b = 3;
+                let c = level + 1;
                 let res = a + b - c;
                 question = `Hitung nilai berikut: ${a}/${den} + ${b}/${den} - ${c}/${den} = ?`;
                 answer = `${res}/${den}`;
@@ -709,7 +711,7 @@
                 explanation = `Lakukan operasi dari kiri ke kanan: ${a} + ${b} - ${c} = ${res}. Penyebut kekal ${den}.`;
                 diagram = `<div class="text-sm font-semibold text-slate-700">Operasi Bergabung Pecahan Penyebut Sama</div>`;
             } else if (topicId === 5) {
-                let total = 20 + (index * 4);
+                let total = 20 + (slot * 4);
                 let denom = 4;
                 let num = 1 + (index % 3);
                 let val = (total / denom) * num;
@@ -719,7 +721,7 @@
                 explanation = `Bahagikan kuantiti dengan penyebut kemudian darab pengangka: (${total} ÷ ${denom}) × ${num} = ${val}.`;
                 diagram = `<div class="flex items-center justify-center gap-2 text-slate-700 font-bold"><i class="fa-solid fa-apple-whole text-orange-500 text-xl"></i> Jumlah = ${total} biji</div>`;
             } else if (topicId === 6) {
-                let p1 = (2.5 + (index * 0.15)).toFixed(2);
+                let p1 = (2.5 + (slot * 0.15)).toFixed(2);
                 let p2 = (1.2 + (index * 0.08)).toFixed(2);
                 let sum = (parseFloat(p1) + parseFloat(p2)).toFixed(2);
                 question = `Hitung hasil tambah nombor perpuluhan: ${p1} + ${p2} = ?`;
@@ -728,7 +730,7 @@
                 explanation = `Susun mengikut nilai tempat perpuluhan dan tambah dengan tepat: ${p1} + ${p2} = ${sum}.`;
                 diagram = `<div class="text-sm font-semibold text-slate-700">Susunan Nilai Tempat Perpuluhan</div>`;
             } else if (topicId === 7) {
-                let numVal = (1.2 + (index * 0.3)).toFixed(1);
+                let numVal = (1.2 + (slot * 0.3)).toFixed(1);
                 let mult = 2 + (index % 3);
                 let res = (parseFloat(numVal) * mult).toFixed(1);
                 question = `Selesaikan darab perpuluhan berikut: ${numVal} × ${mult} = ?`;
@@ -737,25 +739,25 @@
                 explanation = `Darabkan nombor seperti biasa dan letakkan titik perpuluhan dengan betul: ${numVal} × ${mult} = ${res}.`;
                 diagram = `<div class="text-sm font-semibold text-slate-700">Operasi Asas Perpuluhan Tahun 4</div>`;
             } else if (topicId === 8) {
-                let pArr = [10, 20, 25, 40, 50, 60, 75, 80];
-                let percent = pArr[(index - 1) % pArr.length];
-                let frac = percent === 25 ? "1/4" : percent === 50 ? "1/2" : percent === 75 ? "3/4" : percent === 20 ? "1/5" : percent === 40 ? "2/5" : percent === 60 ? "3/5" : percent === 80 ? "4/5" : "1/10";
+                const percent = slot + 4;
+                const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+                const divisor = gcd(percent, 100);
+                const frac = `${percent / divisor}/${100 / divisor}`;
                 question = `Tukarkan peratus ${percent}% kepada pecahan bentuk termudah.`;
                 answer = frac;
-                options = [frac, `${percent}/100`, `1/${Math.max(2, Math.floor(100/percent))}`, `${percent - 5}/100`];
-                explanation = `${percent}% = ${percent}/100. Apabila dipermudahkan, ia menjadi ${frac}.`;
+                options = [frac, `${percent + 1}/100`, `${percent + 2}/100`, `${percent - 1}/100`];
+                explanation = `${percent}% = ${percent}/100. Bahagikan pengangka dan penyebut dengan ${divisor} untuk mendapat ${frac}.`;
                 diagram = `<div class="w-24 h-24 rounded-full border-4 border-blue-500 flex items-center justify-center font-bold text-xl text-blue-600 bg-blue-50">${percent}%</div>`;
             } else if (topicId === 9) {
                 let totalObj = 100;
-                let colored = 20 + (index * 3);
-                if (colored > 95) colored = 35;
+                let colored = 10 + slot;
                 question = `Sebuah grid mempunyai ${totalObj} petak. Jika ${colored} petak diwarnakan, berapakah peratus petak yang berwarna?`;
                 answer = `${colored}%`;
-                options = [`${colored}%`, `${100 - colored}%`, `${colored + 5}%`, `50%`];
+                options = [`${colored}%`, `${colored - 2}%`, `${colored + 5}%`, `${colored - 5}%`];
                 explanation = `Peratus dikira daripada jumlah 100 petak. Oleh itu, ${colored} petak daripada 100 ialah ${colored}%.`;
-                diagram = `<div class="grid grid-cols-10 gap-0.5 w-48 h-12 bg-slate-200 p-1 rounded-xl mx-auto">${Array(20).fill(0).map((_, i) => `<div class="bg-${i < colored/5 ? 'blue-500' : 'white'} rounded-xs"></div>`).join('')}</div>`;
+                diagram = `<div class="grid grid-cols-10 gap-0.5 w-32 h-32 bg-slate-200 p-1 rounded-xl mx-auto">${Array(totalObj).fill(0).map((_, i) => `<div class="bg-${i < colored ? 'blue-500' : 'white'} rounded-xs"></div>`).join('')}</div>`;
             } else {
-                let startWeight = (2.0 + (index * 0.2)).toFixed(1);
+                let startWeight = (2.0 + (slot * 0.2)).toFixed(1);
                 let usedWeight = (0.5 + (index * 0.1)).toFixed(1);
                 let remWeight = (parseFloat(startWeight) - parseFloat(usedWeight)).toFixed(1);
                 question = `Ibu membeli ${startWeight} kg tepung gandum. Adiknya menggunakan ${usedWeight} kg tepung itu untuk membuat kek. Berapakah baki jisim tepung gandum dalam kg?`;
@@ -826,6 +828,7 @@
             }
             currentUser.username = username;
             currentUser.isGuest = false;
+            loadUserSession();
             saveUserSession();
             updateHeaderUser();
             openModal("Pendaftaran Berjaya!", `Selamat datang, ${username}! Akaun anda telah berjaya didaftarkan.`, "fa-circle-check", "text-emerald-500");
@@ -881,6 +884,7 @@
         }
 
         function loadUserSession() {
+            Object.assign(currentUser, {highestScore: 0, totalAnswered: 0, correctCount: 0, wrongCount: 0, history: []});
             try {
                 let data = localStorage.getItem(`mathkids_user_${currentUser.username}`);
                 if (data) {
@@ -978,6 +982,7 @@
 
             currentQuestionIndex = 0;
             currentScore = 0;
+            resultRecorded = false;
             correctAnswersCount = 0;
             wrongAnswersCount = 0;
 
@@ -1118,6 +1123,7 @@
         }
 
         function nextQuestion() {
+            if (!questionAnsweredFlag || resultRecorded) return;
             currentQuestionIndex++;
             loadCurrentQuestion();
         }
@@ -1156,6 +1162,8 @@
         }
 
         function endGameSession() {
+            if (resultRecorded) return;
+            resultRecorded = true;
             if (timerInterval) clearInterval(timerInterval);
 
             let totalAns = correctAnswersCount + wrongAnswersCount;
@@ -1232,25 +1240,26 @@
             let container = document.getElementById('leaderboardListContainer');
             container.innerHTML = "";
 
-            // Mock leaderboard combined with current user if registered
-            let leaders = [
-                { rank: 1, name: "Aisyah Sofea (SK Seri Damai)", score: 100, accuracy: "100%" },
-                { rank: 2, name: "Muhammad Ziqri (SK Taman Tun)", score: 95, accuracy: "95%" },
-                { rank: 3, name: "Nurul Iman (SK Bandar Utama)", score: 90, accuracy: "90%" },
-                { rank: 4, name: "Aiman Hakim (SK Subang Jaya)", score: 85, accuracy: "85%" },
-                { rank: 5, name: "Farhan Daniel (SK Putrajaya Presint 9)", score: 80, accuracy: "80%" }
-            ];
-
-            if (!currentUser.isGuest) {
-                leaders.push({
-                    rank: 6,
-                    name: `${currentUser.username} (Anda)`,
-                    score: currentUser.highestScore,
-                    accuracy: currentUser.totalAnswered > 0 ? `${Math.round((currentUser.correctCount / currentUser.totalAnswered)*100)}%` : "0%"
-                });
-                leaders.sort((a, b) => b.score - a.score);
-                leaders.forEach((l, idx) => l.rank = idx + 1);
+            const leaders = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key?.startsWith('mathkids_user_')) continue;
+                try {
+                    const player = JSON.parse(localStorage.getItem(key));
+                    if (player?.isGuest === false && player.totalAnswered > 0 && Number.isFinite(player.highestScore)) {
+                        leaders.push({
+                            name: player.username,
+                            score: player.highestScore,
+                            accuracy: Math.round(100 * player.correctCount / player.totalAnswered)
+                        });
+                    }
+                } catch {
+                    continue;
+                }
             }
+            leaders.sort((a, b) => b.score - a.score || b.accuracy - a.accuracy);
+            if (!leaders.length) container.textContent = 'Tiada keputusan pemain lagi.';
+            leaders.forEach((leader, index) => leader.rank = index + 1);
 
             leaders.forEach(l => {
                 let badgeColor = l.rank === 1 ? 'bg-yellow-100 text-yellow-700 border-yellow-300' : l.rank === 2 ? 'bg-slate-100 text-slate-700 border-slate-300' : l.rank === 3 ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-white text-slate-600 border-slate-200';
@@ -1261,13 +1270,14 @@
                         <div class="w-8 h-8 rounded-xl font-bold font-display flex items-center justify-center bg-white shadow-sm text-sm">
                             #${l.rank}
                         </div>
-                        <span class="font-bold text-sm text-slate-800">${l.name}</span>
+                        <span class="font-bold text-sm text-slate-800" data-player-name></span>
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="font-bold text-sm text-blue-600">${l.score} Markah</span>
-                        <span class="text-xs text-slate-500 bg-white px-2 py-1 rounded-lg">${l.accuracy}</span>
+                        <span class="text-xs text-slate-500 bg-white px-2 py-1 rounded-lg">${l.accuracy}%</span>
                     </div>
                 `;
+                item.querySelector("[data-player-name]").textContent = l.name;
                 container.appendChild(item);
             });
         }

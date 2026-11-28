@@ -90,6 +90,24 @@
     </div>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t3_sub6_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edu_kidz_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && Number.isFinite(u.masteredCount) && Array.isArray(u.history))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const previous = read('edu_kidz_current_user');
+            const active = previous && Object.values(users).find(u => u.username === previous.username);
+            if (active) localStorage.setItem('edukidz_t3_sub6_active_user', JSON.stringify(active));
+        })();
+
         // --- DATA STRUCTURE & COMPREHENSIVE QUESTION BANK (660 UNIQUE QUESTIONS GENERATOR) ---
         
         const categoriesData = [
@@ -241,71 +259,25 @@
                             options = [`${tKg} kg ${tG} g`, `${tKg + 1} kg ${tG} g`, `${tKg} kg ${tG - 100} g`, `${tKg} kg ${tG + 200} g`];
                         } else {
                             // Refined & Diverse Difficult Questions for Category 5 (Tambah & Tolak Jisim)
-                            const diffTypes = [
-                                {
-                                    q: `Kira nilai berikut dalam gram (g):\n6 kg 450 g + 3 kg 820 g - 2 kg 100 g = ______ g`,
-                                    ans: (6 * 1000 + 450) + (3 * 1000 + 820) - (2 * 1000 + 100),
-                                    unit: 'g'
-                                },
-                                {
-                                    q: `Sebuah kontena memuatkan 12 kg 350 g beras. Pekerja menambah 4 beg beras yang masing-masing jisimnya 1 kg 500 g. Berapakah jumlah jisim beras sekarang dalam gram?`,
-                                    ans: (12 * 1000 + 350) + 4 * (1 * 1000 + 500),
-                                    unit: 'g'
-                                },
-                                {
-                                    q: `Selesaikan dalam kg dan g:\n15 kg 200 g - 4 kg 750 g + 3 kg 400 g = ______ kg ______ g`,
-                                    ansTotal: (15 * 1000 + 200) - (4 * 1000 + 750) + (3 * 1000 + 400)
-                                },
-                                {
-                                    q: `Ibu membeli 3 paket tepung. Paket A jisimnya 850 g, Paket B jisimnya 1 kg 200 g, dan Paket C jisimnya 2 kg 450 g. Hitung jumlah jisim ketiga-tiga paket tepung dalam gram.`,
-                                    ans: 850 + (1 * 1000 + 200) + (2 * 1000 + 450),
-                                    unit: 'g'
-                                },
-                                {
-                                    q: `Sebuah lori kecil membawa muatan durian seberat 25 kg. Selepas dihantar ke gerai pertama, muatannya berkurang sebanyak 7 kg 650 g. Berapakah baki jisim durian dalam kilogram dan gram?`,
-                                    ansTotal: (25 * 1000) - (7 * 1000 + 650)
-                                },
-                                {
-                                    q: `Kira hasil tambah berikut dalam gram:\n4 kg 90 g + 7 kg 500 g + 2 kg 85 g = ______ g`,
-                                    ans: (4 * 1000 + 90) + (7 * 1000 + 500) + (2 * 1000 + 85),
-                                    unit: 'g'
-                                },
-                                {
-                                    q: `Sebuah kotak berisi mangga mempunyai jisim 10 kg. Jisim kotak kosong ialah 1 kg 250 g. Berapakah jisim mangga sahaja dalam gram?`,
-                                    ans: (10 * 1000) - (1 * 1000 + 250),
-                                    unit: 'g'
-                                },
-                                {
-                                    q: `Kamil mempunyai beban 18 kg 400 g. Dia mengurangkan beban itu sebanyak 9 kg 880 g. Berapakah baki beban dalam gram?`,
-                                    ans: (18 * 1000 + 400) - (9 * 1000 + 880),
-                                    unit: 'g'
-                                }
-                            ];
-
-                            const selectedProblem = diffTypes[(index - 1) % diffTypes.length];
-                            qText = selectedProblem.q;
-
-                            if (selectedProblem.unit === 'g') {
-                                const totalG = selectedProblem.ans;
-                                answer = `${totalG} g`;
-                                options = [
-                                    `${totalG} g`,
-                                    `${totalG + 250} g`,
-                                    `${totalG - 150} g`,
-                                    `${totalG + 500} g`
-                                ];
-                            } else {
-                                const totalG = selectedProblem.ansTotal;
-                                const kPart = Math.floor(totalG / 1000);
-                                const gPart = totalG % 1000;
-                                answer = `${kPart} kg ${gPart} g`;
-                                options = [
-                                    `${kPart} kg ${gPart} g`,
-                                    `${kPart + 1} kg ${gPart} g`,
-                                    `${kPart} kg ${gPart + 200} g`,
-                                    `${kPart - 1} kg ${gPart} g`
-                                ];
-                            }
+                            const variant = (index - 1) % 3;
+                            const item = 'gula';
+                            const base = 1000 + 125 * index;
+                            const major = 'kg';
+                            const unit = 'g';
+                            const format = value => variant === 1
+                                ? `${Math.floor(value / 1000)} ${major} ${value % 1000} ${unit}`
+                                : `${value} ${unit}`;
+                            const input = format(base);
+                            const extra = 400 + 25 * index;
+                            const removed = 250 + 10 * index;
+                            const result = variant === 0 ? base + extra : variant === 1 ? base - removed : base + extra - removed;
+                            qText = variant === 0
+                                ? `Bekas A mengandungi ${input} ${item}. Selepas ${extra} ${unit} ditambah, berapakah jumlah dalam ${unit}?`
+                                : variant === 1
+                                    ? `Bekas A mengandungi ${input} ${item}. Sebanyak ${removed} ${unit} digunakan. Berapakah baki dalam ${major} dan ${unit}?`
+                                    : `Bekas A mengandungi ${input} ${item}. Sebanyak ${extra} ${unit} ditambah, kemudian ${removed} ${unit} digunakan. Berapakah baki dalam ${unit}?`;
+                            answer = format(result);
+                            options = [result, result + 100, result - 50, result + 250].map(format);
                         }
                         break;
                     case 6: // Darab & Bahagi Jisim
@@ -316,77 +288,33 @@
                             answer = `${ans} g`;
                             options = [`${ans} g`, `${ans + 50} g`, `${ans - 100} g`, `${ans + 200} g`];
                         } else if (level === 'Sederhana') {
-                            qText = `2 kg 200 g × 4 = ______ kg ______ g`;
-                            const totalG = (2200) * 4;
+                            qText = `${index + 1} kg 200 g × 4 = ______ kg ______ g`;
+                            const totalG = ((index + 1) * 1000 + 200) * 4;
                             const rKg = Math.floor(totalG / 1000);
                             const rG = totalG % 1000;
                             answer = `${rKg} kg ${rG} g`;
                             options = [`${rKg} kg ${rG} g`, `${rKg + 1} kg ${rG} g`, `${rKg} kg ${rG + 100} g`, `${rKg - 1} kg ${rG} g`];
                         } else {
                             // Refined & Diverse Difficult Questions for Category 6 (Darab & Bahagi Jisim)
-                            const diffTypes = [
-                                {
-                                    q: `Selesaikan dalam kilogram dan gram:\n(5 kg 400 g × 3) ÷ 2 = ______ kg ______ g`,
-                                    ansTotal: ((5 * 1000 + 400) * 3) / 2
-                                },
-                                {
-                                    q: `Sebuah kilang menghasilkan 8 paket biskut yang sama jisimnya. Jumlah jisim semua paket ialah 6 kg 400 g. Berapakah jisim bagi 3 paket biskut dalam gram?`,
-                                    ans: (6400 / 8) * 3,
-                                    unit: 'g'
-                                },
-                                {
-                                    q: `Kira nilai berikut dalam gram:\n12 kg 600 g ÷ 4 + 2 kg 350 g × 2 = ______ g`,
-                                    ans: (12600 / 4) + ((2 * 1000 + 350) * 2),
-                                    unit: 'g'
-                                },
-                                {
-                                    q: `Ibu membeli 5 biji kek yang setiap satunya mempunyai jisim 1 kg 800 g. Jika ibu membahagikan sama banyak kepada 3 buah keluarga, berapakah jisim kek yang diterima oleh setiap keluarga dalam gram?`,
-                                    ans: (5 * (1 * 1000 + 800)) / 3,
-                                    unit: 'g'
-                                },
-                                {
-                                    q: `Sebuah kontena memuatkan 4 kotak barang. Jisim setiap kotak ialah 3 kg 750 g. Hitung jumlah jisim dalam kilogram dan gram.`,
-                                    ansTotal: (3 * 1000 + 750) * 4
-                                },
-                                {
-                                    q: `Kira hasil darab dan bahagi berikut dalam kg dan g:\n9 kg 120 g ÷ 3 × 2 = ______ kg ______ g`,
-                                    ansTotal: (9120 / 3) * 2
-                                },
-                                {
-                                    q: `Pak Cik Ali menuai kelapa sawit dan membungkusnya kepada 6 beg sama berat. Jumlah keseluruhan jisim ialah 24 kg 600 g. Berapakah jisim bagi 4 beg kelapa sawit tersebut dalam kilogram dan gram?`,
-                                    ansTotal: (24600 / 6) * 4
-                                },
-                                {
-                                    q: `Sebuah lori kecil mengangkut 6 tong gas. Setiap tong gas mempunyai jisim 14 kg 500 g. Hitung jumlah jisim semua tong gas dalam gram.`,
-                                    ans: (14 * 1000 + 500) * 6,
-                                    unit: 'g'
-                                }
-                            ];
-
-                            const selectedProblem = diffTypes[(index - 1) % diffTypes.length];
-                            qText = selectedProblem.q;
-
-                            if (selectedProblem.unit === 'g') {
-                                const totalG = selectedProblem.ans;
-                                answer = `${totalG} g`;
-                                options = [
-                                    `${totalG} g`,
-                                    `${totalG + 200} g`,
-                                    `${totalG - 100} g`,
-                                    `${totalG + 500} g`
-                                ];
-                            } else {
-                                const totalG = selectedProblem.ansTotal;
-                                const kPart = Math.floor(totalG / 1000);
-                                const gPart = totalG % 1000;
-                                answer = `${kPart} kg ${gPart} g`;
-                                options = [
-                                    `${kPart} kg ${gPart} g`,
-                                    `${kPart + 1} kg ${gPart} g`,
-                                    `${kPart} kg ${gPart + 150} g`,
-                                    `${kPart - 1} kg ${gPart} g`
-                                ];
-                            }
+                            const variant = (index - 1) % 3;
+                            const item = 'beras';
+                            const base = 1000 + 125 * index;
+                            const major = 'kg';
+                            const unit = 'g';
+                            const format = value => variant === 1
+                                ? `${Math.floor(value / 1000)} ${major} ${value % 1000} ${unit}`
+                                : `${value} ${unit}`;
+                            const input = format(base);
+                            const count = 2 + index % 4;
+                            const total = base * count;
+                            const result = variant === 0 ? total : variant === 1 ? base : total + base;
+                            qText = variant === 0
+                                ? `Setiap bekas mengandungi ${input} ${item}. Berapakah jumlah dalam ${unit} bagi ${count} bekas?`
+                                : variant === 1
+                                    ? `Sebanyak ${total} ${unit} ${item} dibahagi sama rata ke dalam ${count} bekas. Berapakah kuantiti setiap bekas dalam ${major} dan ${unit}?`
+                                    : `Terdapat ${count} bekas, masing-masing berisi ${input} ${item}. Satu lagi bekas dengan kuantiti yang sama ditambah. Berapakah jumlah dalam ${unit}?`;
+                            answer = format(result);
+                            options = [result, result + 100, result - 50, result + 250].map(format);
                         }
                         break;
                     case 7: // Tukar Unit Isipadu Cecair
@@ -428,69 +356,25 @@
                             options = [`${tL} l ${tMl} ml`, `${tL + 1} l ${tMl} ml`, `${tL} l ${tMl - 100} ml`, `${tL} l ${tMl + 200} ml`];
                         } else {
                             // Refined & Diverse Difficult Questions for Category 8 (Tambah & Tolak Isipadu)
-                            const diffTypes = [
-                                {
-                                    q: `Kira nilai berikut dalam mililiter (ml):\n5 l 350 ml + 2 l 820 ml - 1 l 500 ml = ______ ml`,
-                                    ans: (5 * 1000 + 350) + (2 * 1000 + 820) - (1 * 1000 + 500),
-                                    unit: 'ml'
-                                },
-                                {
-                                    q: `Sebuah tong besar mengandungi 15 l air. Puan Suri menuang keluar 3 l 450 ml air ke dalam baldi dan menambah 2 l 120 ml air oren. Berapakah isipadu cecair sekarang dalam liter dan mililiter?`,
-                                    ansTotal: (15 * 1000) - (3 * 1000 + 450) + (2 * 1000 + 120)
-                                },
-                                {
-                                    q: `Selesaikan dalam l dan ml:\n8 l 100 ml - 2 l 650 ml + 4 l 300 ml = ______ l ______ ml`,
-                                    ansTotal: (8 * 1000 + 100) - (2 * 1000 + 650) + (4 * 1000 + 300)
-                                },
-                                {
-                                    q: `Sebuah bekas mengandungi 3 botol jus. Botol A ada 1 l 250 ml, Botol B ada 950 ml, dan Botol C ada 2 l 100 ml. Hitung jumlah isipadu jus dalam mililiter.`,
-                                    ans: (1 * 1000 + 250) + 950 + (2 * 1000 + 100),
-                                    unit: 'ml'
-                                },
-                                {
-                                    q: `Restoran Maju menyediakan 20 l air teh o. Sepanjang hari, pelanggan meminum 13 l 750 ml. Berapakah baki air teh o dalam liter dan mililiter?`,
-                                    ansTotal: (20 * 1000) - (13 * 1000 + 750)
-                                },
-                                {
-                                    q: `Kira hasil tambah berikut dalam mililiter:\n3 l 80 ml + 6 l 450 ml + 1 l 900 ml = ______ ml`,
-                                    ans: (3 * 1000 + 80) + (6 * 1000 + 450) + (1 * 1000 + 900),
-                                    unit: 'ml'
-                                },
-                                {
-                                    q: `Sebuah tangki air mempunyai muatan 12 l. Jika 4 l 850 ml air telah digunakan untuk menyiram pokok bunga, berapakah baki air dalam tangki tersebut dalam mililiter?`,
-                                    ans: (12 * 1000) - (4 * 1000 + 850),
-                                    unit: 'ml'
-                                },
-                                {
-                                    q: `Amin mempunyai 10 l air mineral. Dia mengisi 4 botol kecil yang setiap satunya memuatkan 1 l 200 ml. Berapakah baki air mineral Amin dalam liter dan mililiter?`,
-                                    ansTotal: (10 * 1000) - (4 * (1 * 1000 + 200))
-                                }
-                            ];
-
-                            const selectedProblem = diffTypes[(index - 1) % diffTypes.length];
-                            qText = selectedProblem.q;
-
-                            if (selectedProblem.unit === 'ml') {
-                                const totalMl = selectedProblem.ans;
-                                answer = `${totalMl} ml`;
-                                options = [
-                                    `${totalMl} ml`,
-                                    `${totalMl + 200} ml`,
-                                    `${totalMl - 150} ml`,
-                                    `${totalMl + 500} ml`
-                                ];
-                            } else {
-                                const totalMl = selectedProblem.ansTotal;
-                                const lPart = Math.floor(totalMl / 1000);
-                                const mlPart = totalMl % 1000;
-                                answer = `${lPart} l ${mlPart} ml`;
-                                options = [
-                                    `${lPart} l ${mlPart} ml`,
-                                    `${lPart + 1} l ${mlPart} ml`,
-                                    `${lPart} l ${mlPart + 150} ml`,
-                                    `${lPart - 1} l ${mlPart} ml`
-                                ];
-                            }
+                            const variant = (index - 1) % 3;
+                            const item = 'susu';
+                            const base = 1000 + 125 * index;
+                            const major = 'l';
+                            const unit = 'ml';
+                            const format = value => variant === 1
+                                ? `${Math.floor(value / 1000)} ${major} ${value % 1000} ${unit}`
+                                : `${value} ${unit}`;
+                            const input = format(base);
+                            const extra = 400 + 25 * index;
+                            const removed = 250 + 10 * index;
+                            const result = variant === 0 ? base + extra : variant === 1 ? base - removed : base + extra - removed;
+                            qText = variant === 0
+                                ? `Bekas A mengandungi ${input} ${item}. Selepas ${extra} ${unit} ditambah, berapakah jumlah dalam ${unit}?`
+                                : variant === 1
+                                    ? `Bekas A mengandungi ${input} ${item}. Sebanyak ${removed} ${unit} digunakan. Berapakah baki dalam ${major} dan ${unit}?`
+                                    : `Bekas A mengandungi ${input} ${item}. Sebanyak ${extra} ${unit} ditambah, kemudian ${removed} ${unit} digunakan. Berapakah baki dalam ${unit}?`;
+                            answer = format(result);
+                            options = [result, result + 100, result - 50, result + 250].map(format);
                         }
                         break;
                     case 9: // Darab & Bahagi Isipadu
@@ -501,77 +385,33 @@
                             answer = `${ans} ml`;
                             options = [`${ans} ml`, `${ans + 50} ml`, `${ans - 50} ml`, `${ans + 100} ml`];
                         } else if (level === 'Sederhana') {
-                            qText = `1 l 500 ml × 3 = ______ l ______ ml`;
-                            const totalMl = 1500 * 3;
+                            qText = `${index} l 500 ml × 3 = ______ l ______ ml`;
+                            const totalMl = (index * 1000 + 500) * 3;
                             const rL = Math.floor(totalMl / 1000);
                             const rMl = totalMl % 1000;
                             answer = `${rL} l ${rMl} ml`;
                             options = [`${rL} l ${rMl} ml`, `${rL + 1} l ${rMl} ml`, `${rL} l ${rMl + 100} ml`, `${rL - 1} l ${rMl} ml`];
                         } else {
                             // Refined & Diverse Difficult Questions for Category 9 (Darab & Bahagi Isipadu)
-                            const diffTypes = [
-                                {
-                                    q: `Selesaikan dalam liter dan mililiter:\n(3 l 200 ml × 4) ÷ 2 = ______ l ______ ml`,
-                                    ansTotal: ((3 * 1000 + 200) * 4) / 2
-                                },
-                                {
-                                    q: `Sebuah kilang mengeluarkan 6 botol air mineral yang sama isipadu. Jumlah isipadu semua botol ialah 9 l 600 ml. Berapakah isipadu bagi 4 botol air mineral tersebut dalam mililiter?`,
-                                    ans: (9600 / 6) * 4,
-                                    unit: 'ml'
-                                },
-                                {
-                                    q: `Kira nilai berikut dalam mililiter:\n14 l 800 ml ÷ 4 + 1 l 500 ml × 3 = ______ ml`,
-                                    ans: (14800 / 4) + ((1 * 1000 + 500) * 3),
-                                    unit: 'ml'
-                                },
-                                {
-                                    q: `Puan Aminah menyediakan 4 jag air oren yang setiap satunya mengandungi 2 l 250 ml. Jika air itu diagihkan sama banyak ke dalam 5 bekas besar, berapakah isipadu air dalam setiap bekas besar dalam mililiter?`,
-                                    ans: (4 * (2 * 1000 + 250)) / 5,
-                                    unit: 'ml'
-                                },
-                                {
-                                    q: `Sebuah tong besar mengandungi 18 l air. Air itu dibahagikan sama rata ke dalam 8 buah baldi kecil. Berapakah isipadu air di dalam 3 buah baldi kecil dalam liter dan mililiter?`,
-                                    ansTotal: (18000 / 8) * 3
-                                },
-                                {
-                                    q: `Kira hasil darab dan bahagi berikut dalam l dan ml:\n10 l 500 ml ÷ 5 × 4 = ______ l ______ ml`,
-                                    ansTotal: (10500 / 5) * 4
-                                },
-                                {
-                                    q: `Sebuah kolam renang mainan kanak-kanak diisi dengan air menggunakan hos sebanyak 5 baldi. Setiap baldi memuatkan 4 l 200 ml. Berapakah jumlah isipadu air di dalam kolam dalam mililiter?`,
-                                    ans: (4 * 1000 + 200) * 5,
-                                    unit: 'ml'
-                                },
-                                {
-                                    q: `Pak Abu mengisi 6 botol besar dengan cecair pencuci. Jumlah keseluruhan cecair ialah 15 l 600 ml. Berapakah isipadu bagi 2 botol pencuci tersebut dalam liter dan mililiter?`,
-                                    ansTotal: (15600 / 6) * 2
-                                }
-                            ];
-
-                            const selectedProblem = diffTypes[(index - 1) % diffTypes.length];
-                            qText = selectedProblem.q;
-
-                            if (selectedProblem.unit === 'ml') {
-                                const totalMl = selectedProblem.ans;
-                                answer = `${totalMl} ml`;
-                                options = [
-                                    `${totalMl} ml`,
-                                    `${totalMl + 250} ml`,
-                                    `${totalMl - 100} ml`,
-                                    `${totalMl + 500} ml`
-                                ];
-                            } else {
-                                const totalMl = selectedProblem.ansTotal;
-                                const lPart = Math.floor(totalMl / 1000);
-                                const mlPart = totalMl % 1000;
-                                answer = `${lPart} l ${mlPart} ml`;
-                                options = [
-                                    `${lPart} l ${mlPart} ml`,
-                                    `${lPart + 1} l ${mlPart} ml`,
-                                    `${lPart} l ${mlPart + 200} ml`,
-                                    `${lPart - 1} l ${mlPart} ml`
-                                ];
-                            }
+                            const variant = (index - 1) % 3;
+                            const item = 'jus';
+                            const base = 1000 + 125 * index;
+                            const major = 'l';
+                            const unit = 'ml';
+                            const format = value => variant === 1
+                                ? `${Math.floor(value / 1000)} ${major} ${value % 1000} ${unit}`
+                                : `${value} ${unit}`;
+                            const input = format(base);
+                            const count = 2 + index % 4;
+                            const total = base * count;
+                            const result = variant === 0 ? total : variant === 1 ? base : total + base;
+                            qText = variant === 0
+                                ? `Setiap bekas mengandungi ${input} ${item}. Berapakah jumlah dalam ${unit} bagi ${count} bekas?`
+                                : variant === 1
+                                    ? `Sebanyak ${total} ${unit} ${item} dibahagi sama rata ke dalam ${count} bekas. Berapakah kuantiti setiap bekas dalam ${major} dan ${unit}?`
+                                    : `Terdapat ${count} bekas, masing-masing berisi ${input} ${item}. Satu lagi bekas dengan kuantiti yang sama ditambah. Berapakah jumlah dalam ${unit}?`;
+                            answer = format(result);
+                            options = [result, result + 100, result - 50, result + 250].map(format);
                         }
                         break;
                     case 10: // Ayat Matematik Gambar
@@ -603,13 +443,15 @@
                             answer = `${ans} cm`;
                             options = [`${ans} cm`, `${ans + 50} cm`, `${ans - 10} cm`, `${ans + 100} cm`];
                         } else if (level === 'Sederhana') {
-                            qText = `Sebuah bakul mengandungi 3 kg 200 g buah mangga dan 1 kg 500 g buah oren. Berapakah jumlah jisim buah-buahan itu?`;
-                            answer = `4 kg 700 g`;
-                            options = [`4 kg 700 g`, `5 kg 200 g`, `4 kg 500 g`, `3 kg 700 g`];
+                            qText = `Sebuah bakul mengandungi ${index} kg 200 g buah mangga dan 1 kg 500 g buah oren. Berapakah jumlah jisim buah-buahan itu?`;
+                            answer = `${index + 1} kg 700 g`;
+                            options = [answer, `${index + 2} kg 200 g`, `${index + 1} kg 500 g`, `${index} kg 700 g`];
                         } else {
-                            qText = `Ibu mempunyi 2 l air sirap. Dia menuang sama banyak ke dalam 4 biji gelas. Berapakah isipadu air dalam setiap gelas dalam mililiter?`;
-                            answer = `500 ml`;
-                            options = [`500 ml`, `250 ml`, `400 ml`, `1,000 ml`];
+                            const totalMl = index * 100;
+                            const perGlass = totalMl / 4;
+                            qText = `Ibu mempunyai ${totalMl} ml air sirap. Dia menuang sama banyak ke dalam 4 biji gelas. Berapakah isipadu air dalam setiap gelas dalam mililiter?`;
+                            answer = `${perGlass} ml`;
+                            options = [answer, `${perGlass + 25} ml`, `${perGlass + 50} ml`, `${perGlass + 75} ml`];
                         }
                         break;
                 }
@@ -640,7 +482,7 @@
         class AppState {
             constructor() {
                 this.currentScreen = 'home';
-                this.currentUser = JSON.parse(localStorage.getItem('edu_kidz_current_user')) || null;
+                this.currentUser = JSON.parse(localStorage.getItem('edukidz_t3_sub6_active_user')) || null;
                 this.selectedCategory = null;
                 this.selectedLevel = null;
                 this.selectedGameType = 'objektif';
@@ -658,17 +500,17 @@
 
             saveUser() {
                 if (this.currentUser) {
-                    localStorage.setItem('edu_kidz_current_user', JSON.stringify(this.currentUser));
-                    let users = JSON.parse(localStorage.getItem('edu_kidz_users')) || [];
+                    localStorage.setItem('edukidz_t3_sub6_active_user', JSON.stringify(this.currentUser));
+                    let users = JSON.parse(localStorage.getItem('edukidz_t3_sub6_users')) || [];
                     const idx = users.findIndex(u => u.username === this.currentUser.username);
                     if (idx !== -1) {
                         users[idx] = this.currentUser;
                     } else {
                         users.push(this.currentUser);
                     }
-                    localStorage.setItem('edu_kidz_users', JSON.stringify(users));
+                    localStorage.setItem('edukidz_t3_sub6_users', JSON.stringify(users));
                 } else {
-                    localStorage.removeItem('edu_kidz_current_user');
+                    localStorage.removeItem('edukidz_t3_sub6_active_user');
                 }
             }
 
@@ -1241,7 +1083,7 @@
         }
 
         function renderLeaderboardScreen() {
-            let users = JSON.parse(localStorage.getItem('edu_kidz_users')) || [];
+            let users = JSON.parse(localStorage.getItem('edukidz_t3_sub6_users')) || [];
             users = users.map(u => ({
                 username: u.username,
                 totalScore: (u.history || []).reduce((acc, curr) => acc + curr.score, 0),
@@ -1329,7 +1171,7 @@
             const username = document.getElementById('reg-username').value.trim();
             const password = document.getElementById('reg-password').value;
 
-            let users = JSON.parse(localStorage.getItem('edu_kidz_users')) || [];
+            let users = JSON.parse(localStorage.getItem('edukidz_t3_sub6_users')) || [];
             if (users.some(u => u.username === username)) {
                 showModal("Nama pengguna telah wujud. Sila pilih nama lain.");
                 return;
@@ -1343,7 +1185,7 @@
             };
 
             users.push(newUser);
-            localStorage.setItem('edu_kidz_users', JSON.stringify(users));
+            localStorage.setItem('edukidz_t3_sub6_users', JSON.stringify(users));
             app.currentUser = newUser;
             app.saveUser();
 
@@ -1357,7 +1199,7 @@
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
 
-            let users = JSON.parse(localStorage.getItem('edu_kidz_users')) || [];
+            let users = JSON.parse(localStorage.getItem('edukidz_t3_sub6_users')) || [];
             const found = users.find(u => u.username === username && u.password === password);
 
             if (found) {
@@ -1373,7 +1215,7 @@
 
         function logoutUser() {
             app.currentUser = null;
-            localStorage.removeItem('edu_kidz_current_user');
+            localStorage.removeItem('edukidz_t3_sub6_active_user');
             app.showScreen('home');
         }
 

@@ -723,6 +723,21 @@
     </div>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t5_sub8_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('mk_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && typeof u.fullname === "string" && Number.isFinite(u.games) && Number.isFinite(u.totalQ))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+        })();
+
         /* ==========================================================================
            1. STATE & STORAGE INITIALIZATION
            ========================================================================== */
@@ -746,11 +761,11 @@
         };
 
         function initLocalStorage() {
-            if (!localStorage.getItem('mk_users')) {
+            if (!localStorage.getItem('edukidz_t5_sub8_users')) {
                 const defaultUsers = [
                     { username: 'demo', fullname: 'Murid Cemerlang', password: '123', score: 150, games: 3, correct: 48, totalQ: 60 }
                 ];
-                localStorage.setItem('mk_users', JSON.stringify(defaultUsers));
+                localStorage.setItem('edukidz_t5_sub8_users', JSON.stringify(defaultUsers));
             }
             if (!localStorage.getItem('mk_scores')) {
                 localStorage.setItem('mk_scores', JSON.stringify([]));
@@ -785,6 +800,8 @@
         }
 
         function buildSingleQuestion(id, topCode, topName, diff, index) {
+            const level = ['Senang', 'Sederhana', 'Susah'].indexOf(diff);
+            const seed = 20 * level + index;
             let q = {
                 id: id,
                 topikCode: topCode,
@@ -795,7 +812,7 @@
             };
 
             if (topCode === 'A') { // Tafsir Carta Pai
-                const total = diff === 'Senang' ? 20 : diff === 'Sederhana' ? 40 : 100;
+                const total = 19 + seed;
                 const fruits = ['Epal', 'Oren', 'Pisang', 'Anggur'];
                 const val1 = Math.min(total / 2, 4 + (index % 4) * 2);
                 const val2 = Math.min(total / 4, 3 + (index % 3));
@@ -812,9 +829,9 @@
                 q.penerangan = `Berdasarkan bahagian carta pai bagi ${fruits[0]}, nilainya ialah ${val1} daripada ${total} orang murid.`;
             } 
             else if (topCode === 'B') { // Mod
-                const num1 = (index % 5) + 2;
-                const num2 = (index % 4) + 7;
-                const dataset = [num1, num1, num1, num2, num2, (index % 3) + 10];
+                const num1 = 2 + seed;
+                const num2 = num1 + 5;
+                const dataset = [num1, num1, num1, num2, num2, num1 - 1];
                 q.soalan = `Cari mod bagi set data nilai markah kuiz berikut: [${dataset.join(', ')}].`;
                 q.data = { set: dataset };
                 q.jawapan = `${num1}`;
@@ -822,8 +839,8 @@
                 q.penerangan = `Mod ialah nilai yang paling kerap muncul. Nombor ${num1} muncul paling banyak iaitu 3 kali.`;
             }
             else if (topCode === 'C') { // Julat
-                const minVal = (index % 5) + 1;
-                const maxVal = minVal + 5 + (index % 10);
+                const minVal = -4 + (index - 1) % 5 + level * 10;
+                const maxVal = minVal + 6 + Math.floor((index - 1) / 5) * 3;
                 const dataset = [minVal, minVal + 2, minVal + 4, maxVal];
                 q.soalan = `Berapakah julat bagi set data bacaan suhu (°C): [${dataset.join(', ')}]?`;
                 q.data = { set: dataset };
@@ -832,7 +849,7 @@
                 q.penerangan = `Julat = Nilai Tertinggi - Nilai Terendah. ${maxVal} - ${minVal} = ${maxVal - minVal}.`;
             }
             else if (topCode === 'D') { // Median
-                const vals = [(index % 3) + 1, (index % 3) + 4, (index % 3) + 7, (index % 3) + 10, (index % 3) + 12].sort((a,b)=>a-b);
+                const vals = [seed + 1, seed + 4, seed + 7, seed + 10, seed + 12];
                 q.soalan = `Tentukan median bagi set bilangan buku yang dibaca: [${vals.join(', ')}].`;
                 q.data = { set: vals };
                 q.jawapan = `${vals[2]}`;
@@ -841,7 +858,7 @@
             }
             else if (topCode === 'E') { // Min
                 const count = 4;
-                const base = (index % 5) + 5;
+                const base = seed + 4;
                 const sum = base * count;
                 const dataset = [base - 2, base - 1, base + 1, base + 2];
                 q.soalan = `Hitung min (purata) bagi set nombor berikut: [${dataset.join(', ')}].`;
@@ -854,165 +871,69 @@
                 q = buildRefinedTopicFQuestion(q, diff, index);
             }
 
+            q.pilihan = [...new Set(q.pilihan)];
             return q;
         }
 
         // Dedicated Refined Engine for Topic F (Kepelbagaian Situasi & Bentuk Soalan)
         function buildRefinedTopicFQuestion(q, diff, index) {
-            const scenarioType = (index - 1) % 5; 
-            // 0: Min Invers / Cari Jumlah asal
-            // 1: Perbezaan Julat & Mod (Cabaran KBAT)
-            // 2: Gabungan Carta Pai & Peratusan/Bilangan
-            // 3: Aplikasi Kewangan / Wang Saku / Jualan Kantin
-            // 4: Tambahan Data Baharu & Kesan kepada Min/Median
+            const level = ['Senang', 'Sederhana', 'Susah'].indexOf(diff);
+            const batch = Math.floor((index - 1) / 5);
+            const variant = level * 4 + batch;
+            const scenario = (index - 1) % 5;
+            let answer;
+            let unit;
 
-            if (diff === 'Senang') {
-                if (scenarioType === 0) {
-                    const murid = 4;
-                    const min = 8 + (index % 5);
-                    const total = min * murid;
-                    q.soalan = `Dalam kempen Kitar Semula Sekolah, purata (min) surat khabar yang dikumpul oleh ${murid} orang murid ialah ${min} kg. Berapakah jumlah berat keseluruhan surat khabar yang dikumpul?`;
-                    q.data = { murid, min };
-                    q.jawapan = `${total} kg`;
-                    q.pilihan = [`${total} kg`, `${min + murid} kg`, `${total - 4} kg`, `${min * 2} kg`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Jumlah = Min × Bilangan Murid = ${min} kg × ${murid} = ${total} kg.`;
-                } else if (scenarioType === 1) {
-                    const skor = [10, 15, 15, 15, 20, 25];
-                    const minVal = 10, maxVal = 25, modVal = 15;
-                    const julat = maxVal - minVal;
-                    q.soalan = `Berikut ialah skor ujian Matematik 6 orang murid: [${skor.join(', ')}]. Berapakah beza antara mod dan julat skor tersebut?`;
-                    q.data = { set: skor };
-                    q.jawapan = `${Math.abs(modVal - julat)}`;
-                    q.pilihan = [`${Math.abs(modVal - julat)}`, `${julat}`, `${modVal}`, `${julat + modVal}`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Mod = 15. Julat = 25 - 10 = 15. Beza = 15 - 15 = 0.`;
-                } else if (scenarioType === 2) {
-                    const total = 40;
-                    const hobi = { 'Membaca': 20, 'Melukis': 10, 'Bermain Bola': 10 };
-                    q.soalan = `Sebanyak ${total} orang murid ditanya tentang hobi mereka. Jika carta pai menunjukkan bahagian 'Membaca' ialah separuh (1/2) daripada carta, berapakah bilangan murid yang suka membaca?`;
-                    q.data = { jumlah: total, kategori: hobi };
-                    q.jawapan = `20 orang`;
-                    q.pilihan = [`20 orang`, `10 orang`, `30 orang`, `15 orang`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `1/2 daripada 40 orang murid = 40 ÷ 2 = 20 orang.`;
-                } else if (scenarioType === 3) {
-                    const hari = ['Isnin', 'Selasa', 'Rabu', 'Khamis'];
-                    const simpanan = [2, 3, 3, 4];
-                    const mod = 3;
-                    q.soalan = `Simpanan harian Wang Saku Aina untuk 4 hari ialah RM2, RM3, RM3, dan RM4. Berapakah mod simpanan harian Aina?`;
-                    q.data = { set: simpanan };
-                    q.jawapan = `RM3`;
-                    q.pilihan = [`RM3`, `RM2`, `RM4`, `RM12`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `RM3 muncul paling kerap (2 kali), maka mod = RM3.`;
-                } else {
-                    const markah = [70, 80, 90];
-                    const min = 80;
-                    q.soalan = `Markah ujian Sains Daniel bagi 3 bulan ialah 70, 80, dan 90. Berapakah min markah ujian Sains Daniel?`;
-                    q.data = { set: markah };
-                    q.jawapan = `80 markah`;
-                    q.pilihan = [`80 markah`, `75 markah`, `85 markah`, `240 markah`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Min = (70 + 80 + 90) ÷ 3 = 240 ÷ 3 = 80 markah.`;
-                }
-            } 
-            else if (diff === 'Sederhana') {
-                if (scenarioType === 0) {
-                    const orang = 5;
-                    const minWang = 12;
-                    const totalAsal = orang * minWang; // 60
-                    const masuk = 18;
-                    const newTotal = totalAsal + masuk;
-                    const newMin = newTotal / (orang + 1); // 78 / 6 = 13
-                    q.soalan = `Purata wang saku 5 orang murid ialah RM${minWang}. Apabila seorang murid baharu dengan wang saku RM${masuk} menyertai mereka, berapakah min wang saku yang baharu?`;
-                    q.data = { set: [12, 12, 12, 12, 12, masuk] };
-                    q.jawapan = `RM${newMin}`;
-                    q.pilihan = [`RM${newMin}`, `RM${minWang}`, `RM${newMin + 2}`, `RM15`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Jumlah asal = 5 × RM12 = RM60. Jumlah baharu = RM60 + RM18 = RM78. Min baharu = RM78 ÷ 6 orang = RM13.`;
-                } else if (scenarioType === 1) {
-                    const data = [12, 14, 15, 15, 18];
-                    const min = 14.8;
-                    const median = 15;
-                    q.soalan = `Dalam acara Lompat Jauh, jarak lompatan (m) 5 peserta ialah: 12m, 14m, 15m, 15m, 18m. Hitungkan julat lompatan tersebut.`;
-                    q.data = { set: data };
-                    q.jawapan = `6 m`;
-                    q.pilihan = [`6 m`, `15 m`, `3 m`, `18 m`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Julat = Lompatan Terjauh - Terdekat = 18m - 12m = 6m.`;
-                } else if (scenarioType === 2) {
-                    const total = 60;
-                    const nasi = 30, mee = 15, bihun = 15;
-                    q.soalan = `Kelab Katering menjual 60 mangkuk makanan. Carta pai menunjukkan Nasi Goreng (50%), Mee Goreng (25%), dan Bihun (25%). Berapakah BEZA bilangan mangkuk Nasi Goreng dengan Mee Goreng?`;
-                    q.data = { jumlah: total, kategori: { 'Nasi Goreng': nasi, 'Mee Goreng': mee, 'Bihun': bihun } };
-                    q.jawapan = `15 mangkuk`;
-                    q.pilihan = [`15 mangkuk`, `30 mangkuk`, `45 mangkuk`, `10 mangkuk`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Nasi Goreng = 30 mangkuk. Mee Goreng = 15 mangkuk. Beza = 30 - 15 = 15 mangkuk.`;
-                } else if (scenarioType === 3) {
-                    const hari = [5, 8, 6, 8, 8, 13];
-                    const mod = 8, min = 8;
-                    q.soalan = `Jualan minuman (bilangan cawan) dalam 6 hari ialah: 5, 8, 6, 8, 8, 13. Berapakah jumlah hasil jika mod jualan ditambah dengan median jualan?`;
-                    q.data = { set: hari };
-                    q.jawapan = `16`;
-                    q.pilihan = [`16`, `14`, `24`, `18`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Mod = 8. Data disusun: 5, 6, 8, 8, 8, 13. Median = (8+8)/2 = 8. Jumlah = 8 + 8 = 16.`;
-                } else {
-                    const data = [4, 6, 8, 10, 12];
-                    const min = 8;
-                    q.soalan = `Masa Larian (minit) 5 orang murid dalam latihan merentas desa ialah 4, 6, 8, 10, dan 12. Jika murid terpantas memperbaiki masa kepada 2 minit, apakah median baharu bagi masa larian mereka?`;
-                    q.data = { set: [2, 6, 8, 10, 12] };
-                    q.jawapan = `8 minit`;
-                    q.pilihan = [`8 minit`, `6 minit`, `7 minit`, `10 minit`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Data baharu disusun: 2, 6, 8, 10, 12. Nilai di tengah-tengah (kedudukan ke-3) kekal 8 minit.`;
-                }
-            } 
-            else { // Susah
-                if (scenarioType === 0) {
-                    const count = 4;
-                    const min = 85;
-                    const known = [80, 90, 85];
-                    const sumKnown = 255;
-                    const targetTotal = min * count; // 340
-                    const missing = targetTotal - sumKnown; // 85
-                    q.soalan = `Markah Purata (Min) Ujian Matematik bagi 4 orang murid (Aina, Balqis, Chong, dan Dev) ialah 85 markah. Jika Aina=80, Balqis=90, dan Chong=85, berapakah markah yang diperoleh Dev?`;
-                    q.data = { set: [80, 90, 85, '?'] };
-                    q.jawapan = `85 markah`;
-                    q.pilihan = [`85 markah`, `80 markah`, `95 markah`, `90 markah`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Jumlah Markah = 85 × 4 = 340. Markah Dev = 340 - (80 + 90 + 85) = 340 - 255 = 85 markah.`;
-                } else if (scenarioType === 1) {
-                    const dataset = [10, 20, 20, 30, 40, 60];
-                    const julat = 60 - 10; // 50
-                    const mod = 20;
-                    const beza = julat - mod; // 30
-                    q.soalan = `Jualan buku ilmiah di kedai buku sekolah selama 6 hari adalah seperti berikut: [10, 20, 20, 30, 40, 60]. Cari beza antara julat jualan dengan mod jualan buku tersebut.`;
-                    q.data = { set: dataset };
-                    q.jawapan = `30 unit`;
-                    q.pilihan = [`30 unit`, `50 unit`, `20 unit`, `40 unit`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Julat = 60 - 10 = 50. Mod = 20. Beza = 50 - 20 = 30 unit.`;
-                } else if (scenarioType === 2) {
-                    const total = 120;
-                    const biru = 60, hijau = 30, merah = 30;
-                    q.soalan = `Sebanyak 120 helai Baju Sukan diagihkan mengikut Rumah Sukan dalam Carta Pai. Rumah Biru mendapat 50% manakala Rumah Hijau dan Merah berkongsi baki sama banyak. Berapakah jumlah baju bagi Rumah Hijau?`;
-                    q.data = { jumlah: total, kategori: { 'Rumah Biru': biru, 'Rumah Hijau': hijau, 'Rumah Merah': merah } };
-                    q.jawapan = `30 helai`;
-                    q.pilihan = [`30 helai`, `60 helai`, `40 helai`, `15 helai`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Rumah Biru = 50% × 120 = 60 helai. Baki = 60 helai. Rumah Hijau = 60 ÷ 2 = 30 helai.`;
-                } else if (scenarioType === 3) {
-                    const data = [15, 20, 25, 30, 35, 45, 40];
-                    const sorted = [15, 20, 25, 30, 35, 40, 45];
-                    const median = 30;
-                    const min = 30;
-                    q.soalan = `Kutipan derma harian (RM) selama seminggu ialah: 15, 20, 25, 30, 35, 45, 40. Berapakah hasil darab antara median dan julat kutipan tersebut?`;
-                    q.data = { set: sorted };
-                    const julat = 45 - 15; // 30
-                    const hasilDarab = median * julat; // 900
-                    q.jawapan = `900`;
-                    q.pilihan = [`900`, `600`, `750`, `1200`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Median = RM30. Julat = RM45 - RM15 = RM30. Hasil Darab = 30 × 30 = 900.`;
-                } else {
-                    const data = [5, 10, 15, 20, 25, 30, 35];
-                    q.soalan = `Diberi set data kehadiran murid ke perpustakaan: [5, 10, 15, 20, 25, 30, 35]. Jika setiap nilai data didarab dengan 2, apakah nilai min baharu bagi data tersebut?`;
-                    q.data = { set: [10, 20, 30, 40, 50, 60, 70] };
-                    q.jawapan = `40`;
-                    q.pilihan = [`40`, `20`, `30`, `80`].sort(() => Math.random() - 0.5);
-                    q.penerangan = `Min asal = 20. Apabila setiap nilai didarab 2, min baharu juga menjadi 20 × 2 = 40.`;
-                }
+            if (scenario === 0) {
+                const pupils = 4 + level;
+                const mean = 8 + variant;
+                q.soalan = `Purata berat surat khabar yang dikumpul oleh ${pupils} orang murid ialah ${mean} kg seorang. Berapakah jumlah berat surat khabar yang dikumpul?`;
+                q.data = { murid: pupils, min: mean };
+                answer = pupils * mean;
+                unit = ' kg';
+                q.penerangan = `Jumlah = ${pupils} × ${mean} kg = ${answer} kg.`;
+            } else if (scenario === 1) {
+                const mode = 10 + variant;
+                const low = mode - 5;
+                const high = mode + 6 + level;
+                const scores = [low, mode, mode, mode + 1, high, mode];
+                const range = high - low;
+                q.soalan = `Skor enam murid ialah [${scores.join(', ')}]. Berapakah beza antara mod dengan julat skor?`;
+                q.data = { set: scores };
+                answer = Math.abs(mode - range);
+                unit = '';
+                q.penerangan = `Mod ialah ${mode}. Julat ialah ${high} − ${low} = ${range}. Bezanya ialah ${answer}.`;
+            } else if (scenario === 2) {
+                const total = 40 + 4 * variant;
+                const reading = total / 2;
+                q.soalan = `Carta pai hobi bagi ${total} orang murid menunjukkan 50% memilih membaca, 25% memilih melukis dan 25% memilih bola sepak. Berapa orang murid memilih membaca?`;
+                q.data = { jumlah: total, kategori: {'Membaca': reading, 'Melukis': total / 4, 'Bola sepak': total / 4} };
+                answer = reading;
+                unit = ' orang';
+                q.penerangan = `50% daripada ${total} orang ialah ${total} ÷ 2 = ${answer} orang.`;
+            } else if (scenario === 3) {
+                const middle = 12 + variant;
+                const records = [middle + 3, middle - 4, middle, middle + 6, middle - 1];
+                q.soalan = `Rekod jualan minuman selama lima hari ialah [${records.join(', ')}] cawan. Berapakah median bilangan cawan yang dijual?`;
+                q.data = { set: records };
+                answer = middle;
+                unit = ' cawan';
+                q.penerangan = `Susun rekod kepada [${[...records].sort((a, b) => a - b).join(', ')}]. Nilai tengah ialah ${answer} cawan.`;
+            } else {
+                const fourDayMean = 14 + variant;
+                const fiveDayMean = fourDayMean + 1 + level;
+                const firstTotal = fourDayMean * 4;
+                const newTotal = fiveDayMean * 5;
+                q.soalan = `Purata kehadiran perpustakaan bagi empat hari pertama ialah ${fourDayMean} orang sehari. Selepas rekod hari kelima dimasukkan, puratanya menjadi ${fiveDayMean} orang sehari. Berapakah bilangan pengunjung pada hari kelima?`;
+                q.data = { min4: fourDayMean, min5: fiveDayMean };
+                answer = newTotal - firstTotal;
+                unit = ' orang';
+                q.penerangan = `Jumlah lima hari = ${newTotal}. Jumlah empat hari = ${firstTotal}. Kehadiran hari kelima = ${newTotal} − ${firstTotal} = ${answer} orang.`;
             }
 
+            q.jawapan = `${answer}${unit}`;
+            q.pilihan = [answer, answer + 1, answer + 3, answer + 5]
+                .map(value => `${value}${unit}`).sort(() => Math.random() - 0.5);
             return q;
         }
 
@@ -1071,7 +992,7 @@
                 return;
             }
 
-            const users = JSON.parse(localStorage.getItem('mk_users') || '[]');
+            const users = JSON.parse(localStorage.getItem('edukidz_t5_sub8_users') || '[]');
             if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
                 errDiv.textContent = 'Nama pengguna telah digunakan. Sila pilih nama lain.';
                 errDiv.classList.remove('hidden');
@@ -1089,7 +1010,7 @@
             };
 
             users.push(newUser);
-            localStorage.setItem('mk_users', JSON.stringify(users));
+            localStorage.setItem('edukidz_t5_sub8_users', JSON.stringify(users));
 
             APP_STATE.currentUser = newUser;
             alert('Pendaftaran Berjaya! Selamat datang ' + fullname);
@@ -1103,7 +1024,7 @@
             const errDiv = document.getElementById('login-error');
 
             errDiv.classList.add('hidden');
-            const users = JSON.parse(localStorage.getItem('mk_users') || '[]');
+            const users = JSON.parse(localStorage.getItem('edukidz_t5_sub8_users') || '[]');
             const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === btoa(password));
 
             if (!user) {
@@ -1406,14 +1327,14 @@
             localStorage.setItem('mk_scores', JSON.stringify(scores));
 
             if (APP_STATE.currentUser) {
-                const users = JSON.parse(localStorage.getItem('mk_users') || '[]');
+                const users = JSON.parse(localStorage.getItem('edukidz_t5_sub8_users') || '[]');
                 const u = users.find(x => x.username === APP_STATE.currentUser.username);
                 if (u) {
                     u.score += APP_STATE.score;
                     u.games += 1;
                     u.correct += APP_STATE.correctCount;
                     u.totalQ += 20;
-                    localStorage.setItem('mk_users', JSON.stringify(users));
+                    localStorage.setItem('edukidz_t5_sub8_users', JSON.stringify(users));
                     APP_STATE.currentUser = u;
                 }
             }
@@ -1493,7 +1414,7 @@
         }
 
         function loadLeaderboard() {
-            const users = JSON.parse(localStorage.getItem('mk_users') || '[]');
+            const users = JSON.parse(localStorage.getItem('edukidz_t5_sub8_users') || '[]');
             users.sort((a,b) => b.score - a.score);
 
             const tbody = document.getElementById('leaderboard-rows');

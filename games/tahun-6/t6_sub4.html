@@ -78,6 +78,21 @@
     </div>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t6_sub4_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edu_kidz_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && typeof u.fullname === "string" && Array.isArray(u.history) && Number.isFinite(u.highScore))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+        })();
+
         // --- COMPLETE 120 QUESTIONS BANK (60 Kenali Zon Masa + 60 Penyelesaian Masalah) ---
         const questionBank = [
             // ================= KATEGORI 1: KENALI ZON MASA (60 Soalan) =================
@@ -850,12 +865,10 @@
                 soalan: "Sebuah kapal terbang berlepas dari London (GMT 0) pada hari Rabu jam 10:00 malam menuju ke Kuala Lumpur (GMT+8). Tempoh penerbangan ialah 12 jam. Pada hari dan jam berapakah pesawat itu mendarat mengikut waktu Malaysia?",
                 pilihan: [
                     "A. Khamis, 10:00 pagi",
-                    "B. Khamis, 6:00 pagi",
+                    "B. Khamis, 6:00 petang",
                     "C. Khamis, 2:00 petang",
                     "D. Rabu, 10:00 malam"
                 ],
-                jawapan: "A. Khamis, 10:00 pagi",
-                penerangan: "Rabu 10:00 malam + 12 jam penerbangan = Khamis 10:00 pagi waktu London (GMT 0). Di Malaysia (GMT+8), tambah lagi 8 jam? Tunggu: Waktu ketibaan di London ialah Khamis 10:00 pagi, tambah 8 jam zon masa = Khamis 6:00 petang. Ralat semakan: Rabu 22:00 + 12 jam = Khamis 10:00 pagi GMT. Waktu Malaysia = 10:00 pagi + 8 jam = 6:00 petang Khamis. Mari semak pilihan: Pilihan B (Khamis, 6:00 petang) adalah tepat.",
                 jawapan: "B. Khamis, 6:00 petang",
                 penerangan: "Rabu 10:00 malam + 12 jam = Khamis 10:00 pagi waktu London. Tambah 8 jam zon masa Malaysia = Khamis 6:00 petang.",
                 markah: 5,
@@ -1787,28 +1800,15 @@
                 jenis: "Objektif",
                 soalan: "Projek bina bangunan sekolah baru memakan masa 2 tahun 8 bulan untuk Fasa 1 dan 1 tahun 7 bulan untuk Fasa 2. Jika projek bermula pada 1 Januari 2024, pada bulan dan tahun berapakah keseluruhan projek siap?",
                 pilihan: [
-                    "A. Ogos 2027",
-                    "B. September 2027",
-                    "C. Julai 2027",
-                    "D. Oktober 2027"
+                    "A. April 2028",
+                    "B. Mei 2028",
+                    "C. Mac 2028",
+                    "D. Ogos 2028"
                 ],
-                jawapan: "A. Ogos 2027",
-                penerangan: "Jumlah masa = 2 tahun 8 bulan + 1 tahun 7 bulan = 3 tahun 15 bulan = 4 tahun 3 bulan. Bermula Januari 2024 + 4 tahun 3 bulan = April 2028? Tunggu: Mari kira semula. 2y 8m + 1y 7m = 3y 15m = 4y 3m. Januari 2024 tambah 4 tahun = Januari 2028. Tambah 3 bulan = April 2028. Mari periksa pilihan. Pilihan di atas perlu diselaraskan. Mari kita buat soalan yang tepat: 1 tahun 2 bulan dan 1 tahun 3 bulan... Biar saya betulkan pengiraan pilihan A: April 2028. Mari kita sesuaikan pilihan supaya tepat: Jika Fasa 1: 1 tahun 4 bulan, Fasa 2: 1 tahun 5 bulan = 2 tahun 9 bulan. Januari 2024 + 2 tahun 9 bulan = Oktober 2026. Mari gunakan pilihan A: Oktober 2026.",
-                // Let's ensure exact calculation for option A:
-                // 1 tahun 3 bulan + 1 tahun 2 bulan = 2 tahun 5 bulan. Januari 2024 + 2 tahun 5 bulan = Jun 2026.
-                // Let's rewrite the question text cleanly so it matches exact math:
-                // "Projek bina bangunan mengambil masa 1 tahun 3 bulan untuk Fasa 1 dan 1 tahun 2 bulan untuk Fasa 2. Jika projek bermula pada 1 Januari 2024, pada bulan dan tahun berapakah projek siap?"
-                // Jawapan: 1y 3m + 1y 2m = 2y 5m. Jan 2024 + 2y 5m = Jun 2026.
-                pilihan: [
-                    "A. Jun 2026",
-                    "B. Julai 2026",
-                    "C. Mei 2026",
-                    "D. Ogos 2026"
-                ],
-                jawapan: "A. Jun 2026",
-                penerangan: "Jumlah masa = 1 tahun 3 bulan + 1 tahun 2 bulan = 2 tahun 5 bulan. Bermula Januari 2024 + 2 tahun = Januari 2026 + 5 bulan = Jun 2026.",
+                jawapan: "A. April 2028",
+                penerangan: "Jumlah tempoh ialah 2 tahun 8 bulan + 1 tahun 7 bulan = 4 tahun 3 bulan. Januari 2024 ditambah 4 tahun 3 bulan menjadi April 2028.",
                 markah: 5,
-                gambarajah: "Pelan pelancongan projek bangunan."
+                gambarajah: "Garis masa projek pembinaan bangunan sekolah."
             },
             {
                 id: "PM-K-042",
@@ -1832,15 +1832,6 @@
                 soalan: "Jadual harian Cikgu Ali menunjukkan beliau mengajar selama 5 jam 40 minit sehari selama 5 hari seminggu. Beliau juga menghadiri mesyuarat selama 3 jam 30 minit seminggu. Berapakah jumlah masa keseluruhan Cikgu Ali bertugas dalam seminggu?",
                 pilihan: [
                     "A. 30 jam 20 minit",
-                    "B. 31 jam 30 minit",
-                    "C. 32 jam 10 minit",
-                    "D. 33 jam"
-                ],
-                jawapan: "B. 31 jam 30 minit",
-                penerangan: "5 hari × 5 jam 40 minit = 25 jam + 200 minit (3 jam 20 minit) = 28 jam 20 minit. Tambah mesyuarat 3 jam 30 minit = 31 jam 50 minit. Tunggu: Mari semak pilihan. 28 jam 20 minit + 3 jam 30 minit = 31 jam 50 minit. Mari sesuaikan pilihan B kepada 31 jam 50 minit.",
-                // Let's fix options so B is 31 jam 50 minit.
-                pilihan: [
-                    "A. 30 jam 20 minit",
                     "B. 31 jam 50 minit",
                     "C. 32 jam 10 minit",
                     "D. 33 jam"
@@ -1857,15 +1848,6 @@
                 aras_kognitif: "Mengaplikasi",
                 jenis: "Objektif",
                 soalan: "Sebuah kapal angkasa mengambil masa 3 hari 15 jam untuk sampai ke stesen orbit. Selepas berada di sana selama 4 hari 18 jam, ia kembali ke bumi dengan mengambil masa 3 hari 12 jam. Berapakah jumlah keseluruhan tempoh misi tersebut?",
-                pilihan: [
-                    "A. 11 hari 9 jam",
-                    "B. 12 hari 3 jam",
-                    "C. 12 hari 9 jam",
-                    "D. 13 hari"
-                ],
-                jawapan: "C. 12 hari 9 jam",
-                penerangan: "Jumlah hari = 3 + 4 + 3 = 10 hari. Jumlah jam = 15 + 18 + 12 = 45 jam. 45 jam = 1 hari 21 jam. Jumlah keseluruhan: 10 hari + 1 hari 21 jam = 11 hari 21 jam? Tunggu: Mari kira semula. 15 + 18 + 12 = 45 jam = 1 hari 21 jam. 10 hari + 1 hari 21 jam = 11 hari 21 jam. Mari kita sesuaikan pilihan C kepada 11 hari 21 jam.",
-                // Let's adjust options so C is 11 hari 21 jam.
                 pilihan: [
                     "A. 11 hari 9 jam",
                     "B. 12 hari 3 jam",
@@ -2192,14 +2174,14 @@
         // Load users from localStorage simulation
         function getUsers() {
             try {
-                return JSON.parse(localStorage.getItem('edu_kidz_users') || '[]');
+                return JSON.parse(localStorage.getItem('edukidz_t6_sub4_users') || '[]');
             } catch (e) {
                 return [];
             }
         }
 
         function saveUsers(users) {
-            localStorage.setItem('edu_kidz_users', JSON.stringify(users));
+            localStorage.setItem('edukidz_t6_sub4_users', JSON.stringify(users));
         }
 
         // Custom Modal UI Handler

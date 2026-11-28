@@ -616,6 +616,24 @@
     </footer>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_pra_matematik_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edukidz_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && typeof u.nickname === "string" && Number.isFinite(u.age) && Number.isFinite(u.totalGames))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const previous = read('edukidz_session');
+            const active = previous && Object.values(users).find(u => u.username === previous.username);
+            if (active) localStorage.setItem('edukidz_pra_matematik_active_user', JSON.stringify(active));
+        })();
+
         // Synthesized Sound Effects (No external audio file dependencies)
         const AudioFX = {
             ctx: null,
@@ -933,21 +951,21 @@
 
         // Local Data Persistence Helpers
         function getStoredUsers() {
-            const data = localStorage.getItem('edukidz_users');
+            const data = localStorage.getItem('edukidz_pra_matematik_users');
             return data ? JSON.parse(data) : [];
         }
 
         function saveStoredUsers(users) {
-            localStorage.setItem('edukidz_users', JSON.stringify(users));
+            localStorage.setItem('edukidz_pra_matematik_users', JSON.stringify(users));
         }
 
         function getCurrentSession() {
-            const session = localStorage.getItem('edukidz_session');
+            const session = localStorage.getItem('edukidz_pra_matematik_active_user');
             return session ? JSON.parse(session) : null;
         }
 
         function setCurrentSession(user) {
-            localStorage.setItem('edukidz_session', JSON.stringify(user));
+            localStorage.setItem('edukidz_pra_matematik_active_user', JSON.stringify(user));
         }
 
         // Initialize App on DOM Load
@@ -1070,7 +1088,7 @@
         function logoutUser() {
             AudioFX.playClick();
             currentUser = null;
-            localStorage.removeItem('edukidz_session');
+            localStorage.removeItem('edukidz_pra_matematik_active_user');
             document.getElementById('nav-user-info').classList.add('hidden');
             showScreen('auth-screen');
         }

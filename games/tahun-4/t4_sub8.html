@@ -91,6 +91,24 @@
     <canvas id="fx-canvas" class="fixed inset-0 pointer-events-none z-40 hidden"></canvas>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t4_sub8_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edu_kidz_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && Array.isArray(u.completedTopics) && Number.isFinite(u.questionsAnswered) && Array.isArray(u.history))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const previous = read('edu_kidz_current_user');
+            const active = previous && Object.values(users).find(u => u.username === previous.username);
+            if (active) localStorage.setItem('edukidz_t4_sub8_active_user', JSON.stringify(active));
+        })();
+
         const fxCanvas = document.getElementById('fx-canvas');
         const fxCtx = fxCanvas ? fxCanvas.getContext('2d') : null;
         let particles = [];
@@ -186,7 +204,7 @@
 
         const AppState = {
             currentUser: null,
-            users: JSON.parse(localStorage.getItem('edu_kidz_users') || '[]'),
+            users: JSON.parse(localStorage.getItem('edukidz_t4_sub8_users') || '[]'),
             currentView: 'splash',
             activeTopic: null,
             activeDifficulty: 'mudah',
@@ -203,11 +221,11 @@
         };
 
         function saveUsers() {
-            localStorage.setItem('edu_kidz_users', JSON.stringify(AppState.users));
+            localStorage.setItem('edukidz_t4_sub8_users', JSON.stringify(AppState.users));
             if (AppState.currentUser) {
                 const idx = AppState.users.findIndex(u => u.username === AppState.currentUser.username);
                 if (idx !== -1) AppState.users[idx] = AppState.currentUser;
-                localStorage.setItem('edu_kidz_current_user', JSON.stringify(AppState.currentUser));
+                localStorage.setItem('edukidz_t4_sub8_active_user', JSON.stringify(AppState.currentUser));
             }
         }
 
@@ -300,7 +318,10 @@
         });
 
         function generateQuestionData(topicId, diff, index) {
-            const fruitList = ['Epal', 'Oren', 'Mangga', 'Pisang', 'Anggur'];
+            const fruits = { Epal: '🍎', Oren: '🍊', Mangga: '🥭', Pisang: '🍌', Anggur: '🍇' };
+            const fruitList = Object.keys(fruits);
+            const levelIndex = difficulties.indexOf(diff);
+            const variant = levelIndex * 20 + index;
             const namesSubset = namePools[(index - 1) % namePools.length];
             let q = {
                 id: `${topicId}-${diff}-${index}`,
@@ -312,22 +333,22 @@
             };
 
             if (topicId === 1) { // Bina Piktograf
-                let item = fruitList[rand(0, fruitList.length - 1)];
+                const item = fruitList[(index - 1) % fruitList.length];
                 let keyVal = diff === 'mudah' ? 2 : (diff === 'sederhana' ? 5 : 10);
-                let count = rand(3, 8) * keyVal;
+                const count = (3 + Math.floor((index - 1) / fruitList.length)) * keyVal;
                 let symbolsCount = count / keyVal;
                 
                 q.title = `Soalan ${index}: Bina Piktograf`;
-                q.prompt = `Diberi data jualan ${item} ialah ${count} biji. Jika petunjuk mewakili ${keyVal} biji (${item === 'Epal' ? '🍎' : '🍊'} = ${keyVal}), berapakah bilangan simbol yang perlu dilukis?`;
+                q.prompt = `Diberi data jualan ${item} ialah ${count} biji. Jika petunjuk mewakili ${keyVal} biji (${fruits[item]} = ${keyVal}), berapakah bilangan simbol yang perlu dilukis?`;
                 q.dataSnippet = `Kategori: ${item}\nJumlah Sebenar: ${count}\nPetunjuk: 1 Simbol = ${keyVal}`;
                 q.options = shuffle([symbolsCount.toString(), (symbolsCount + 2).toString(), (symbolsCount - 1).toString(), (symbolsCount * 2).toString()]);
                 q.correctAnswer = symbolsCount.toString();
                 q.explanation = `Bilangan simbol dikira dengan membahagikan jumlah sebenar (${count}) dengan nilai petunjuk (${keyVal}). Jadi, ${count} ÷ ${keyVal} = ${symbolsCount} simbol.`;
             } 
             else if (topicId === 2) { // Bina Carta Palang
-                let n1 = rand(2, 8) * 5;
-                let n2 = rand(2, 8) * 5;
-                let n3 = rand(2, 8) * 5;
+                const n1 = (2 + (index - 1) % 5) * 5;
+                const n2 = (3 + Math.floor((index - 1) / 5)) * 5;
+                const n3 = (5 + levelIndex * 2) * 5;
                 let chartData = [
                     { label: namesSubset[0], value: n1 },
                     { label: namesSubset[1], value: n2 },
@@ -343,10 +364,10 @@
                 q.explanation = `Skala carta ialah 5 buah buku untuk 1 unit tinggi. Untuk ${n1} buah buku, tinggi palang adalah ${n1} ÷ 5 = ${ans} unit. Rujuk carta palang di atas.`;
             }
             else if (topicId === 3) { // Tafsir Piktograf
-                let fruitName = fruitList[rand(0, fruitList.length - 1)];
-                let iconChar = fruitName === 'Epal' ? '🍎' : (fruitName === 'Oren' ? '🍊' : '🍌');
-                let keyVal = rand(2, 5) * 2;
-                let symCount = rand(3, 7);
+                const fruitName = fruitList[(index - 1) % 5];
+                const iconChar = fruits[fruitName];
+                const keyVal = [2, 5, 10][levelIndex];
+                const symCount = 3 + Math.floor((index - 1) / 5);
                 let totalVal = symCount * keyVal;
                 let pData = [
                     { name: namesSubset[0], val: totalVal },
@@ -361,9 +382,9 @@
                 q.explanation = `${namesSubset[0]} mempunyai ${symCount} simbol. Setiap simbol mewakili ${keyVal} unit. Jadi, ${symCount} × ${keyVal} = ${totalVal}.`;
             }
             else if (topicId === 4) { // Tafsir Carta Palang
-                let v1 = rand(10, 40);
-                let v2 = rand(10, 40);
-                let v3 = rand(10, 40);
+                const scores = [variant + 12, variant + 18, variant + 24];
+                const rotate = index % scores.length;
+                const [v1, v2, v3] = scores.slice(rotate).concat(scores.slice(0, rotate));
                 let chartData = [
                     { label: namesSubset[0], value: v1 },
                     { label: namesSubset[1], value: v2 },
@@ -375,12 +396,12 @@
                 let highestName = v1 === maxV ? namesSubset[0] : (v2 === maxV ? namesSubset[1] : namesSubset[2]);
                 q.visualHtml = generateBarChartVisual(chartData, 'Carta Markah Matematik Murid', 'Markah');
                 q.dataSnippet = q.visualHtml + `Rujuk carta palang di atas untuk mengenal pasti palang tertinggi antara ${namesSubset.join(', ')}.`;
-                q.options = shuffle([highestName, namesSubset[0] === highestName ? namesSubset[1] : namesSubset[0], namesSubset[2], 'Sama tinggi']);
+                q.options = shuffle([...namesSubset, 'Sama tinggi']);
                 q.correctAnswer = highestName;
                 q.explanation = `Palang paling tinggi pada carta menunjukkan nilai ${maxV} yang dimiliki oleh ${highestName}. Rujuk carta palang di atas.`;
             }
             else { // Penyelesaian Masalah
-                let baseCount = rand(50, 120);
+                const baseCount = 49 + variant;
                 let added = rand(20, 50);
                 let sold = rand(10, 30);
                 let finalVal = baseCount + added - sold;
@@ -393,11 +414,12 @@
                 q.prompt = `Gerai ${namesSubset[0]} mempunyai ${baseCount} kotak air pada waktu pagi. Pekerja menambah ${added} kotak lagi, kemudian murid membeli ${sold} kotak pada waktu rehat. Berapakah baki kotak air sekarang?`;
                 q.visualHtml = generateBarChartVisual(probData, 'Carta Aliran Stok Air', 'Bilangan Kotak');
                 q.dataSnippet = q.visualHtml + `Permulaan: ${baseCount} | Ditambah: ${added} | Dijual: ${sold}`;
-                q.options = shuffle([finalVal.toString(), (finalVal + 10).toString(), (finalVal - 5).toString(), (baseCount + added).toString()]);
+                q.options = shuffle([finalVal.toString(), (finalVal + 10).toString(), (finalVal - 5).toString(), (baseCount + added + 5).toString()]);
                 q.correctAnswer = finalVal.toString();
                 q.explanation = `Langkah 1: ${baseCount} + ${added} = ${baseCount + added}.\nLangkah 2: ${baseCount + added} - ${sold} = ${finalVal} kotak air berbaki.`;
             }
 
+            q.options = [...new Set(q.options)];
             return q;
         }
 
@@ -1080,7 +1102,7 @@
         }
 
         window.onload = function() {
-            const savedUser = localStorage.getItem('edu_kidz_current_user');
+            const savedUser = localStorage.getItem('edukidz_t4_sub8_active_user');
             if (savedUser) {
                 try { AppState.currentUser = JSON.parse(savedUser); } catch(e) {}
             }

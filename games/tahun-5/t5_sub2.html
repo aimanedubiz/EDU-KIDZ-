@@ -617,7 +617,7 @@
             const questions = [];
             
             for (let i = 1; i <= 20; i++) {
-                const id = `${topicCode}_${difficulty.toUpperCase().charAt(0)}_${String(i).padStart(3, '0')}`;
+                const id = `${topicCode}_${difficulty.toUpperCase()}_${String(i).padStart(3, '0')}`;
                 let qData = {};
 
                 if (topicCode === 'PECAHAN_DARAB') {
@@ -752,7 +752,7 @@
                     }
                 }
                 else if (topicCode === 'PERPULUHAN_DARAB') {
-                    const num = (1.25 * (i % 8 + 1)).toFixed(2);
+                    const num = (1.25 * i).toFixed(2);
                     if (difficulty === 'Mudah') {
                         const multiplier = 10;
                         const ans = (parseFloat(num) * multiplier).toFixed(1);
@@ -840,21 +840,20 @@
                 }
                 else if (topicCode === 'NOMBOR_BERCAMPUR_PERATUS') {
                     if (difficulty === 'Mudah') {
-                        const fractions = ['1/2', '1/4', '3/4', '1/5', '2/5'];
-                        const percents = ['50%', '25%', '75%', '20%', '40%'];
-                        const idx = i % fractions.length;
+                        const numerator = i;
+                        const denominator = 20;
+                        const percent = i * 5;
                         qData = {
-                            subtopik: 'Menukar pecahan mudah kepada peratus',
+                            soalan: `Tukarkan pecahan \(${numerator}/${denominator}\) kepada peratusan.`,
+                            jawapan: `${percent}%`,
+                            pilihan: [percent, percent + 5, percent + 10, percent - 2].map(value => `${value}%`),
+                            penerangan: `${numerator} ÷ ${denominator} × 100% = ${percent}%.`,
                             aras_kognitif: 'Mengingat',
-                            soalan: `Tukarkan pecahan \\(${fractions[idx]}\\) kepada peratusan.`,
-                            pilihan: [percents[idx], '30%', '60%', '15%'],
-                            jawapan: percents[idx],
-                            penerangan: `Darabkan pecahan dengan 100%: \\(${fractions[idx]} \\times 100\\% = ${percents[idx]}\\).`,
-                            visualType: 'grid_100',
-                            visualData: { percent: parseInt(percents[idx]) }
+                            visualType: 'none',
+                            visualData: { percent }
                         };
                     } else if (difficulty === 'Sederhana') {
-                        const whole = i % 3 + 1;
+                        const whole = i;
                         const num = 1;
                         const denom = 2;
                         const improper = `${whole * denom + num}/${denom}`;
@@ -869,7 +868,7 @@
                             visualData: { whole, num, denom }
                         };
                     } else { // Sukar
-                        const dec = (0.05 * (i % 15 + 1)).toFixed(2);
+                        const dec = (0.04 * i).toFixed(2);
                         const ansPercent = `${Math.round(parseFloat(dec) * 100)}%`;
                         qData = {
                             subtopik: 'Hubungan setara perpuluhan dan peratus',
@@ -885,7 +884,7 @@
                 }
                 else if (topicCode === 'KUANTITI_PERATUS') {
                     const percents = [10, 20, 25, 50, 75][i % 5];
-                    const total = 40 * (i % 5 + 1);
+                    const total = 20 * i;
                     const ans = (percents / 100) * total;
                     if (difficulty === 'Mudah') {
                         qData = {
@@ -939,14 +938,14 @@
                             visualData: { item: 'Buku', price: spent, count: 1 }
                         };
                     } else if (difficulty === 'Sederhana') {
-                        const totalStudents = 40;
+                        const totalStudents = 20 + 5 * i;
                         const fractionBoy = '3/5';
-                        const boys = (3 / 5) * totalStudents;
+                        const boys = (totalStudents / 5) * 3;
                         const girls = totalStudents - boys;
                         qData = {
                             subtopik: 'Masalah pecahan & bilangan murid',
                             aras_kognitif: 'Mengaplikasi',
-                            soalan: `Di dalam sebuah kelas terdapat ${totalStudents} orang murid. \\(${fractionBoy}\\) daripadanya ialah murid lelaki. Berapakah bilangan murid PEREMPUAN?`,
+                            soalan: `Dalam satu aktiviti sekolah, terdapat ${totalStudents} orang murid. \\(${fractionBoy}\\) daripadanya ialah murid lelaki. Berapakah bilangan murid PEREMPUAN?`,
                             pilihan: [`${girls} orang`, `${boys} orang`, `${girls + 4} orang`, `${girls - 2} orang`],
                             jawapan: `${girls} orang`,
                             penerangan: `Bilangan lelaki = \\(3/5 \\times ${totalStudents} = ${boys}\\). Bilangan perempuan = ${totalStudents} - ${boys} = ${girls} orang.`,
@@ -954,9 +953,9 @@
                             visualData: { total: totalStudents, parts: 5, shaded: 3 }
                         };
                     } else { // Sukar
-                        const recipeKg = (i * 0.5 + 1.5).toFixed(2);
+                        const recipeKg = (i * 0.4 + 1.6).toFixed(2);
                         const used = (parseFloat(recipeKg) * 0.75).toFixed(2);
-                        const remaining = (parseFloat(recipeKg) - parseFloat(used)).toFixed(2);
+                        const remaining = (Number(recipeKg) * 0.25).toFixed(2);
                         qData = {
                             subtopik: 'Masalah gabungan perpuluhan & peratus kuantiti',
                             aras_kognitif: 'Mengaplikasi',
@@ -976,7 +975,7 @@
                     tahap: difficulty,
                     aras_kognitif: qData.aras_kognitif,
                     soalan: qData.soalan,
-                    pilihan: shuffleArray([...qData.pilihan]),
+                    pilihan: shuffleArray([...new Set(qData.pilihan)]),
                     jawapan: qData.jawapan,
                     penerangan: qData.penerangan,
                     visualType: qData.visualType,

@@ -584,9 +584,15 @@
 
         // Factory function for unique questions
         function createUniqueQuestion(id, subtopic, diff, cognitive, index) {
+            const row = Math.floor((index - 1) / 5);
+            const column = (index - 1) % 5;
             let questionText = "";
             let options = [];
             let answer = "";
+            const clock = minutes => {
+                const hour = Math.floor(minutes / 60);
+                return `${hour % 12 || 12}:${String(minutes % 60).padStart(2, '0')} ${hour < 12 ? 'pagi' : hour === 12 ? 'tengah hari' : 'petang'}`;
+            };
             let explanation = "";
             let diagram = "";
             let type = "Objektif"; // Default
@@ -600,17 +606,17 @@
             // --- A. TEMPOH ---
             if (subtopic === "Tempoh") {
                 if (diff === "Senang") {
-                    let startHour = 7 + (index % 5);
-                    let endHour = startHour + 2 + (index % 3);
-                    questionText = `Sebuah program latihan sekolah bermula jam ${startHour}:00 pagi dan tamat pada jam ${endHour}:00 pagi. Berapakah tempoh program tersebut dalam jam?`;
+                    let startHour = 6 + column;
+                    let endHour = startHour + 1 + row;
+                    questionText = `Sebuah program latihan sekolah bermula pukul ${clock(startHour * 60)} dan tamat pada pukul ${clock(endHour * 60)}. Berapakah tempoh program tersebut dalam jam?`;
                     let duration = endHour - startHour;
                     answer = `${duration} jam`;
                     options = [`${duration-1} jam`, `${duration} jam`, `${duration+1} jam`, `${duration+2} jam`].sort(() => Math.random() - 0.5);
                     explanation = `Tempoh = Waktu Tamat (${endHour}:00) − Waktu Mula (${startHour}:00) = ${duration} jam.`;
-                    diagram = `Garis masa dari ${startHour}:00 pagi hingga ${endHour}:00 pagi.`;
+                    diagram = `Garis masa dari ${clock(startHour * 60)} hingga ${clock(endHour * 60)}.`;
                 } else if (diff === "Sederhana") {
-                    let days = 2 + (index % 4);
-                    let hours = 3 + (index % 6);
+                    let days = 2 + row;
+                    let hours = 3 + column;
                     questionText = `Klinik kesihatan beroperasi dalam sesi khas selama ${days} hari ${hours} jam. Berapakah jumlah tempoh masa operasi tersebut dalam unit jam sahaja?`;
                     let totalHours = (days * 24) + hours;
                     answer = `${totalHours} jam`;
@@ -619,11 +625,10 @@
                     diagram = `Jadual operasi klinik: ${days} hari dan ${hours} jam.`;
                 } else {
                     // Susah
-                    let years = 1 + (index % 3);
-                    let months = 4 + (index % 5);
+                    let years = 1 + row;
+                    let months = 4 + column;
                     let days = 10 + (index % 10);
-                    questionText = `Projek pembinaan jambatan mengambil masa ${years} tahun ${months} bulan dan ${days} hari. Hitung tempoh anggaran projek ini dalam unit bulan sahaja (Anggap 1 tahun = 12 bulan dan 30 hari = 1 bulan).`;
-                    let totalMonths = (years * 12) + months + (days >= 15 ? 1 : 0);
+                    questionText = `Projek pembinaan jambatan mengambil masa ${years} tahun ${months} bulan dan ${days} hari. Nyatakan tempoh projek dalam bulan dan hari. Gunakan 1 tahun = 12 bulan.`;
                     answer = `${years * 12 + months} bulan ${days} hari`;
                     options = [`${years * 12 + months} bulan ${days} hari`, `${years * 12 + months + 2} bulan`, `${years * 10} bulan`, `${years * 12} bulan`].sort(() => Math.random() - 0.5);
                     explanation = `${years} tahun = ${years * 12} bulan. Jumlah = ${years * 12 + months} bulan dan ${days} hari.`;
@@ -633,7 +638,7 @@
             // --- B. TUKAR UNIT MASA ---
             else if (subtopic === "Tukar Unit Masa") {
                 if (diff === "Senang") {
-                    let hours = 2 + (index % 8);
+                    let hours = 1 + index;
                     let mins = hours * 60;
                     questionText = `Tukarkan ${hours} jam kepada unit minit.`;
                     answer = `${mins} minit`;
@@ -652,8 +657,8 @@
                     diagram = `Carta garis masa dekad dan tahun.`;
                 } else {
                     // Susah
-                    let centuries = 1 + (index % 3);
-                    let decades = 2 + (index % 4);
+                    let centuries = 1 + row;
+                    let decades = 2 + column;
                     let totalYears = (centuries * 100) + (decades * 10);
                     questionText = `Sebuah artifak bersejarah berusia ${totalYears} tahun. Nyatakan usia artifak tersebut dalam kombinasi abad dan dekad.`;
                     answer = `${centuries} abad ${decades} dekad`;
@@ -665,9 +670,9 @@
             // --- C. TAMBAH MASA ---
             else if (subtopic === "Tambah Masa") {
                 if (diff === "Senang") {
-                    let h1 = 2 + (index % 4);
+                    let h1 = 2 + row;
                     let m1 = 15;
-                    let h2 = 1 + (index % 3);
+                    let h2 = 1 + column;
                     let m2 = 20;
                     let totalH = h1 + h2;
                     let totalM = m1 + m2;
@@ -677,9 +682,9 @@
                     explanation = `Tambah unit jam (${h1}+${h2}=${totalH}) dan minit (${m1}+${m2}=${totalM}). Hasil: ${totalH} jam ${totalM} minit.`;
                     diagram = `Jadual bentuk lazim penambahan jam dan minit.`;
                 } else if (diff === "Sederhana") {
-                    let d1 = 2 + (index % 3);
+                    let d1 = 2 + row;
                     let h1 = 18;
-                    let d2 = 1 + (index % 2);
+                    let d2 = 1 + column;
                     let h2 = 12;
                     let sumH = h1 + h2; // 30
                     let extraD = Math.floor(sumH / 24);
@@ -687,26 +692,22 @@
                     let totalD = d1 + d2 + extraD;
                     questionText = `Hitung: ${d1} hari ${h1} jam + ${d2} hari ${h2} jam.`;
                     answer = `${totalD} hari ${remH} jam`;
-                    options = [`${totalD} hari ${remH} jam`, `${totalD-1} hari ${sumH} jam`, `${totalD} hari ${sumH} jam`, `${totalD+1} hari`].sort(() => Math.random() - 0.5);
+                    options = [`${totalD} hari ${remH} jam`, `${totalD-1} hari ${remH} jam`, `${totalD} hari ${remH+3} jam`, `${totalD+1} hari`].sort(() => Math.random() - 0.5);
                     explanation = `${h1} jam + ${h2} jam = ${sumH} jam (${extraD} hari ${remH} jam). Tambahkan hari: ${d1}+${d2}+${extraD} = ${totalD} hari ${remH} jam.`;
                     diagram = `Bentuk lazim penambahan hari dan jam mengumpul semula.`;
                 } else {
                     // Susah
-                    let y1 = 3 + (index % 4);
+                    let y1 = 3 + row;
                     let m1 = 8;
-                    let y2 = 2 + (index % 3);
+                    let y2 = 2 + column;
                     let m2 = 9;
-                    let sumM = m1 + m2; // 17
-                    let extraY = Math.floor(sumM / 12);
-                    let remM = sumM % 12;
-                    let totalY = y1 + y2 + extraY;
                     questionText = `Cari jumlah bagi ${y1} tahun ${m1} bulan + ${y2} tahun ${m2} bulan + 10 bulan.`;
                     let sumAllM = m1 + m2 + 10;
                     let exY = Math.floor(sumAllM / 12);
                     let rM = sumAllM % 12;
                     let totY = y1 + y2 + exY;
                     answer = `${totY} tahun ${rM} bulan`;
-                    options = [`${totY} tahun ${rM} bulan`, `${totY-1} tahun ${sumAllM} bulan`, `${totY} tahun ${sumAllM} bulan`, `${totY+1} tahun`].sort(() => Math.random() - 0.5);
+                    options = [`${totY} tahun ${rM} bulan`, `${totY-1} tahun ${rM} bulan`, `${totY} tahun ${rM+2} bulan`, `${totY+1} tahun`].sort(() => Math.random() - 0.5);
                     explanation = `Jumlah bulan = ${m1} + ${m2} + 10 = ${sumAllM} bulan (${exY} tahun ${rM} bulan). Tambahkan tahun = ${y1}+${y2}+${exY} = ${totY} tahun ${rM} bulan.`;
                     diagram = `Jadual penambahan 3 item unit tahun dan bulan.`;
                 }
@@ -714,9 +715,9 @@
             // --- D. TOLAK MASA ---
             else if (subtopic === "Tolak Masa") {
                 if (diff === "Senang") {
-                    let h1 = 5 + (index % 4);
+                    let h1 = 7 + row;
                     let m1 = 45;
-                    let h2 = 2 + (index % 2);
+                    let h2 = 1 + column;
                     let m2 = 15;
                     let resH = h1 - h2;
                     let resM = m1 - m2;
@@ -726,9 +727,9 @@
                     explanation = `Tolak jam (${h1}-${h2}=${resH}) dan minit (${m1}-${m2}=${resM}). Hasil: ${resH} jam ${resM} minit.`;
                     diagram = `Penolakan mudah bentuk lazim.`;
                 } else if (diff === "Sederhana") {
-                    let d1 = 4 + (index % 3);
+                    let d1 = 7 + row;
                     let h1 = 6;
-                    let d2 = 1 + (index % 2);
+                    let d2 = 1 + column;
                     let h2 = 14;
                     // Pinjam 1 hari (24 jam)
                     let newH1 = h1 + 24; // 30
@@ -741,9 +742,9 @@
                     diagram = `Bentuk lazim penolakan mengumpul semula (pinjam 1 hari = 24 jam).`;
                 } else {
                     // Susah
-                    let y1 = 8 + (index % 4);
+                    let y1 = 10 + row;
                     let m1 = 2;
-                    let y2 = 3 + (index % 2);
+                    let y2 = 3 + column;
                     let m2 = 8;
                     // Pinjam 1 tahun (12 bulan)
                     let newM1 = m1 + 12; // 14
@@ -751,7 +752,7 @@
                     let resY = (y1 - 1) - y2;
                     questionText = `Hitung: ${y1} tahun ${m1} bulan − ${y2} tahun ${m2} bulan.`;
                     answer = `${resY} tahun ${resM} bulan`;
-                    options = [`${resY} tahun ${resM} bulan`, `${resY+1} tahun ${resM} bulan`, `${resY} tahun ${m2-m1} bulan`, `${resY-1} tahun`].sort(() => Math.random() - 0.5);
+                    options = [`${resY} tahun ${resM} bulan`, `${resY+1} tahun ${resM} bulan`, `${resY} tahun ${resM+2} bulan`, `${resY-1} tahun`].sort(() => Math.random() - 0.5);
                     explanation = `Pinjam 1 tahun (12 bulan) dari ${y1} tahun. (${m1}+12 = 14 bulan). 14 − ${m2} = ${resM} bulan. Tahun: (${y1}-1) − ${y2} = ${resY} tahun.`;
                     diagram = `Penolakan tahun dan bulan dengan pinjaman 12 bulan.`;
                 }
@@ -763,31 +764,31 @@
                     let dur = 30;
                     let endM = startM + dur;
                     questionText = `Ahmad mula membaca buku pada jam 2:${startM} petang. Beliau membaca selama 30 minit. Pada pukul berapakah Ahmad selesai membaca?`;
-                    answer = `2:${endM} petang`;
-                    options = [`2:${endM} petang`, `3:${endM-10} petang`, `2:${endM+10} petang`, `3:00 petang`].sort(() => Math.random() - 0.5);
+                    answer = clock(14 * 60 + endM);
+                    options = [clock(14 * 60 + endM), clock(14 * 60 + endM - 10), clock(14 * 60 + endM + 15), `3:20 petang`].sort(() => Math.random() - 0.5);
                     explanation = `Waktu Tamat = 2:${startM} + 30 minit = 2:${endM} petang.`;
                     diagram = `Ilustrasi jam digital dan budak membaca buku.`;
                 } else if (diff === "Sederhana") {
-                    let busH = 3 + (index % 3);
+                    let busH = 3 + row;
                     let busM = 40;
-                    let delayM = 25;
+                    let delayM = 21 + column;
                     let totalM = busM + delayM; // 65 min -> 1h 5m
                     let resH = busH + 1;
                     let resM = totalM - 60;
                     questionText = `Sebuah bas ekspres dijadualkan perjalanan selama ${busH} jam ${busM} minit. Disebabkan kesesakan lalu lintas, perjalanan bertambah ${delayM} minit. Berapakah jumlah masa perjalanan bas tersebut?`;
                     answer = `${resH} jam ${resM} minit`;
-                    options = [`${resH} jam ${resM} minit`, `${busH} jam ${totalM} minit`, `${resH+1} jam ${resM} minit`, `${resH} jam 15 minit`].sort(() => Math.random() - 0.5);
+                    options = [`${resH} jam ${resM} minit`, `${busH} jam ${resM} minit`, `${resH+1} jam ${resM} minit`, `${resH} jam ${resM+10} minit`].sort(() => Math.random() - 0.5);
                     explanation = `${busM} minit + ${delayM} minit = ${totalM} minit (1 jam ${resM} minit). Jumlah masa = ${busH} + 1 jam ${resM} minit = ${resH} jam ${resM} minit.`;
                     diagram = `Ilustrasi bas ekspres dan jadual perjalanan.`;
                 } else {
                     // Susah
-                    let ageFather = 4 + (index % 3); // dekad
-                    let ageSon = 1 + (index % 2); // dekad
-                    let diffDec = ageFather - ageSon;
-                    questionText = `Umur bapa ialah ${ageFather} dekad 2 tahun manakala umur anaknya ialah ${ageSon} dekad 7 tahun. Berapakah beza umur mereka dalam dekad dan tahun?`;
+                    let ageFather = 7 + row; // dekad
+                    let ageSon = 1; // dekad
+                    const childYears = 3 + column;
+                    questionText = `Umur bapa ialah ${ageFather} dekad 2 tahun manakala umur anaknya ialah ${ageSon} dekad ${childYears} tahun. Berapakah beza umur mereka dalam dekad dan tahun?`;
                     // (ageFather*10 + 2) - (ageSon*10 + 7)
                     let totalF = ageFather * 10 + 2;
-                    let totalS = ageSon * 10 + 7;
+                    let totalS = ageSon * 10 + childYears;
                     let diffY = totalF - totalS;
                     let ansDec = Math.floor(diffY / 10);
                     let ansYr = diffY % 10;
@@ -1078,6 +1079,7 @@
 
         // Next Question or Wrap Up
         function nextQuestion() {
+            if (!answeredCurrent || !activeQuestions[currentQuestionIndex]) return;
             currentQuestionIndex++;
             if (currentQuestionIndex < activeQuestions.length) {
                 loadQuestion();

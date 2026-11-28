@@ -539,6 +539,27 @@
     </main>
 
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t1_sub2_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = legacy && typeof legacy === "object" && !Array.isArray(legacy)
+                ? Object.fromEntries(Object.entries(legacy).filter(([key, u]) => u && u.username === key && typeof u.fullName === "string" && Number.isFinite(u.sessionsCompleted)))
+                : {};
+            localStorage.setItem(usersKey, JSON.stringify(users));
+            const active = localStorage.getItem('math_kids_current_user');
+            if (active && Object.hasOwn(users, active)) {
+                localStorage.setItem('edukidz_t1_sub2_active_user', active);
+            }
+        })();
+
         // Audio Synthesizer (Web Audio API)
         class SoundFX {
             constructor() {
@@ -777,7 +798,7 @@
                             }
                         } else if (top.id === 'T4') {
                             // Topic 4: Bentuk Lazim
-                            const n1 = (i % 9) + 10;
+                            const n1 = 10 + i + 20 * levels.indexOf(lvl);
                             const n2 = (i % 8) + 1;
                             const isAdd = i % 2 === 1;
                             const ans = isAdd ? n1 + n2 : n1 - n2;
@@ -794,7 +815,7 @@
                             const names = ['Ali', 'Siti', 'Ahmad', 'Mina', 'Abu', 'Lina', 'Chong', 'Rani'];
                             const name = names[i % names.length];
                             const item = icon === '🍎' ? 'biji epal' : icon === '✏️' ? 'batang pensel' : icon === '🍬' ? 'biji gula-gula' : 'biji bola';
-                            const numA = (i % 6) + 3;
+                            const numA = i + 2;
                             const numB = (i % 4) + 2;
 
                             if (lvl === 'Mudah') {
@@ -877,15 +898,15 @@
 
             // LocalStorage Accounts Management
             getUsers() {
-                return JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+                return JSON.parse(localStorage.getItem('edukidz_t1_sub2_users') || '{}');
             }
 
             saveUsers(users) {
-                localStorage.setItem('math_kids_users', JSON.stringify(users));
+                localStorage.setItem('edukidz_t1_sub2_users', JSON.stringify(users));
             }
 
             checkSession() {
-                const loggedInUser = localStorage.getItem('math_kids_current_user');
+                const loggedInUser = localStorage.getItem('edukidz_t1_sub2_active_user');
                 if (loggedInUser) {
                     const users = this.getUsers();
                     if (users[loggedInUser]) {
@@ -925,7 +946,7 @@
 
                 if (users[u] && users[u].password === p) {
                     this.currentUser = users[u];
-                    localStorage.setItem('math_kids_current_user', u);
+                    localStorage.setItem('edukidz_t1_sub2_active_user', u);
                     this.updateUserNavBadge();
                     this.showScreen('mainMenu');
                 } else {
@@ -966,13 +987,13 @@
 
                 this.saveUsers(users);
                 this.currentUser = users[u];
-                localStorage.setItem('math_kids_current_user', u);
+                localStorage.setItem('edukidz_t1_sub2_active_user', u);
                 this.updateUserNavBadge();
                 this.showScreen('mainMenu');
             }
 
             logout() {
-                localStorage.removeItem('math_kids_current_user');
+                localStorage.removeItem('edukidz_t1_sub2_active_user');
                 this.currentUser = null;
                 this.updateUserNavBadge();
                 this.showScreen('auth');

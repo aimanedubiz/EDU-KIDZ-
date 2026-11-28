@@ -674,8 +674,9 @@
                 const topicInfo = TOPICS_DATA.find(x => x.id === t);
 
                 // Loop 3 Levels
-                ["Senang", "Sederhana", "Susah"].forEach(level => {
+                ["Senang", "Sederhana", "Susah"].forEach((level, levelIndex) => {
                     for (let q = 1; q <= 20; q++) {
+                        const variant = levelIndex * 20 + q - 1;
                         const qNumStr = q < 10 ? `00${q}` : `0${q}`;
                         const qId = `T${t}-${level.toUpperCase()}-${qNumStr}`;
                         const cognitive = cognitiveTypes[(q + t) % 3];
@@ -704,9 +705,9 @@
                             questionObj.vData = { n1: num1, n2: num2, op: "+" };
 
                         } else if (t === 2) { // Tambah Tiga Nombor
-                            let n1 = 10 + q;
-                            let n2 = 5 + (q % 5);
-                            let n3 = 12 + (q % 8);
+                            let n1 = 10 + q + levelIndex * 100;
+                            let n2 = 5 + (q % 5) + levelIndex * 23;
+                            let n3 = 12 + (q % 8) + levelIndex * 17;
                             let ans = n1 + n2 + n3;
                             questionObj.question = `Kira jumlah tiga nombor: ${n1} + ${n2} + ${n3} = ?`;
                             questionObj.correctAnswer = ans.toString();
@@ -716,7 +717,7 @@
                             questionObj.vData = { n1: n1, n2: n2, n3: n3, op: "+" };
 
                         } else if (t === 3) { // Tolak Dua Nombor
-                            let num1 = level === "Senang" ? 30 + (q * 2) : (level === "Sederhana" ? 50 + q * 2 : 80 + q);
+                            let num1 = level === "Senang" ? 30 + (q * 2) : (level === "Sederhana" ? 150 + q * 2 : 280 + q);
                             let num2 = level === "Senang" ? 5 + q : (level === "Sederhana" ? 18 + q : 35 + q);
                             let ans = num1 - num2;
                             questionObj.question = `Berapakah baki ${num1} - ${num2}?`;
@@ -727,9 +728,9 @@
                             questionObj.vData = { n1: num1, n2: num2, op: "-" };
 
                         } else if (t === 4) { // Tolak Tiga Nombor
-                            let n1 = 60 + q * 2;
-                            let n2 = 10 + q;
-                            let n3 = 5 + (q % 5);
+                            let n1 = 60 + q * 2 + levelIndex * 100;
+                            let n2 = 10 + q + levelIndex * 23;
+                            let n3 = 5 + (q % 5) + levelIndex * 14;
                             let ans = n1 - n2 - n3;
                             questionObj.question = `Selesaikan: ${n1} - ${n2} - ${n3} = ?`;
                             questionObj.correctAnswer = ans.toString();
@@ -741,8 +742,8 @@
                             const items = ["biji epal 🍎", "batang pensel ✏️", "biji bola ⚽", "buku cerita 📚", "gula-gula 🍬"];
                             let item = items[q % items.length];
                             let isAdd = q % 2 === 0;
-                            let v1 = 15 + q * 2;
-                            let v2 = 8 + q;
+                            let v1 = 15 + q * 2 + levelIndex * 90;
+                            let v2 = 8 + q + levelIndex * 22;
                             let ans = isAdd ? (v1 + v2) : (v1 - v2);
                             if (isAdd) {
                                 questionObj.question = `Ali ada ${v1} ${item}. Siti beri lagi ${v2} ${item}. Berapakah jumlah ${item} Ali sekarang?`;
@@ -755,8 +756,8 @@
                             questionObj.visualType = "story_icon";
 
                         } else if (t === 6) { // Sifir 1-6
-                            let sifir = (q % 6) + 1; // 1 to 6
-                            let multiplier = (q % 10) + 1;
+                            let sifir = variant % 6 + 1;
+                            let multiplier = Math.floor(variant / 6) + 1;
                             let ans = sifir * multiplier;
                             questionObj.question = `Apakah jawapan bagi ${multiplier} × ${sifir}?`;
                             questionObj.correctAnswer = ans.toString();
@@ -766,8 +767,8 @@
                             questionObj.vData = { rows: multiplier, cols: sifir, icon: "🍎" };
 
                         } else if (t === 7) { // Sifir 7-12
-                            let sifir = (q % 6) + 7; // 7 to 12
-                            let multiplier = (q % 10) + 1;
+                            let sifir = variant % 6 + 7;
+                            let multiplier = Math.floor(variant / 6) + 1;
                             let ans = sifir * multiplier;
                             questionObj.question = `Kira nilai: ${multiplier} × ${sifir} = ?`;
                             questionObj.correctAnswer = ans.toString();
@@ -776,8 +777,8 @@
                             questionObj.visualType = "card_multiplication";
 
                         } else if (t === 8) { // Kenali Bahagi Gambar Rajah
-                            let groups = (q % 5) + 2; // 2 to 6
-                            let itemsPerGroup = (q % 4) + 2; // 2 to 5
+                            let groups = variant % 6 + 2;
+                            let itemsPerGroup = Math.floor(variant / 6) + 2;
                             let total = groups * itemsPerGroup;
                             questionObj.question = `${total} 🍊 dibahagikan sama rata kepada ${groups} kumpulan. Berapakah buah dalam setiap kumpulan?`;
                             questionObj.correctAnswer = itemsPerGroup.toString();
@@ -787,8 +788,8 @@
                             questionObj.vData = { groups: groups, perGroup: itemsPerGroup, icon: "🍊" };
 
                         } else if (t === 9) { // Lengkapkan Ayat Matematik Bahagi
-                            let grp = (q % 4) + 2;
-                            let perGrp = (q % 5) + 2;
+                            let grp = variant % 6 + 2;
+                            let perGrp = Math.floor(variant / 6) + 2;
                             let tot = grp * perGrp;
                             questionObj.question = `Lengkapkan ayat matematik: ${tot} ÷ ___ = ${perGrp}`;
                             questionObj.correctAnswer = grp.toString();
@@ -800,16 +801,18 @@
                         } else if (t === 10) { // Masalah Darab & Bahagi
                             let isMulti = q % 2 === 0;
                             if (isMulti) {
-                                let boxes = (q % 4) + 2;
-                                let perBox = (q % 5) + 3;
+                                const pair = Math.floor(variant / 2);
+                                let boxes = pair % 5 + 2;
+                                let perBox = Math.floor(pair / 5) + 3;
                                 let ans = boxes * perBox;
                                 questionObj.question = `Terdapat ${boxes} buah kotak. Setiap kotak ada ${perBox} biji kek. Berapakah jumlah kek semuanya?`;
                                 questionObj.correctAnswer = ans.toString();
                                 questionObj.options = get4Options(ans, 8).map(String);
                                 questionObj.explanation = `${boxes} × ${perBox} = ${ans}`;
                             } else {
-                                let kids = (q % 4) + 2;
-                                let perKid = (q % 4) + 2;
+                                const pair = Math.floor(variant / 2);
+                                let kids = pair % 5 + 2;
+                                let perKid = Math.floor(pair / 5) + 3;
                                 let totSweets = kids * perKid;
                                 questionObj.question = `${totSweets} biji gula-gula dibahagikan sama rata kepada ${kids} orang murid. Berapakah gula-gula setiap murid dapat?`;
                                 questionObj.correctAnswer = perKid.toString();

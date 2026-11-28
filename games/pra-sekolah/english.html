@@ -637,6 +637,21 @@
 
     <!-- JS LOGIC & COMPLETE 300 QUESTION BANK -->
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_pra_english_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edukidz_users');
+            const users = legacy && typeof legacy === "object" && !Array.isArray(legacy)
+                ? Object.fromEntries(Object.entries(legacy).filter(([key, u]) => u && u.username === key && [4, 5, 6].includes(u.level) && Array.isArray(u.history) && Number.isFinite(u.highScore)))
+                : {};
+            localStorage.setItem(key, JSON.stringify(users));
+        })();
+
         // App State Management
         let soundEnabled = true;
         let voiceReadAloudEnabled = true; // Auto read aloud feature
@@ -785,17 +800,235 @@
             return isUpper ? distractors : distractors.map(d => d.toLowerCase());
         }
 
+        function generateOlderQuestions(catIdx, level) {
+            const older = level === 6;
+            const make = (q, correct, alternatives, visual = '') => ({
+                q, visual, correct, options: shuffle([correct, ...alternatives])
+            });
+            const fromRows = rows => rows.map(([q, correct, first, second, visual]) =>
+                make(q, correct, [first, second], visual)
+            );
+            if (catIdx === 0) {
+                const letters = older ? 'qrstuvwxyz' : 'klmnopqrst';
+                return [...letters].map(letter => {
+                    if (!older) {
+                        const answer = letter.toUpperCase();
+                        return make(`Which uppercase letter matches ${letter}?`, answer, getAlphabetDistractors(answer, true), letter);
+                    }
+                    const answer = String.fromCharCode(letter.charCodeAt(0) - 1).toUpperCase();
+                    return make(`Which letter comes just before ${letter.toUpperCase()} in the alphabet?`, answer, getAlphabetDistractors(answer, true));
+                });
+            }
+            if (catIdx === 1) {
+                const words = older
+                    ? [['hen','🐔'],['cup','🥤'],['pig','🐷'],['fox','🦊'],['bat','🦇'],['web','🕸️'],['sun','☀️'],['fin','🐟'],['pot','🍲'],['van','🚐']]
+                    : [['bus','🚌'],['jam','🍓'],['bed','🛏️'],['map','🗺️'],['pen','🖊️'],['bag','🎒'],['cap','🧢'],['fan','🪭'],['net','🥅'],['rug','🟫']];
+                return words.map(([word, icon]) => {
+                    const answer = word[older ? 1 : 2].toUpperCase();
+                    const alternatives = older
+                        ? shuffle([...'AEIOU'].filter(letter => letter !== answer)).slice(0, 2)
+                        : getAlphabetDistractors(answer, true);
+                    const masked = older ? word[0] + ' _ ' + word[2] : word.slice(0, 2) + ' _';
+                    return make(`Which letter completes ${masked.toUpperCase()} in the word “${word}”?`, answer, alternatives, icon);
+                });
+            }
+            if (catIdx === 2) {
+                return fromRows(older ? [
+                    ['What keeps ice cream frozen?','Freezer','Toaster','Kettle'],
+                    ['What can you use to dig a hole in soil?','Spade','Ruler','Broom'],
+                    ['What helps you see tiny print more clearly?','Magnifying glass','Spoon','Scarf'],
+                    ['What do you use to tell which way is north?','Compass','Calendar','Whistle'],
+                    ['What can you use to measure how heavy a parcel is?','Scale','Torch','Tape measure'],
+                    ['What might an artist use to mix paint colours?','Palette','Pillow','Colander'],
+                    ['What holds a door shut when you turn a key?','Lock','Handle','Bell'],
+                    ['What can you use to water seedlings?','Watering can','Basket','Notebook'],
+                    ['What can you hang a shirt on inside a cupboard?','Hanger','Blanket','Plate'],
+                    ['What item helps you see in the dark outdoors?','Torch','Eraser','Comb']
+                ] : [
+                    ['What do you use to brush your teeth?','Toothbrush','Shoe','Spoon','🪥'],
+                    ['What keeps your head dry in the rain?','Umbrella','Sock','Bowl','☂️'],
+                    ['What do you wear on your feet before putting on shoes?','Socks','Gloves','Hat','🧦'],
+                    ['What can you use to sweep the floor?','Broom','Cup','Fork','🧹'],
+                    ['What do you rest your head on in bed?','Pillow','Plate','Pencil','🛏️'],
+                    ['What can you use to tidy your hair?','Comb','Pan','Bell'],
+                    ['What can you use to cut paper?','Scissors','Soap','Crayon','✂️'],
+                    ['What do you use to dry your hands?','Towel','Bottle','Shoe'],
+                    ['What can you use to unlock a door?','Key','Pencil','Sock','🔑'],
+                    ['What do you wear on your hands when it is cold?','Gloves','Boots','Shorts','🧤']
+                ]);
+            }
+            if (catIdx === 3) {
+                return fromRows(older ? [
+                    ['How many corners does a triangle have?','3','4','5','▲'],
+                    ['How many sides does a hexagon have?','6','5','8','⬡'],
+                    ['Which shape has four equal sides and four square corners?','Square','Triangle','Circle'],
+                    ['Which shape has eight straight sides?','Octagon','Pentagon','Triangle'],
+                    ['How many corners do two separate triangles have in total?','6','3','8','▲ ▲'],
+                    ['Which shape is a ball an example of?','Sphere','Cube','Cone','⚽'],
+                    ['Which shape looks like a can of soup?','Cylinder','Pyramid','Sphere','🥫'],
+                    ['Which shape looks like a party hat with a round base?','Cone','Cube','Cylinder','🥳'],
+                    ['Which shape has exactly five corners?','Pentagon','Hexagon','Rectangle'],
+                    ['Which shape has no corners and is perfectly round and flat?','Circle','Square','Triangle']
+                ] : [
+                    ['Name this shape.','Triangle','Square','Circle','▲'],
+                    ['Which shape is shown?','Square','Triangle','Star','■'],
+                    ['Which shape matches this outline?','Circle','Heart','Rectangle','○'],
+                    ['The shape shown here is a ___.','Heart','Diamond','Square','♥'],
+                    ['Which shape has four sides like this door outline?','Rectangle','Circle','Triangle','▯'],
+                    ['Name the shape with five points in the picture.','Star','Oval','Heart','★'],
+                    ['Which shape looks like a tilted square in this picture?','Diamond','Circle','Star','◆'],
+                    ['What is the name of this stretched round shape?','Oval','Triangle','Square','⬭'],
+                    ['Which of these is a colour?','Purple','Square','Star'],
+                    ['Which of these words names a shape?','Circle','Pink','Orange']
+                ]);
+            }
+            if (catIdx === 4) {
+                return Array.from({length: 10}, (_, index) => {
+                    const n = 2 + index;
+                    const total = older ? n + 4 : n + 1;
+                    const q = older
+                        ? `There are ${n} blocks in a box. You put in 4 more. How many blocks are in the box now?`
+                        : `Which number comes just after ${n}?`;
+                    return make(q, String(total), [String(total - 1), String(total + 1)]);
+                });
+            }
+            if (catIdx === 5) {
+                return fromRows(older ? [
+                    ['What is a young frog called?','Tadpole','Calf','Cub'],
+                    ['What is a young duck called?','Duckling','Kitten','Puppy'],
+                    ['What is a young horse called?','Foal','Lamb','Chick'],
+                    ['What is a young sheep called?','Lamb','Calf','Duckling'],
+                    ['What is a young cow called?','Calf','Foal','Kitten'],
+                    ['Which animal breathes through gills throughout its life?','Salmon','Dolphin','Penguin'],
+                    ['Which animal is a mammal that flies?','Bat','Owl','Butterfly'],
+                    ['Which animal changes from a caterpillar into an adult with wings?','Butterfly','Snail','Frog'],
+                    ['Which animal carries its baby in a pouch?','Kangaroo','Horse','Zebra'],
+                    ['Which is a bird that swims but cannot fly?','Penguin','Sparrow','Eagle']
+                ] : [
+                    ['Which animal has a long trunk?','Elephant','Lion','Rabbit'],
+                    ['Which animal has a very long neck?','Giraffe','Duck','Frog'],
+                    ['Which animal says moo?','Cow','Bear','Monkey'],
+                    ['Which animal has black and white stripes?','Zebra','Panda','Elephant'],
+                    ['Which animal has eight legs and spins a web?','Spider','Ant','Bird'],
+                    ['Which animal has a hard shell and moves slowly on land?','Tortoise','Tiger','Rabbit'],
+                    ['Which animal says meow?','Cat','Dog','Sheep'],
+                    ['Which animal often hops and has long ears?','Rabbit','Duck','Cow'],
+                    ['Which animal makes honey?','Bee','Fly','Ant'],
+                    ['Which animal is known for an orange coat with black stripes?','Tiger','Lion','Panda']
+                ]);
+            }
+            if (catIdx === 6) {
+                return fromRows(older ? [
+                    ['Which fruit has many tiny seeds on its outside?','Strawberry','Banana','Mango'],
+                    ['What do hens lay that we can use to make an omelette?','Eggs','Apples','Potatoes'],
+                    ['Which food is made by freezing a sweet dairy mixture?','Ice cream','Toast','Rice'],
+                    ['Which ingredient makes bread dough rise?','Yeast','Salt','Butter'],
+                    ['Which one is made by drying grapes?','Raisins','Prunes','Flour'],
+                    ['Which drink comes from squeezing oranges?','Orange juice','Mango juice','Milk'],
+                    ['What food is made by toasting slices of bread?','Toast','Soup','Salad'],
+                    ['Which food is commonly made from milk and can be grated onto pasta?','Cheese','Rice','Carrot'],
+                    ['Which part of a carrot do people usually eat?','Root','Flower','Leaf'],
+                    ['Which food is made by cooking oats in water or milk?','Porridge','Omelette','Jam']
+                ] : [
+                    ['Which of these is a vegetable?','Carrot','Bread','Milk'],
+                    ['Which of these foods is a fruit?','Papaya','Rice','Cheese'],
+                    ['Which fruit has yellow skin and is sour?','Lemon','Grape','Guava'],
+                    ['Which fruit often grows in a bunch and has a long curved shape?','Banana','Apple','Peach'],
+                    ['Which fruit is green outside and often red inside?','Watermelon','Lemon','Pear'],
+                    ['Which can be spread on toast?','Jam','Rice','Pasta'],
+                    ['Which of these is a drink?','Milk','Bread','Cake'],
+                    ['Which food is usually baked in a loaf?','Bread','Soup','Grapes'],
+                    ['Which of these has a shell that you crack before cooking?','Egg','Lettuce','Bread'],
+                    ['Which food is made of small grains and is often boiled?','Rice','Butter','Banana']
+                ]);
+            }
+            if (catIdx === 7) {
+                return fromRows(older ? [
+                    ['Your mother has a sister. Who is that person to you?','Aunt','Cousin','Grandmother'],
+                    ['Who is your father’s father?','Grandfather','Brother','Uncle'],
+                    ['Who is your mother’s mother?','Grandmother','Sister','Aunt'],
+                    ['Who is your aunt’s child?','Cousin','Uncle','Grandfather'],
+                    ['What word describes a person who shares your parents with you?','Sibling','Grandparent','Neighbour'],
+                    ['What body part links your hand to your forearm?','Wrist','Ankle','Knee'],
+                    ['What body part links your foot to your lower leg?','Ankle','Wrist','Elbow'],
+                    ['What body part bends in the middle of your arm?','Elbow','Knee','Shoulder'],
+                    ['What hard parts inside your body support it and give it shape?','Bones','Hair','Skin'],
+                    ['Which muscles and body parts work together to let you chew?','Jaw and teeth','Elbow and wrist','Ankle and heel']
+                ] : [
+                    ['Which body parts help you see?','Eyes','Ears','Knees'],
+                    ['Which body parts help you hear?','Ears','Toes','Elbows'],
+                    ['Which body part helps you smell?','Nose','Foot','Hand'],
+                    ['What do you use to taste food?','Tongue','Ear','Knee'],
+                    ['Which part of your leg bends when you sit down?','Knee','Finger','Neck'],
+                    ['What do you wear shoes on?','Feet','Hands','Ears'],
+                    ['What are the small parts at the ends of your feet called?','Toes','Fingers','Teeth'],
+                    ['Who is a female parent?','Mother','Sister','Brother'],
+                    ['Who is a male parent?','Father','Brother','Sister'],
+                    ['Which word means a very young child?','Baby','Uncle','Grandmother']
+                ]);
+            }
+            if (catIdx === 8) {
+                return fromRows(older ? [
+                    ['How can you ask a friend to repeat something you did not hear?','Could you say that again, please?','Nice to meet you.','See you tomorrow.'],
+                    ['Your friend says, “I passed my swimming test!” What can you say?','Congratulations!','I am sorry for your loss.','Please be quiet.'],
+                    ['Which is a polite way to ask for help with a heavy box?','Could you help me carry this, please?','I like this box.','Good evening.'],
+                    ['Which is a polite way to start a conversation with a new classmate?','Hello, my name is Ali.','Give me your bag.','I am going home now.'],
+                    ['What can you say to a friend who feels unwell?','I hope you feel better soon.','Happy New Year!','Well done on winning!'],
+                    ['You need to leave a game early. What can you tell your friends?','I have to go now. See you later!','I was not listening.','Could you lend me a pencil?'],
+                    ['How can you politely turn down a piece of cake?','No, thank you.','I am sorry I broke it.','Good luck tomorrow.'],
+                    ['What could you say after accidentally stepping on someone’s foot?','I am sorry. Are you all right?','I will see you tomorrow.','Enjoy your lunch.'],
+                    ['A friend is about to enter a race. What can you say to encourage them?','Good luck in the race!','Good morning, teacher.','Thanks for the present.'],
+                    ['You cannot find the library. What can you ask?','Excuse me, where is the library?','Can I borrow your ruler?','How old are you?']
+                ] : [
+                    ['What do you say when you arrive at 2 p.m.?','Good afternoon','Good night','Happy birthday'],
+                    ['What do you say to a friend on their birthday?','Happy birthday','Good night','Excuse me'],
+                    ['What do you say if you interrupt someone by mistake?','Sorry','Happy birthday','Good night'],
+                    ['What do you say before asking a stranger a question?','Excuse me','Well done','Good night'],
+                    ['What can you say after someone helps you carry your bag?','Thanks for helping','See you last week','I am asleep'],
+                    ['How can you greet someone at 7 p.m.?','Good evening','Good morning','Good afternoon'],
+                    ['What can you say to a friend you will see the next day?','See you tomorrow','Happy birthday','Excuse me'],
+                    ['What can you say if someone asks you to join a game and you want to play?','Yes, I would like to','Good night','I cannot hear you'],
+                    ['How can you offer help with a dropped book?','Can I help you pick it up?','Where is my lunch?','I have finished my work.'],
+                    ['What is a friendly reply to “How are you?”','I am fine, thank you.','It is a round ball.','The door is open.']
+                ]);
+            }
+            return fromRows(older ? [
+                ['Choose the missing word: “Yesterday, I ___ to the park.”','went','go','going'],
+                ['Choose the missing word: “Two cats ___ on the mat now.”','are','is','am'],
+                ['Choose the missing word: “This is ___ orange.”','an','a','two'],
+                ['Choose the missing word: “I was cold, ___ I put on a coat.”','so','under','or'],
+                ['Choose the missing word: “A snail moves ___.”','slowly','slow','slows'],
+                ['Choose the missing word: “There ___ one apple left.”','is','am','are'],
+                ['Choose the missing word: “I have two ___.”','feet','foot','foots'],
+                ['Choose the missing word: “The cup belongs to me. It is ___.”','mine','my','me'],
+                ['Choose the missing word: “A mouse is smaller ___ an elephant.”','than','then','that'],
+                ['Choose the missing word: “Every morning he ___ his teeth.”','brushes','brush','brushing']
+            ] : [
+                ['Complete: “The fish can ___ in water.”','swim','read','fly'],
+                ['Complete: “I wear a ___ on my head.”','hat','sock','shoe'],
+                ['Complete: “At night, we can see the ___ in the sky.”','moon','floor','desk'],
+                ['Complete: “I drink ___ when I am thirsty.”','water','sand','paper'],
+                ['Complete: “The cow says ___.”','moo','meow','quack'],
+                ['Complete: “I open the door with a ___.”','key','spoon','cup'],
+                ['Complete: “I sleep in a ___.”','bed','bowl','bag'],
+                ['Complete: “I cut paper with ___.”','scissors','socks','plates'],
+                ['Complete: “A plant needs water to ___.”','grow','read','clap'],
+                ['Complete: “I use an umbrella when it ___.”','rains','sings','smiles']
+            ]);
+        }
+
         function generateQuestionsFor(catIdx, level) {
+            if (level !== 4) return generateOlderQuestions(catIdx, level);
             const list = [];
             
             // Cat 0: Alphabet
             if (catIdx === 0) {
-                const letters = level === 4 ? ['A','B','C','D','E','F','G','H','I','J'] : (level === 5 ? ['K','L','M','N','O','P','Q','R','S','T'] : ['U','V','W','X','Y','Z','A','B','C','D']);
+                const letters = [...'ABCDEFGHIJ'];
                 letters.forEach((l) => {
                     const lc = l.toLowerCase();
                     const distractors = getAlphabetDistractors(lc, false);
                     list.push({
-                        q: level === 4 ? `Which is the lowercase letter for '${l}'?` : `Find the lowercase letter for '${l}'`,
+                        q: `Which is the lowercase letter for '${l}'?`,
                         visual: l,
                         correct: lc,
                         options: shuffle([lc, ...distractors])
@@ -814,7 +1047,7 @@
                 phonics.forEach(p => {
                     const distractors = getAlphabetDistractors(p.sound, true);
                     list.push({
-                        q: `What is the beginning sound of "${p.word}"?`,
+                        q: `Which letter comes first in "${p.word}"?`,
                         visual: p.icon,
                         correct: p.sound,
                         options: shuffle([p.sound, ...distractors])
@@ -843,10 +1076,10 @@
             else if (catIdx === 3) {
                 const cs = [
                     { name: 'Circle', icon: '🔴', ans: 'Red' }, { name: 'Square', icon: '🟦', ans: 'Blue' },
-                    { name: 'Star', icon: '⭐', ans: 'Yellow' }, { name: 'Triangle', icon: '🔺', ans: 'Green' },
-                    { name: 'Heart', icon: '🧡', ans: 'Orange' }, { name: 'Diamond', icon: '💎', ans: 'Purple' },
+                    { name: 'Star', icon: '⭐', ans: 'Yellow' }, { name: 'Triangle', icon: '🟩', ans: 'Green' },
+                    { name: 'Heart', icon: '🧡', ans: 'Orange' }, { name: 'Diamond', icon: '🟪', ans: 'Purple' },
                     { name: 'Oval', icon: '🖤', ans: 'Black' }, { name: 'Cloud', icon: '☁️', ans: 'White' },
-                    { name: 'Box', icon: '📦', ans: 'Brown' }, { name: 'Ribbon', icon: '🎀', ans: 'Pink' }
+                    { name: 'Box', icon: '📦', ans: 'Brown' }, { name: 'Ribbon', icon: '🩷', ans: 'Pink' }
                 ];
                 const allColours = ['Red', 'Blue', 'Yellow', 'Green', 'Orange', 'Purple', 'Black', 'White', 'Brown', 'Pink'];
                 cs.forEach(c => {
@@ -939,7 +1172,7 @@
                     { q: 'When you are happy, you...', visual: '👏', ans: 'Clap hands', opts: ['Clap hands', 'Sleep', 'Cry'] },
                     { q: 'What do you say politely when asking?', visual: '🙏', ans: 'Please', opts: ['Please', 'No', 'Goodbye'] },
                     { q: 'What do you say before going to sleep?', visual: '🌙', ans: 'Good Night', opts: ['Good Night', 'Good Morning', 'Hello'] },
-                    { q: 'When someone says Thank You, say...', visual: '😊', ans: 'Welcome', opts: ['Welcome', 'Sorry', 'No'] },
+                    { q: 'When someone says Thank You, say...', visual: '😊', ans: 'You’re welcome', opts: ['You’re welcome', 'Sorry', 'No'] },
                     { q: 'Action: Stand up!', visual: '🧍', ans: 'Stand up', opts: ['Stand up', 'Sit down', 'Jump'] }
                 ];
                 greet.forEach(g => {
@@ -1025,7 +1258,7 @@
 
             const errDiv = document.getElementById('reg-error');
 
-            let users = JSON.parse(localStorage.getItem('edukidz_users') || '{}');
+            let users = JSON.parse(localStorage.getItem('edukidz_pra_english_users') || '{}');
             if (users[username]) {
                 errDiv.textContent = 'Username is already taken. Try another!';
                 errDiv.classList.remove('hidden');
@@ -1038,7 +1271,7 @@
             };
 
             users[username] = newUser;
-            localStorage.setItem('edukidz_users', JSON.stringify(users));
+            localStorage.setItem('edukidz_pra_english_users', JSON.stringify(users));
 
             currentUser = newUser;
             updateUserNavHeader();
@@ -1051,7 +1284,7 @@
             const password = document.getElementById('login-password').value;
             const errDiv = document.getElementById('login-error');
 
-            let users = JSON.parse(localStorage.getItem('edukidz_users') || '{}');
+            let users = JSON.parse(localStorage.getItem('edukidz_pra_english_users') || '{}');
             if (!users[username] || users[username].password !== password) {
                 errDiv.textContent = 'Invalid username or password!';
                 errDiv.classList.remove('hidden');
@@ -1064,7 +1297,7 @@
         }
 
         function quickSwitch(username) {
-            let users = JSON.parse(localStorage.getItem('edukidz_users') || '{}');
+            let users = JSON.parse(localStorage.getItem('edukidz_pra_english_users') || '{}');
             if (users[username]) {
                 currentUser = users[username];
                 updateUserNavHeader();
@@ -1074,7 +1307,7 @@
 
         function renderSavedAccounts() {
             const container = document.getElementById('saved-accounts-list');
-            let users = JSON.parse(localStorage.getItem('edukidz_users') || '{}');
+            let users = JSON.parse(localStorage.getItem('edukidz_pra_english_users') || '{}');
             const keys = Object.keys(users);
             if (keys.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400">No saved user accounts found.</p>`;
@@ -1368,14 +1601,14 @@
         function saveGameRecord(record) {
             if (!currentUser || currentUser.username === 'guest') return;
 
-            let users = JSON.parse(localStorage.getItem('edukidz_users') || '{}');
+            let users = JSON.parse(localStorage.getItem('edukidz_pra_english_users') || '{}');
             const u = users[currentUser.username];
             if (u) {
                 u.history.unshift(record);
                 u.gamesPlayed = (u.gamesPlayed || 0) + 1;
                 u.highScore = Math.max(u.highScore || 0, record.score);
                 users[currentUser.username] = u;
-                localStorage.setItem('edukidz_users', JSON.stringify(users));
+                localStorage.setItem('edukidz_pra_english_users', JSON.stringify(users));
                 currentUser = u;
             }
         }
@@ -1422,7 +1655,7 @@
 
         function renderLeaderboardScreen(filterLevel = 'ALL') {
             const container = document.getElementById('leaderboard-list');
-            let users = JSON.parse(localStorage.getItem('edukidz_users') || '{}');
+            let users = JSON.parse(localStorage.getItem('edukidz_pra_english_users') || '{}');
             let userList = Object.values(users);
 
             if (filterLevel !== 'ALL') {

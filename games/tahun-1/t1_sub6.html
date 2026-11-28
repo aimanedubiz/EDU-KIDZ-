@@ -499,7 +499,7 @@
         </section>
 
         <!-- 5. GAME PLAY SCREEN -->
-        <section id="game play-screen" class="hidden space-y-6 max-w-4xl mx-auto">
+        <section id="gameplay-screen" class="hidden space-y-6 max-w-4xl mx-auto">
             <!-- Top Status Bar -->
             <div class="bg-white p-4 rounded-2xl custom-card-shadow flex flex-wrap items-center justify-between gap-4 border border-slate-100">
                 <div class="flex items-center space-x-3">
@@ -823,8 +823,12 @@
             // Helper to generate distinct item pools
             const lengthItems = ["Pensel", "Pembaris", "Reben", "Pemadam", "Klip Kertas", "Batang Aiskrim", "Tali", "Krayon", "Paku", "Sudu"];
             const massItems = ["Epal", "Tembikai", "Buku", "Beg Sekolah", "Kotak", "Pemadam", "Bola", "Durian", "Pisang", "Kasut"];
-            const liquidItems = ["Gelas", "Botol", "Jag", "Baldi", "Cawan", "Besen", "Mug", "Kotak Susu"];
+            const liquidItems = ["Gelas", "Botol", "Jag", "Baldi", "Cawan", "Besen", "Mug", "Kotak Susu", "Bekas Plastik", "Bekas Kaca"];
 
+            const pairs = items => items.flatMap(a => items.filter(b => a !== b).map(b => [a, b]));
+            const lengthPairs = pairs(lengthItems);
+            const massPairs = pairs(massItems);
+            const liquidPairs = pairs(liquidItems);
             let uniqueIdCounter = 1;
 
             for (let catId = 1; catId <= 7; catId++) {
@@ -832,6 +836,7 @@
                     const diff = difficulties[diffIdx];
 
                     for (let qNum = 1; qNum <= 20; qNum++) {
+                        const slot = diffIdx * 20 + qNum - 1;
                         const cog = cogLevels[(qNum - 1) % 3];
                         let qObj = {
                             id: `Q_${catId}_${diff}_${qNum}_${uniqueIdCounter++}`,
@@ -844,10 +849,9 @@
                         // Construct category specific contextually unique questions
                         if (catId === 1) {
                             // Kenali Panjang Objek
-                            const itemA = lengthItems[(qNum * 2) % lengthItems.length];
-                            const itemB = lengthItems[(qNum * 2 + 1) % lengthItems.length];
-                            const lenA = (diffIdx + 1) * 3 + (qNum % 4);
-                            const lenB = (diffIdx + 1) * 3 + (qNum % 5) + 2;
+                            const [itemA, itemB] = lengthPairs[slot];
+                            const lenA = 4 + qNum % 7;
+                            const lenB = lenA + (qNum % 2 ? 2 : -2);
 
                             qObj.soalan = `Berdasarkan gambar rajah, manakah objek yang lebih PANJANG? (${itemA} atau ${itemB})`;
                             qObj.pilihan_jawapan = [itemA, itemB, "Kedua-duanya sama", "Tiada ukuran"];
@@ -857,8 +861,8 @@
 
                         } else if (catId === 2) {
                             // Ukur dan Banding Panjang
-                            const objName = lengthItems[qNum % lengthItems.length];
-                            const val = (diffIdx * 5) + (qNum % 10) + 2;
+                            const objName = lengthItems[slot % lengthItems.length];
+                            const val = 2 + Math.floor(slot / lengthItems.length) + qNum % 5;
                             qObj.soalan = `Berapakah panjang ${objName} yang diukur pada pembaris ini?`;
                             qObj.pilihan_jawapan = [`${val} cm`, `${val + 1} cm`, `${val - 1 < 1 ? 1 : val - 1} cm`, `${val + 2} cm`];
                             qObj.jawapan_betul = `${val} cm`;
@@ -867,21 +871,19 @@
 
                         } else if (catId === 3) {
                             // Kenali Jisim Objek
-                            const objA = massItems[(qNum * 2) % massItems.length];
-                            const objB = massItems[(qNum * 2 + 1) % massItems.length];
+                            const [objA, objB] = massPairs[slot];
                             const isAHeavier = (qNum % 2 === 0);
 
                             qObj.soalan = `Antara ${objA} dan ${objB}, yang manakah LEBIH BERAT?`;
                             qObj.pilihan_jawapan = [objA, objB, "Sama berat", "Tidak pasti"];
                             qObj.jawapan_betul = isAHeavier ? objA : objB;
-                            qObj.gambarajah = { type: 'mass_concept', objA, objB, isAHeavier };
-                            qObj.penerangan_jawapan = `${qObj.jawapan_betul} lebih berat berdasarkan saiz dan jenis bahan.`;
+                            qObj.gambarajah = { type: 'scale_balance', itemA: objA, itemB: objB, weightA: isAHeavier ? 8 : 3, weightB: isAHeavier ? 3 : 8, unit: ' blok' };
+                            qObj.penerangan_jawapan = `${qObj.jawapan_betul} lebih berat kerana piringnya lebih rendah.`;
 
                         } else if (catId === 4) {
                             // Timbang dan Banding Jisim (PENYELARASAN FIZIK & LOGIK 100% TEPAT)
-                            const itemA = massItems[(qNum * 2) % massItems.length];
-                            const itemB = massItems[(qNum * 2 + 1) % massItems.length];
-                            const unit = (diffIdx === 2) ? "kg" : "g";
+                            const [itemA, itemB] = massPairs[(slot + 30) % massPairs.length];
+                            const unit = " blok";
 
                             if (qNum % 3 === 0) {
                                 // SAMA BERAT
@@ -920,13 +922,12 @@
 
                         } else if (catId === 5) {
                             // Sukat dan Banding Isipadu Cecair (KEPELBAGAIAN SOALAN DITINGKATKAN)
-                            const contA = liquidItems[qNum % liquidItems.length];
-                            const contB = liquidItems[(qNum + 2) % liquidItems.length];
+                            const [contA, contB] = liquidPairs[slot];
                             const qType = qNum % 4; // 4 variasi soalan berbeza
 
                             if (qType === 0) {
                                 // Soalan 1: Mana lebih BANYAK air?
-                                qObj.soalan = `Antara ${contA} dan ${contB}, bekas manakah yang mengandungi LEBIH BANYAK cecair?`;
+                                qObj.soalan = `Kedua-dua bekas mempunyai kapasiti sama. Antara ${contA} dan ${contB}, bekas manakah yang mengandungi LEBIH BANYAK cecair?`;
                                 qObj.pilihan_jawapan = [contA, contB, "Kedua-duanya sama banyak", "Tiada cecair"];
                                 qObj.jawapan_betul = contA;
                                 qObj.gambarajah = { type: 'liquid_volume', contA, contB, fillA: 'penuh', fillB: 'separuh' };
@@ -934,7 +935,7 @@
 
                             } else if (qType === 1) {
                                 // Soalan 2: Mana lebih SEDIKIT air?
-                                qObj.soalan = `Antara ${contA} dan ${contB}, bekas manakah yang mengandungi LEBIH SEDIKIT cecair?`;
+                                qObj.soalan = `Kedua-dua bekas mempunyai kapasiti sama. Antara ${contA} dan ${contB}, bekas manakah yang mengandungi LEBIH SEDIKIT cecair?`;
                                 qObj.pilihan_jawapan = [contA, contB, "Kedua-duanya sama banyak", "Tiada jawapan"];
                                 qObj.jawapan_betul = contB;
                                 qObj.gambarajah = { type: 'liquid_volume', contA, contB, fillA: 'penuh', fillB: 'separuh' };
@@ -959,7 +960,7 @@
 
                         } else if (catId === 6) {
                             // Lengkapkan Ayat Matematik
-                            const num1 = (diffIdx + 1) * 2 + (qNum % 5);
+                            const num1 = slot + 2;
                             const num2 = (diffIdx + 1) * 1 + (qNum % 3);
                             const sum = num1 + num2;
                             const topic = (qNum % 3 === 0) ? "cm" : (qNum % 3 === 1 ? "kg" : "liter");
@@ -974,11 +975,11 @@
                             // Penyelesaian Masalah
                             const names = ["Ali", "Siti", "Ahmad", "Mei Ling", "Muthu", "Sara"];
                             const name = names[qNum % names.length];
-                            const valA = (qNum % 5) + 3;
+                            const valA = slot + 3;
                             const valB = (qNum % 4) + 2;
                             const total = valA + valB;
 
-                            qObj.soalan = `${name} mempunyai reben sepanjang ${valA} cm. Dia menyambung tali lagi ${valB} cm. Berapakah jumlah panjang reben ${name} sekarang?`;
+                            qObj.soalan = `${name} mempunyai reben sepanjang ${valA} cm. Dia menyambung seutas reben lagi ${valB} cm. Berapakah jumlah panjang reben ${name} sekarang?`;
                             qObj.pilihan_jawapan = [`${total} cm`, `${total + 2} cm`, `${valA} cm`, `${total - 1} cm`];
                             qObj.jawapan_betul = `${total} cm`;
                             qObj.gambarajah = { type: 'story_problem', name, valA, valB, total };
@@ -1003,8 +1004,8 @@
             const { type } = diagData;
 
             if (type === 'length_compare') {
-                const wA = Math.min(Math.max(diagData.lenA * 15, 60), 220);
-                const wB = Math.min(Math.max(diagData.lenB * 15, 60), 220);
+                const wA = diagData.lenA * 15;
+                const wB = diagData.lenB * 15;
                 return `
                 <svg width="100%" height="160" viewBox="0 0 320 160" class="max-w-md mx-auto">
                     <!-- Object A -->
@@ -1078,8 +1079,8 @@
 
             } else if (type === 'liquid_volume') {
                 // Gambar rajah SVG cecair yang dinamik (Penuh, Separuh, Kosong)
-                const hA = diagData.fillA === 'penuh' ? 80 : (diagData.fillA === 'separuh' ? 45 : 0);
-                const hB = diagData.fillB === 'penuh' ? 80 : (diagData.fillB === 'separuh' ? 45 : 0);
+                const hA = diagData.fillA === 'penuh' ? 84 : (diagData.fillA === 'separuh' ? 42 : 0);
+                const hB = diagData.fillB === 'penuh' ? 84 : (diagData.fillB === 'separuh' ? 42 : 0);
                 const yA = 120 - hA;
                 const yB = 120 - hB;
 
@@ -1266,7 +1267,7 @@
         function showScreen(screenId) {
             const screens = [
                 'auth-screen', 'dashboard-screen', 'categories-screen',
-                'config-screen', 'game play-screen', 'result-screen',
+                'config-screen', 'gameplay-screen', 'result-screen',
                 'progress-screen', 'leaderboard-screen', 'scores-screen', 'profile-screen'
             ];
 
@@ -1376,6 +1377,8 @@
             const shuffled = [...questionsPool].sort(() => 0.5 - Math.random());
             gameState.questions = shuffled.slice(0, 20); // 20 questions guaranteed
             gameState.currentIndex = 0;
+            gameState.answeredIndex = -1;
+            gameState.finished = false;
             gameState.score = 0;
             gameState.correctCount = 0;
             gameState.wrongCount = 0;
@@ -1384,7 +1387,7 @@
             document.getElementById('game-cat-label').textContent = `Kategori ${catObj.id}: ${catObj.title}`;
             document.getElementById('game-diff-label').textContent = currentGameConfig.difficulty;
 
-            showScreen('game play-screen');
+            showScreen('gameplay-screen');
             loadCurrentQuestion();
         }
 
@@ -1509,6 +1512,7 @@
         }
 
         function handleAnswerSelection(selectedAns, isTimeout = false) {
+            if (gameState.finished || gameState.answeredIndex === gameState.currentIndex) return;
             clearInterval(gameState.timerInterval);
 
             // Semakan keselamatan jika soalan tidak wujud
@@ -1517,7 +1521,8 @@
             }
 
             const q = gameState.questions[gameState.currentIndex];
-            const isCorrect = (selectedAns === q.jawapan_betul);
+            gameState.answeredIndex = gameState.currentIndex;
+            const isCorrect = !isTimeout && selectedAns === q.jawapan_betul;
 
             if (isCorrect) {
                 gameState.score += q.markah;
@@ -1596,6 +1601,8 @@
         }
 
         function endGameSession() {
+            if (gameState.finished) return;
+            gameState.finished = true;
             clearInterval(gameState.timerInterval);
 
             // Update user global stats

@@ -80,6 +80,23 @@
     </div>
 
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t3_sub7_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = legacy && typeof legacy === "object" && !Array.isArray(legacy)
+                ? Object.fromEntries(Object.entries(legacy).filter(([key, u]) => u && u.username === key && typeof u.fullName === "string" && Number.isFinite(u.highestScore) && Array.isArray(u.history) && u.progress))
+                : {};
+            localStorage.setItem(usersKey, JSON.stringify(users));
+        })();
+
         // ==========================================
         // 1. QUESTION DATABASE (240 UNIQUE QUESTIONS)
         // ==========================================
@@ -343,10 +360,10 @@
             },
             {
                 id: "BT_T3_038", kategori: "Kenali Prisma dan Bukan Prisma", subtopik: "Ciri Prisma", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
-                soalan: "Berapakah bilangan rusuk bagi sebuah prisma segi tiga?",
-                pilihan: ["9", "12", "6", "8"],
-                jawapan: "9", markah: 5,
-                gambarajah: "SVG_PRISMA_SEGI_TIGA", penerangan: "Prisma segi tiga mempunyai 9 rusuk."
+                soalan: "Dua prisma segi tiga dikira secara berasingan. Berapakah jumlah bilangan rusuk kedua-duanya?",
+                pilihan: ["18", "9", "12", "16"],
+                jawapan: "18", markah: 5,
+                gambarajah: "SVG_PRISMA_SEGI_TIGA", penerangan: "Satu prisma segi tiga mempunyai 9 rusuk, jadi 2 × 9 = 18 rusuk."
             },
             {
                 id: "BT_T3_039", kategori: "Kenali Prisma dan Bukan Prisma", subtopik: "Bukan Prisma", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
@@ -697,10 +714,10 @@
             },
             {
                 id: "BT_T3_089", kategori: "Kenal Poligon Sekata", subtopik: "Ciri Poligon", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
-                soalan: "Berapakah bilangan sisi bagi sebuah pentagon sekata?",
-                pilihan: ["5", "6", "3", "4"],
-                jawapan: "5", markah: 5,
-                gambarajah: "SVG_PENTAGON", penerangan: "Pentagon sekata mempunyai 5 sisi."
+                soalan: "Dua pentagon sekata dilukis berasingan. Berapakah jumlah sisi kedua-duanya?",
+                pilihan: ["10", "5", "8", "12"],
+                jawapan: "10", markah: 5,
+                gambarajah: "SVG_PENTAGON", penerangan: "Setiap pentagon mempunyai 5 sisi. Jumlahnya 5 + 5 = 10 sisi."
             },
             {
                 id: "BT_T3_090", kategori: "Kenal Poligon Sekata", subtopik: "Ciri Poligon", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
@@ -738,9 +755,9 @@
             },
             {
                 id: "BT_T3_095", kategori: "Kenal Poligon Sekata", subtopik: "Ciri Poligon", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Isi Tempat Kosong",
-                soalan: "Sebuah heksagon sekata mempunyai __ bucu.",
-                jawapan: "6", markah: 5,
-                gambarajah: "SVG_HEKSAGON", penerangan: "Heksagon sekata mempunyai 6 bucu."
+                soalan: "Bagi tiga heksagon sekata yang berasingan, jumlah bilangan bucu ialah __.",
+                jawapan: "18", markah: 5,
+                gambarajah: "SVG_HEKSAGON", penerangan: "Setiap heksagon mempunyai 6 bucu. Oleh itu, 3 × 6 = 18 bucu."
             },
             {
                 id: "BT_T3_096", kategori: "Kenal Poligon Sekata", subtopik: "Kelaskan Bentuk", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
@@ -771,10 +788,10 @@
             },
             {
                 id: "BT_T3_100", kategori: "Kenal Poligon Sekata", subtopik: "Ciri Poligon", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
-                soalan: "Berapakah bilangan sisi bagi sebuah heksagon sekata?",
-                pilihan: ["6", "5", "4", "3"],
-                jawapan: "6", markah: 5,
-                gambarajah: "SVG_HEKSAGON", penerangan: "Heksagon sekata mempunyai 6 sisi."
+                soalan: "Sisi sebuah heksagon sekata dan sebuah segi tiga sama sisi dikira bersama-sama. Berapakah jumlahnya?",
+                pilihan: ["9", "5", "6", "12"],
+                jawapan: "9", markah: 5,
+                gambarajah: "SVG_HEKSAGON", penerangan: "Heksagon mempunyai 6 sisi dan segi tiga mempunyai 3 sisi. Jumlahnya 9 sisi."
             },
 
             // Susah (20)
@@ -1012,10 +1029,10 @@
             },
             {
                 id: "BT_T3_135", kategori: "Paksi Simetri", subtopik: "Bilangan Paksi Simetri", tahap: "Senang", aras_kognitif: "Mengingat", jenis: "Objektif",
-                soalan: "Berapakah bilangan paksi simetri bagi sebuah segi tiga sama sisi?",
-                pilihan: ["3", "2", "4", "1"],
-                jawapan: "3", markah: 5,
-                gambarajah: "SVG_EQUILATERAL_SYMMETRY", penerangan: "Segi tiga sama sisi mempunyai 3 paksi simetri."
+                soalan: "Adakah satu garisan yang menyambungkan bucu segi tiga sama sisi ke titik tengah sisi bertentangan merupakan paksi simetri?",
+                pilihan: ["Ya, garisan itu ialah paksi simetri", "Tidak, kerana garisan itu melalui bucu", "Tidak, kerana sisi bertentangan terlalu pendek", "Tidak, kerana garisan itu bukan sisi segi tiga"],
+                jawapan: "Ya, garisan itu ialah paksi simetri", markah: 5,
+                gambarajah: "SVG_EQUILATERAL_SYMMETRY", penerangan: "Garisan itu membahagi segi tiga sama sisi kepada dua bahagian yang menjadi imej cermin."
             },
             {
                 id: "BT_T3_136", kategori: "Paksi Simetri", subtopik: "Bentuk Simetri", tahap: "Senang", aras_kognitif: "Mengingat", jenis: "Objektif",
@@ -1109,10 +1126,10 @@
             },
             {
                 id: "BT_T3_149", kategori: "Paksi Simetri", subtopik: "Bilangan Paksi Simetri", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
-                soalan: "Berapakah bilangan paksi simetri bagi sebuah segi tiga sama sisi?",
-                pilihan: ["3", "1", "2", "4"],
-                jawapan: "3", markah: 5,
-                gambarajah: "SVG_EQUILATERAL_SYMMETRY", penerangan: "Segi tiga sama sisi mempunyai 3 paksi simetri."
+                soalan: "Cikgu menanda satu daripada tiga paksi simetri segi tiga sama sisi. Berapakah paksi yang belum ditanda?",
+                pilihan: ["2", "1", "3", "4"],
+                jawapan: "2", markah: 5,
+                gambarajah: "SVG_EQUILATERAL_SYMMETRY", penerangan: "Segi tiga sama sisi mempunyai 3 paksi simetri. Apabila satu ditanda, 2 lagi belum ditanda."
             },
             {
                 id: "BT_T3_150", kategori: "Paksi Simetri", subtopik: "Tentukan Paksi", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
@@ -1143,10 +1160,10 @@
             },
             {
                 id: "BT_T3_154", kategori: "Paksi Simetri", subtopik: "Bilangan Paksi Simetri", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
-                soalan: "Berapakah bilangan paksi simetri bagi sebuah segi empat sama?",
-                pilihan: ["4", "2", "3", "1"],
-                jawapan: "4", markah: 5,
-                gambarajah: "SVG_SQUARE_SYMMETRY", penerangan: "Segi empat sama mempunyai 4 paksi simetri."
+                soalan: "Dua paksi simetri segi empat sama melalui titik tengah sisi bertentangan. Berapakah paksi simetri lain yang melalui bucu bertentangan?",
+                pilihan: ["2", "1", "3", "4"],
+                jawapan: "2", markah: 5,
+                gambarajah: "SVG_SQUARE_SYMMETRY", penerangan: "Dua pepenjuru segi empat sama masing-masing ialah satu paksi simetri."
             },
             {
                 id: "BT_T3_155", kategori: "Paksi Simetri", subtopik: "Bentuk Simetri", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Isi Tempat Kosong",
@@ -1176,10 +1193,10 @@
             },
             {
                 id: "BT_T3_159", kategori: "Paksi Simetri", subtopik: "Bilangan Paksi Simetri", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
-                soalan: "Berapakah bilangan paksi simetri bagi sebuah segi empat tepat?",
-                pilihan: ["2", "4", "1", "3"],
-                jawapan: "2", markah: 5,
-                gambarajah: "SVG_RECTANGLE_SYMMETRY", penerangan: "Segi empat tepat mempunyai 2 paksi simetri."
+                soalan: "Sebuah segi empat tepat yang panjangnya berbeza daripada lebarnya mempunyai dua pepenjuru. Berapakah pepenjuru yang merupakan paksi simetri?",
+                pilihan: ["0", "1", "2", "4"],
+                jawapan: "0", markah: 5,
+                gambarajah: "SVG_RECTANGLE_SYMMETRY", penerangan: "Pepenjuru segi empat tepat bukan paksi simetri apabila bentuk itu bukan segi empat sama."
             },
             {
                 id: "BT_T3_160", kategori: "Paksi Simetri", subtopik: "Tentukan Paksi", tahap: "Sederhana", aras_kognitif: "Memahami", jenis: "Objektif",
@@ -1293,10 +1310,10 @@
             },
             {
                 id: "BT_T3_176", kategori: "Paksi Simetri", subtopik: "Analisis Simetri", tahap: "Susah", aras_kognitif: "Mengaplikasi", jenis: "Objektif",
-                soalan: "Berapakah bilangan paksi simetri bagi sebuah pentagon sekata?",
-                pilihan: ["5", "6", "4", "3"],
-                jawapan: "5", markah: 5,
-                gambarajah: "SVG_PENTAGON_SYMMETRY", penerangan: "Pentagon sekata mempunyai 5 paksi simetri."
+                soalan: "Hitung beza bilangan paksi simetri antara sebuah pentagon sekata dan sebuah segi tiga sama sisi.",
+                pilihan: ["2", "1", "3", "5"],
+                jawapan: "2", markah: 5,
+                gambarajah: "SVG_PENTAGON_SYMMETRY", penerangan: "Pentagon sekata mempunyai 5 paksi dan segi tiga sama sisi mempunyai 3 paksi. Bezanya ialah 2."
             },
             {
                 id: "BT_T3_177", kategori: "Paksi Simetri", subtopik: "Analisis Simetri", tahap: "Susah", aras_kognitif: "Mengaplikasi", jenis: "Isi Tempat Kosong",
@@ -1673,10 +1690,9 @@
             {
                 id: "BT_T3_231", kategori: "Penyelesaian Masalah", subtopik: "Situasi Kompleks", tahap: "Susah", aras_kognitif: "Mengaplikasi", jenis: "Objektif",
                 soalan: "Dalam satu pertandingan reka bentuk matematik, kumpulan Ceria menghasilkan model robot menggunakan 2 kubus, 1 kuboid dan 2 prisma segi tiga. Berapakah jumlah keseluruhan muka rata bagi kesemua bentuk yang digunakan?",
-                pilihan: ["27 muka", "22 muka", "25 muka", "30 muka"],
-                jawapan: "27 muka", markah: 5,
-                gambarajah: "SVG_ROBOT_MODEL", penerangan: "2 kubus (12) + 1 kuboid (6) + 2 prisma segi tiga (10) = 12 + 6 + 10 = 28 (ralat: 2 kubus 12 + 1 kuboid 6 + 2 prisma 10 = 28; mari semak: 2*6=12, 1*6=6, 2*5=10 -> 12+6+10 = 28. Pilihan jawapan terdekat: 27 atau sesuaikan. Mari kita guna pengiraan tepat: 2 kubus (12) + 1 kuboid (6) + 2 prisma segi tiga (10) = 28. Mari perbetulkan pilihan: [“28 muka”, “25 muka”, “22 muka”, “30 muka”], jawapan 28).",
-                jawapan_fixed: "28"
+                pilihan: ["28 muka", "25 muka", "22 muka", "30 muka"],
+                jawapan: "28 muka", markah: 5,
+                gambarajah: "SVG_ROBOT_MODEL", penerangan: "2 kubus mempunyai 12 muka rata, 1 kuboid mempunyai 6 muka rata, dan 2 prisma segi tiga mempunyai 10 muka rata. Jumlahnya 28 muka rata."
             },
             {
                 id: "BT_T3_232", kategori: "Penyelesaian Masalah", subtopik: "Situasi Kompleks", tahap: "Susah", aras_kognitif: "Mengaplikasi", jenis: "Isi Tempat Kosong",
@@ -1739,13 +1755,6 @@
             }
         ];
 
-        // Ensure fixed answer for question 231 if needed
-        const q231 = questionDatabase.find(q => q.id === "BT_T3_231");
-        if (q231 && q231.jawapan_fixed) {
-            q231.jawapan = q231.jawapan_fixed;
-            q231.pilihan = ["28 muka", "25 muka", "22 muka", "30 muka"];
-        }
-
         // ==========================================
         // 2. APPLICATION STATE & LOCAL STORAGE
         // ==========================================
@@ -1769,12 +1778,12 @@
             }
 
             loadUsers() {
-                const stored = localStorage.getItem('math_kids_users');
+                const stored = localStorage.getItem('edukidz_t3_sub7_users');
                 this.users = stored ? JSON.parse(stored) : {};
             }
 
             saveUsers() {
-                localStorage.setItem('math_kids_users', JSON.stringify(this.users));
+                localStorage.setItem('edukidz_t3_sub7_users', JSON.stringify(this.users));
             }
 
             register(username, fullName, password) {

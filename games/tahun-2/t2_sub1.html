@@ -426,6 +426,24 @@
     </div>
 
     <script>
+
+        // Load compatible records from the old shared key once.
+        (() => {
+            const key = 'edukidz_t2_sub1_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const previous = read('mathkids_users');
+            const users = Array.isArray(previous)
+                ? previous.filter(u => u && typeof u.username === "string" && Number.isFinite(u.xp) && Number.isFinite(u.totalQuestions) && Array.isArray(u.badges))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const oldActive = read('mathkids_current_user');
+            const active = oldActive && users.find(u => u.username === oldActive.username);
+            if (active) localStorage.setItem('edukidz_t2_sub1_active_user', JSON.stringify(active));
+        })();
+
         // Data Topik Rasmi KPM Tahun 2
         const TOPICS_DATA = [
             { id: 1, title: "Kenali Nombor 0 hingga 1000", icon: "🔢", desc: "Kenali, baca, tulis angka & perkataan" },
@@ -484,7 +502,7 @@
         // Authentication & Local Storage State
         class AuthSystem {
             constructor() {
-                this.currentUser = JSON.parse(localStorage.getItem('mathkids_current_user')) || null;
+                this.currentUser = JSON.parse(localStorage.getItem('edukidz_t2_sub1_active_user')) || null;
             }
             switchTab(tab) {
                 const loginBtn = document.getElementById('tab-login-btn');
@@ -510,7 +528,7 @@
                 const username = document.getElementById('reg-username').value.trim().toLowerCase();
                 const password = document.getElementById('reg-password').value;
 
-                let users = JSON.parse(localStorage.getItem('mathkids_users')) || [];
+                let users = JSON.parse(localStorage.getItem('edukidz_t2_sub1_users')) || [];
                 if (users.find(u => u.username === username)) {
                     alert('Nama pengguna telah wujud! Sila guna nama lain.');
                     return;
@@ -531,8 +549,8 @@
                 };
 
                 users.push(newUser);
-                localStorage.setItem('mathkids_users', JSON.stringify(users));
-                localStorage.setItem('mathkids_current_user', JSON.stringify(newUser));
+                localStorage.setItem('edukidz_t2_sub1_users', JSON.stringify(users));
+                localStorage.setItem('edukidz_t2_sub1_active_user', JSON.stringify(newUser));
                 this.currentUser = newUser;
 
                 alert('Pendaftaran berjaya! Selamat datang ke Math Kids.');
@@ -543,7 +561,7 @@
                 const username = document.getElementById('login-username').value.trim().toLowerCase();
                 const password = document.getElementById('login-password').value;
 
-                let users = JSON.parse(localStorage.getItem('mathkids_users')) || [];
+                let users = JSON.parse(localStorage.getItem('edukidz_t2_sub1_users')) || [];
                 const user = users.find(u => u.username === username && u.password === password);
 
                 if (!user) {
@@ -551,12 +569,12 @@
                     return;
                 }
 
-                localStorage.setItem('mathkids_current_user', JSON.stringify(user));
+                localStorage.setItem('edukidz_t2_sub1_active_user', JSON.stringify(user));
                 this.currentUser = user;
                 router.navigateTo('home');
             }
             logout() {
-                localStorage.removeItem('mathkids_current_user');
+                localStorage.removeItem('edukidz_t2_sub1_active_user');
                 this.currentUser = null;
                 router.navigateTo('auth');
             }
@@ -568,10 +586,10 @@
             }
             saveCurrentUserData() {
                 if (!this.currentUser) return;
-                let users = JSON.parse(localStorage.getItem('mathkids_users')) || [];
+                let users = JSON.parse(localStorage.getItem('edukidz_t2_sub1_users')) || [];
                 users = users.map(u => u.username === this.currentUser.username ? this.currentUser : u);
-                localStorage.setItem('mathkids_users', JSON.stringify(users));
-                localStorage.setItem('mathkids_current_user', JSON.stringify(this.currentUser));
+                localStorage.setItem('edukidz_t2_sub1_users', JSON.stringify(users));
+                localStorage.setItem('edukidz_t2_sub1_active_user', JSON.stringify(this.currentUser));
             }
         }
         const authSystem = new AuthSystem();
@@ -587,28 +605,12 @@
         // Dynamic Question Generator Engine (Refined Topik 10: Penyelesaian Masalah with diverse unique word problems and NO diagrams)
         class QuestionGenerator {
             static generateQuestions(topicId, level) {
-                let questions = [];
-                let usedSignatures = new Set();
-                let attempts = 0;
-                
-                while (questions.length < 20 && attempts < 200) {
-                    attempts++;
-                    let q = this.createSingleQuestion(topicId, level, questions.length + 1);
-                    if (q && !usedSignatures.has(q.question)) {
-                        usedSignatures.add(q.question);
-                        questions.push(q);
-                    }
-                }
-                
-                while (questions.length < 20) {
-                    let q = this.createSingleQuestion(topicId, level, questions.length + 1);
-                    q.question += ` (${questions.length + 1})`;
-                    questions.push(q);
-                }
-                return questions;
+                return Array.from({length: 20}, (_, i) => this.createSingleQuestion(topicId, level, i + 1));
             }
 
             static createSingleQuestion(topicId, level, qIndex) {
+                const levelIndex = ['mudah', 'sederhana', 'sukar'].indexOf(level);
+                qIndex += 20 * levelIndex;
                 switch(topicId) {
                     case 1: return this.topic1(level, qIndex);
                     case 2: return this.topic2(level, qIndex);
@@ -626,11 +628,19 @@
 
             // TOPIK 1: Kenali Nombor
             static topic1(level, idx) {
-                let num = level === 'mudah' ? Math.floor(Math.random() * 90) + 10 + idx : (level === 'sederhana' ? Math.floor(Math.random() * 800) + 100 + idx : Math.floor(Math.random() * 900) + 100 + idx);
-                if (num > 1000) num = 999;
-                let wrong1 = num + 12;
-                let wrong2 = num - 15;
-                let wrong3 = num + 100;
+                const num = 14 + idx * 13;
+                const digits = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'lapan', 'sembilan'];
+                const words = n => {
+                    if (n < 10) return digits[n];
+                    if (n < 12) return n === 10 ? 'sepuluh' : 'sebelas';
+                    if (n < 20) return digits[n - 10] + ' belas';
+                    if (n < 100) return (digits[Math.floor(n / 10)] + ' puluh ' + words(n % 10)).trim();
+                    const hundreds = Math.floor(n / 100);
+                    return ((hundreds === 1 ? 'seratus' : digits[hundreds] + ' ratus') + ' ' + words(n % 100)).trim();
+                };
+                const wrong1 = num + 12;
+                const wrong2 = num - 15;
+                const wrong3 = num + 100;
 
                 let opts = [num.toString(), wrong1.toString(), wrong2.toString(), wrong3.toString()];
                 opts.sort(() => Math.random() - 0.5);
@@ -639,24 +649,25 @@
 
                 return {
                     type: 'objective',
-                    question: `Apakah angka bagi bilangan bernilai ${num}?`,
+                    question: `Apakah angka bagi perkataan “${words(num)}”?`,
                     diagram: null,
                     options: opts.map((o, i) => `${['A', 'B', 'C', 'D'][i]}. ${o}`),
                     answer: correctLetter,
-                    explanation: `Nilai yang betul ialah ${num}.`
+                    explanation: `“${words(num)}” ditulis sebagai ${num}.`
                 };
             }
 
             // TOPIK 2: Nilai Nombor
             static topic2(level, idx) {
-                let target = 150 + (idx * 20);
-                if (target > 900) target = 300 + idx;
-                let opts = [target.toString(), (target + 20).toString(), (target - 30).toString(), (target + 100).toString()].sort(() => Math.random() - 0.5);
+                const hundreds = 1 + Math.floor((idx - 1) / 10);
+                const units = (idx - 1) % 10;
+                const target = hundreds * 100 + 10 * (1 + idx % 8) + units;
+                let opts = [target.toString(), (target + 20).toString(), (target - 30).toString(), (target + 10).toString()].sort(() => Math.random() - 0.5);
                 let correctLetter = ['A', 'B', 'C', 'D'][opts.indexOf(target.toString())];
 
                 return {
                     type: 'objective',
-                    question: `Nombor manakah yang mempunyai nilai ${target}?`,
+                    question: `Apakah jumlah bagi ${hundreds} ratus, ${Math.floor(target / 10) % 10} puluh dan ${units} sa?`,
                     diagram: null,
                     options: opts.map((o, i) => `${['A', 'B', 'C', 'D'][i]}. ${o}`),
                     answer: correctLetter,
@@ -666,9 +677,9 @@
 
             // TOPIK 3: Nilai Tempat & Nilai Digit
             static topic3(level, idx) {
-                let r = Math.floor(Math.random() * 8) + 1;
-                let p = Math.floor(Math.random() * 9);
-                let s = Math.floor(Math.random() * 9);
+                const r = 1 + Math.floor((idx - 1) / 10);
+                const p = idx % 10;
+                const s = idx % 7;
                 let num = r * 100 + p * 10 + s;
                 let placeVal = (p * 10).toString();
 
@@ -683,9 +694,9 @@
 
             // TOPIK 4: Cerakinan Nombor
             static topic4(level, idx) {
-                let r = 3 + (idx % 5);
-                let p = 2 + (idx % 6);
-                let s = 1 + (idx % 7);
+                const r = 1 + Math.floor((idx - 1) / 10);
+                const p = 1 + (idx - 1) % 9;
+                const s = 1 + (idx - 1) % 7;
                 let num = r * 100 + p * 10 + s;
                 let ans = `${r * 100} + ${p * 10} + ${s}`;
 
@@ -700,7 +711,7 @@
 
             // TOPIK 5: Bandingkan Nombor
             static topic5(level, idx) {
-                let n1 = 200 + (idx * 12);
+                let n1 = 100 + (idx * 12);
                 let n2 = 250 + (idx * 8);
                 if (n1 === n2) n2 += 5;
                 let symbol = n1 > n2 ? '>' : '<';
@@ -717,7 +728,7 @@
 
             // TOPIK 6: Susunan Nombor
             static topic6(level, idx) {
-                let base = 300 + (idx * 10);
+                let base = 200 + (idx * 9);
                 let arr = [base + 40, base + 10, base + 30, base + 20].sort((a, b) => a - b);
                 let correctStr = arr.join(', ');
 
@@ -732,7 +743,7 @@
 
             // TOPIK 7: Anggaran Nombor
             static topic7(level, idx) {
-                let baseVal = 100 + (idx * 15);
+                let baseVal = 100 + (idx * 5);
                 let targetVal = baseVal * 2;
                 let wrong1 = targetVal + 30;
                 let wrong2 = targetVal - 40;
@@ -742,7 +753,7 @@
 
                 return {
                     type: 'objective',
-                    question: `Jika Kotak A memuatkan ${baseVal} biji guli dan saiz Kotak B adalah dua kali ganda lebih besar,anggarkan bilangan guli di dalam Kotak B:`,
+                    question: `Kotak A memuatkan kira-kira ${baseVal} biji guli. Kotak B memuatkan dua kali bilangan itu. Anggarkan bilangan guli dalam Kotak B.`,
                     diagram: null,
                     options: opts.map((o, i) => `${['A', 'B', 'C', 'D'][i]}. ${o}`),
                     answer: correctLetter,
@@ -752,7 +763,7 @@
 
             // TOPIK 8: Bundar Nombor
             static topic8(level, idx) {
-                let num = 300 + (idx * 14);
+                let num = 100 + (idx * 14);
                 let rounded = Math.round(num / 10) * 10;
                 return {
                     type: 'fill',
@@ -765,7 +776,7 @@
 
             // TOPIK 9: Pola Nombor
             static topic9(level, idx) {
-                let start = 120 + (idx * 15);
+                let start = 120 + (idx * 12);
                 let step = 10;
                 let ans = (start + (step * 3)).toString();
                 return {
@@ -786,8 +797,8 @@
 
                 if (subType === 0) {
                     // Addition word problem (Menambah)
-                    let p1 = 120 + (idx * 15);
-                    let p2 = 85 + (idx * 10);
+                    let p1 = 120 + (idx * 12);
+                    let p2 = 85 + (idx * 4);
                     let ans = p1 + p2;
                     let opts = [ans, ans + 20, ans - 15, ans + 50].sort(() => Math.random() - 0.5);
                     let correctLetter = ['A', 'B', 'C', 'D'][opts.indexOf(ans)];
@@ -802,7 +813,7 @@
                     };
                 } else if (subType === 1) {
                     // Subtraction word problem (Menolak)
-                    let total = 450 + (idx * 20);
+                    let total = 350 + (idx * 10);
                     let given = 130 + (idx * 5);
                     let ans = total - given;
                     let opts = [ans, ans + 30, ans - 20, ans + 40].sort(() => Math.random() - 0.5);
@@ -818,15 +829,15 @@
                     };
                 } else if (subType === 2) {
                     // Combined total comparison (Gabungan & Perbezaan)
-                    let n1 = 230 + (idx * 12);
-                    let n2 = 180 + (idx * 8);
+                    let n1 = 130 + (idx * 7);
+                    let n2 = 180 + (idx * 5);
                     let ans = n1 + n2;
                     let opts = [ans, ans + 40, ans - 30, ans + 100].sort(() => Math.random() - 0.5);
                     let correctLetter = ['A', 'B', 'C', 'D'][opts.indexOf(ans)];
 
                     return {
                         type: 'objective',
-                        question: `Kilang A menghasilkan ${n1} pasang kasut sekolah dalam masa seminggu. Kilang B pula menghasilkan ${n2} pasang kasut. Berapakah jumlah kasut yang dihasilkan oleh kedua-dua kilang itu?`,
+                        question: `Kilang A menghasilkan ${n1} pasang kasut sekolah dalam masa seminggu. Kilang B pula menghasilkan ${n2} pasang kasut. Berapakah jumlah pasang kasut yang dihasilkan oleh kedua-dua kilang itu?`,
                         diagram: null,
                         options: opts.map((o, i) => `${['A', 'B', 'C', 'D'][i]}. ${o}`),
                         answer: correctLetter,
@@ -834,7 +845,7 @@
                     };
                 } else if (subType === 3) {
                     // Difference word problem (Mencari Beza)
-                    let high = 600 + (idx * 15);
+                    let high = 450 + (idx * 8);
                     let low = 250 + (idx * 10);
                     let ans = high - low;
                     let opts = [ans, ans + 50, ans - 25, ans + 70].sort(() => Math.random() - 0.5);
@@ -850,8 +861,8 @@
                     };
                 } else {
                     // Missing part / Fill in blank word problem (Mencari nilai asal / belum diketahui)
-                    let awal = 300 + (idx * 10);
-                    let tambah = 150 + (idx * 5);
+                    let awal = 200 + (idx * 9);
+                    let tambah = 100 + (idx * 4);
                     let ans = awal + tambah;
 
                     return {
@@ -875,6 +886,8 @@
                 this.questions = [];
                 this.currentIndex = 0;
                 this.score = 0;
+                this.answeredIndex = -1;
+                this.resultRecorded = false;
                 this.correctCount = 0;
                 this.wrongCount = 0;
                 this.timerInterval = null;
@@ -925,6 +938,8 @@
 
                 this.currentIndex = 0;
                 this.score = 0;
+                this.answeredIndex = -1;
+                this.resultRecorded = false;
                 this.correctCount = 0;
                 this.wrongCount = 0;
                 this.startTime = Date.now();
@@ -1018,6 +1033,8 @@
             }
 
             checkAnswer(isCorrect, correctAnswer, explanation) {
+                if (this.resultRecorded || this.answeredIndex === this.currentIndex) return;
+                this.answeredIndex = this.currentIndex;
                 clearInterval(this.timerInterval);
                 let feedbackModal = document.getElementById('game-feedback');
                 let icon = document.getElementById('feedback-icon');
@@ -1046,6 +1063,7 @@
             }
 
             nextQuestion() {
+                if (this.resultRecorded || this.answeredIndex !== this.currentIndex) return;
                 document.getElementById('game-feedback').classList.add('hidden');
                 this.currentIndex++;
                 if (this.currentIndex < this.questions.length) {
@@ -1057,6 +1075,8 @@
             }
 
             endGame() {
+                if (this.resultRecorded) return;
+                this.resultRecorded = true;
                 clearInterval(this.timerInterval);
                 let timeTakenSec = Math.floor((Date.now() - this.startTime) / 1000);
                 let m = Math.floor(timeTakenSec / 60).toString().padStart(2, '0');
@@ -1177,7 +1197,7 @@
         }
 
         function renderLeaderboardView() {
-            let users = JSON.parse(localStorage.getItem('mathkids_users')) || [];
+            let users = JSON.parse(localStorage.getItem('edukidz_t2_sub1_users')) || [];
             users.sort((a, b) => (b.xp || 0) - (a.xp || 0));
 
             let list = document.getElementById('leaderboard-list');

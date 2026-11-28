@@ -71,6 +71,24 @@
     </div>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t3_sub2_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edu_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && typeof u.displayname === "string" && typeof u.pass === "string" && u.stats && Number.isFinite(u.stats.highscore))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const previous = read('edu_current_user');
+            const active = previous && Object.values(users).find(u => u.username === previous.username);
+            if (active) localStorage.setItem('edukidz_t3_sub2_active_user', JSON.stringify(active));
+        })();
+
         const TOPICS = [
             { id: 1, code: "TAM2", name: "Topik 1: Tambah Dua Nombor", desc: "Penambahan dua nombor dalam lingkungan nilai ribu dengan/tanpa mengumpul semula." },
             { id: 2, code: "TAM3", name: "Topik 2: Tambah Tiga Nombor", desc: "Penambahan tiga nombor bentuk lazim dalam lingkungan nilai ribu." },
@@ -84,8 +102,8 @@
 
         class MathKidApp {
             constructor() {
-                this.currentUser = JSON.parse(localStorage.getItem('edu_current_user')) || null;
-                this.users = JSON.parse(localStorage.getItem('edu_users')) || [];
+                this.currentUser = JSON.parse(localStorage.getItem('edukidz_t3_sub2_active_user')) || null;
+                this.users = JSON.parse(localStorage.getItem('edukidz_t3_sub2_users')) || [];
                 this.currentView = 'home';
                 this.selectedTopic = null;
                 this.selectedDifficulty = null;
@@ -444,9 +462,9 @@
                 };
 
                 this.users.push(newUser);
-                localStorage.setItem('edu_users', JSON.stringify(this.users));
+                localStorage.setItem('edukidz_t3_sub2_users', JSON.stringify(this.users));
                 this.currentUser = newUser;
-                localStorage.setItem('edu_current_user', JSON.stringify(this.currentUser));
+                localStorage.setItem('edukidz_t3_sub2_active_user', JSON.stringify(this.currentUser));
 
                 this.showModal('Berjaya!', 'Akaun anda telah berjaya didaftarkan. Selamat belajar!', 'fa-solid fa-circle-check');
                 this.navigate('home');
@@ -464,7 +482,7 @@
                 }
 
                 this.currentUser = user;
-                localStorage.setItem('edu_current_user', JSON.stringify(this.currentUser));
+                localStorage.setItem('edukidz_t3_sub2_active_user', JSON.stringify(this.currentUser));
                 this.navigate('home');
             }
 
@@ -475,13 +493,13 @@
                     isGuest: true,
                     stats: { gamesPlayed: 0, totalQuestions: 0, correct: 0, incorrect: 0, score: 0, highscore: 0 }
                 };
-                localStorage.setItem('edu_current_user', JSON.stringify(this.currentUser));
+                localStorage.setItem('edukidz_t3_sub2_active_user', JSON.stringify(this.currentUser));
                 this.navigate('home');
             }
 
             logout() {
                 this.currentUser = null;
-                localStorage.removeItem('edu_current_user');
+                localStorage.removeItem('edukidz_t3_sub2_active_user');
                 this.navigate('home');
             }
 
@@ -673,8 +691,8 @@
                     const idx = this.users.findIndex(u => u.username === this.currentUser.username);
                     if (idx !== -1) {
                         this.users[idx] = this.currentUser;
-                        localStorage.setItem('edu_users', JSON.stringify(this.users));
-                        localStorage.setItem('edu_current_user', JSON.stringify(this.currentUser));
+                        localStorage.setItem('edukidz_t3_sub2_users', JSON.stringify(this.users));
+                        localStorage.setItem('edukidz_t3_sub2_active_user', JSON.stringify(this.currentUser));
                     }
                 }
                 this.navigate('result');

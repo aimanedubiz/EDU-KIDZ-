@@ -200,19 +200,27 @@
 
             // Render Angle Protractor / Interior Angle Diagram
             renderAngle(angleVal, showProtractor = false) {
-                const rad = (180 - angleVal) * Math.PI / 180;
-                const x2 = 150 + 100 * Math.cos(-rad);
-                const y2 = 150 + 100 * Math.sin(-rad);
+                const point = (degrees, radius) => {
+                    const radians = degrees * Math.PI / 180;
+                    return { x: 150 + radius * Math.cos(radians), y: 150 - radius * Math.sin(radians) };
+                };
+                const ray = point(angleVal, 110);
+                const arc = point(angleVal, 30);
+                const scale = Array.from({ length: 37 }, (_, i) => {
+                    const angle = i * 5;
+                    const major = angle % 10 === 0;
+                    const outer = point(angle, 100);
+                    const inner = point(angle, major ? 90 : 95);
+                    const label = point(angle, 78);
+                    return `<line x1="${inner.x}" y1="${inner.y}" x2="${outer.x}" y2="${outer.y}" stroke="#64748b"/>${major ?
+                        `<text x="${label.x}" y="${label.y + 3}" text-anchor="middle" font-size="8">${angle}</text>` : ''}`;
+                }).join('');
                 return `
-                <svg viewBox="0 0 300 200" class="w-60 h-40 mx-auto drop-shadow-md">
-                    ${showProtractor ? `
-                        <path d="M 50 150 A 100 100 0 0 1 250 150 Z" fill="#fef08a" opacity="0.6" stroke="#ca8a04" stroke-dasharray="3 3"/>
-                        <line x1="150" y1="150" x2="150" y2="50" stroke="#ca8a04" stroke-width="1"/>
-                    ` : ''}
-                    <line x1="50" y1="150" x2="250" y2="150" stroke="#1e293b" stroke-width="4"/>
-                    <line x1="150" y1="150" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#1e293b" stroke-width="4"/>
-                    <path d="M 180 150 A 30 30 0 0 0 ${150 + 30 * Math.cos(-rad)} ${150 + 30 * Math.sin(-rad)}" fill="none" stroke="#e11d48" stroke-width="3"/>
-                    <text x="160" y="135" fill="#e11d48" font-weight="bold" font-size="16">${angleVal}°</text>
+                <svg viewBox="0 0 300 170" class="w-64 h-40 mx-auto drop-shadow-md" role="img" aria-label="Rajah sudut">
+                    ${showProtractor ? `<path d="M 50 150 A 100 100 0 0 1 250 150 Z" fill="#fef08a" opacity="0.65"/>${scale}` : ''}
+                    <line x1="150" y1="150" x2="260" y2="150" stroke="#1e293b" stroke-width="3"/>
+                    <line x1="150" y1="150" x2="${ray.x}" y2="${ray.y}" stroke="#1e293b" stroke-width="3"/>
+                    <path d="M 180 150 A 30 30 0 0 0 ${arc.x} ${arc.y}" fill="none" stroke="#e11d48" stroke-width="2"/>
                 </svg>`;
             },
 
@@ -307,6 +315,7 @@
             buildQuestion(sub, level, index) {
                 const numStr = String(index).padStart(3, '0');
                 const lvlCode = level.substring(0,3).toUpperCase();
+                const seed = 20 * this.levels.indexOf(level) + index;
                 const id = `RU_T5_${sub.code}_${lvlCode}_${numStr}`;
 
                 let qObj = {
@@ -334,21 +343,22 @@
                     const poly = polygonTypes[(index - 1) % polygonTypes.length];
                     
                     if (level === 'Senang') {
-                        qObj.soalan = `Berapakah bilangan sisi sekata bagi sebuah ${poly.name}?`;
-                        qObj.pilihan = [`${poly.sides} sisi`, `${poly.sides + 1} sisi`, `${poly.sides - 1 || 2} sisi`, `${poly.sides + 2} sisi`].sort(() => Math.random() - 0.5);
-                        qObj.jawapan = `${poly.sides} sisi`;
+                        const count = 1 + Math.floor((index - 1) / polygonTypes.length);
+                        const sides = count * poly.sides;
+                        qObj.soalan = `Terdapat ${count} bentuk ${poly.name} yang berasingan. Berapakah jumlah sisi bagi semua bentuk itu?`;
+                        qObj.pilihan = [sides, sides + 1, sides - 1, sides + 2].map(n => `${n} sisi`).sort(() => Math.random() - 0.5);
+                        qObj.jawapan = `${sides} sisi`;
                         qObj.diagramType = 'polygon';
                         qObj.diagramSides = poly.sides;
-                        qObj.penerangan = `${poly.name} mempunyai ${poly.sides} sisi yang sama panjang dan ${poly.sides} bucu.`;
+                        qObj.penerangan = `Satu ${poly.name} mempunyai ${poly.sides} sisi. Jumlahnya ialah ${count} × ${poly.sides} = ${sides} sisi.`;
                     } else if (level === 'Sederhana') {
-                        qObj.soalan = `Apakah nama poligon sekata yang mempunyai ${poly.sides} bucu dan ${poly.sides} sisi sama panjang?`;
-                        qObj.pilihan = ['Heksagon sekata', 'Pentagon sekata', 'Oktagon sekata', 'Segi tiga sama sisi'].filter(x => x !== poly.name);
-                        qObj.pilihan.push(poly.name);
-                        qObj.pilihan.sort(() => Math.random() - 0.5);
+                        const length = 2 + Math.floor((index - 1) / polygonTypes.length);
+                        const perimeter = length * poly.sides;
+                        qObj.soalan = `Perimeter suatu poligon sekata ialah ${perimeter} cm dan setiap sisinya sepanjang ${length} cm. Apakah nama bentuk itu?`;
+                        qObj.pilihan = [poly.name, ...polygonTypes.filter(item => item !== poly).slice(0, 3).map(item => item.name)]
+                            .sort(() => Math.random() - 0.5);
                         qObj.jawapan = poly.name;
-                        qObj.diagramType = 'polygon';
-                        qObj.diagramSides = poly.sides;
-                        qObj.penerangan = `Poligon dengan ${poly.sides} bucu dan sisi yang sama ialah ${poly.name}.`;
+                        qObj.penerangan = `Bilangan sisi = ${perimeter} ÷ ${length} = ${poly.sides}. Bentuk itu ialah ${poly.name}.`;
                     } else {
                         qObj.soalan = `Sebuah ${poly.name} mempunyai perimeter ${(poly.sides * (index + 2))} cm. Berapakah panjang satu sisinya?`;
                         const sideLen = index + 2;
@@ -361,8 +371,7 @@
                 }
                 // Subtopic B: Ukur Sudut Pedalaman
                 else if (sub.id === 'sudut') {
-                    const angles = [60, 90, 108, 120, 135];
-                    const angleVal = angles[(index - 1) % angles.length];
+                    const angleVal = 15 + index * 5;
 
                     if (level === 'Senang') {
                         qObj.soalan = `Apakah nilai sudut pedalaman yang ditunjukkan pada rajah di bawah?`;
@@ -379,36 +388,35 @@
                         qObj.soalan = `Jumlah sudut dalam sebuah segi tiga ialah 180°. Jika dua sudut ialah ${known1}° dan ${known2}°, berapakah nilai sudut yang ketiga?`;
                         qObj.pilihan = [`${missing}°`, `${missing + 10}°`, `${missing - 5}°`, `${missing + 15}°`].sort(() => Math.random() - 0.5);
                         qObj.jawapan = `${missing}°`;
-                        qObj.diagramType = 'angle';
-                        qObj.diagramAngle = missing;
+                        qObj.diagramType = null;
+                        qObj.diagramAngle = known1;
                         qObj.penerangan = `Sudut ketiga = 180° - (${known1}° + ${known2}°) = 180° - ${known1 + known2}° = ${missing}°.`;
                     } else {
                         qObj.soalan = `Sebuah segi empat tepat dibahagi dua secara pepenjuru membentuk dua segi tiga bersudut tegak (90°). Jika salah satu sudut tajam ialah ${30 + (index % 20)}°, berapakah sudut tajam yang satu lagi?`;
                         const missing = 90 - (30 + (index % 20));
                         qObj.pilihan = [`${missing}°`, `${missing + 10}°`, `${missing - 10}°`, `${missing + 15}°`].sort(() => Math.random() - 0.5);
                         qObj.jawapan = `${missing}°`;
-                        qObj.diagramType = 'angle';
-                        qObj.diagramAngle = missing;
+                        qObj.diagramType = null;
+                        qObj.diagramAngle = 30 + (index % 20);
                         qObj.penerangan = `Dalam segi tiga tegak, jumlah dua sudut tajam = 90°. Sudut satu lagi = 90° - ${30 + (index % 20)}° = ${missing}°.`;
                     }
                 }
                 // Subtopic C: Perimeter Bentuk Gabungan
                 else if (sub.id === 'perimeter') {
-                    const sideA = 4 + index;
-                    const sideB = 6 + index;
-                    const sideC = 5 + index;
-                    const totalPerim = (sideA * 2) + (sideB * 2) + sideC;
-
-                    qObj.soalan = `Cari perimeter luar bagi bentuk gabungan segi empat tepat dan segi tiga sama kaki bersisi ${sideA} cm, ${sideB} cm, dan ${sideC} cm seperti rajah.`;
-                    qObj.pilihan = [`${totalPerim} cm`, `${totalPerim + 4} cm`, `${totalPerim - 3} cm`, `${totalPerim + 6} cm`].sort(() => Math.random() - 0.5);
-                    qObj.jawapan = `${totalPerim} cm`;
+                    const w1 = 4 + seed, h1 = 6 + index;
+                    const w2 = 2 + (index % 6), h2 = 3 + (index % 4);
+                    const perimeter = 2 * (w1 + h1) + 2 * (w2 + h2) - 2 * h2;
+                    qObj.soalan = `Segi empat tepat A berukuran ${w1} cm × ${h1} cm. Segi empat tepat B berukuran ${w2} cm × ${h2} cm dicantumkan pada A sepanjang satu sisi B berukuran ${h2} cm. Berapakah perimeter luar bentuk gabungan?`;
+                    qObj.pilihan = [perimeter, perimeter + 2 * h2, perimeter - 2, perimeter + 3]
+                        .map(n => `${n} cm`).sort(() => Math.random() - 0.5);
+                    qObj.jawapan = `${perimeter} cm`;
                     qObj.diagramType = 'composite2d';
-                    qObj.diagramParams = [sideA, sideB, sideC, sideA, `${sideA} cm`, `${sideB} cm`, `${sideC} cm`, `${sideA} cm`];
-                    qObj.penerangan = `Perimeter hanya mengira sempadan bahagian LUAR sahaja. Jumlah = ${totalPerim} cm.`;
+                    qObj.diagramParams = [w1, h1, w2, h2, `${w1} cm`, `${h1} cm`, `${w2} cm`, `${h2} cm`];
+                    qObj.penerangan = `Jumlahkan kedua-dua perimeter dan tolak dua kali panjang sisi yang dicantumkan: 2 × (${w1} + ${h1}) + 2 × (${w2} + ${h2}) − 2 × ${h2} = ${perimeter} cm.`;
                 }
                 // Subtopic D: Luas Bentuk Gabungan
                 else if (sub.id === 'luas') {
-                    const w1 = 3 + index, h1 = 5 + index;
+                    const w1 = 3 + seed, h1 = 5 + index;
                     const w2 = 4 + index, h2 = 4 + index;
                     const areaA = w1 * h1;
                     const areaB = w2 * h2;
@@ -427,7 +435,7 @@
                     const w = 3 + (index % 4);
                     const h = 4 + (index % 4);
                     const vol1 = l * w * h;
-                    const vol2 = 10 + (index * 2);
+                    const vol2 = 10 + seed * 2;
                     const totalVol = vol1 + vol2;
 
                     qObj.soalan = `Bongkah A mempunyai isipadu ${vol1} cm³ dan Bongkah B mempunyai isipadu ${vol2} cm³. Berapakah jumlah isipadu gabungan kedua-dua bongkah tersebut?`;
@@ -440,7 +448,7 @@
                 // Subtopic F: Penyelesaian Masalah Ruang
                 else {
                     const costPerMeter = 12;
-                    const length = 5 + index;
+                    const length = 5 + seed;
                     const width = 3 + index;
                     const perimeter = 2 * (length + width);
                     const totalCost = perimeter * costPerMeter;
@@ -448,8 +456,7 @@
                     qObj.soalan = `En. Ahmad ingin memasang pagar di sekeliling taman bunga berbentuk segi empat tepat bersaiz ${length} m × ${width} m. Jika kos pagar ialah RM${costPerMeter} semeter, berapakah jumlah kos yang perlu dibayar?`;
                     qObj.pilihan = [`RM ${totalCost}`, `RM ${totalCost + 24}`, `RM ${totalCost - 12}`, `RM ${totalCost + 36}`].sort(() => Math.random() - 0.5);
                     qObj.jawapan = `RM ${totalCost}`;
-                    qObj.diagramType = 'composite2d';
-                    qObj.diagramParams = [length, width, length, width, `${length} m`, `${width} m`, `${length} m`, `${width} m`];
+                    qObj.diagramType = null;
                     qObj.penerangan = `Perimeter = 2 × (${length} + ${width}) = ${perimeter} m. Jumlah Kos = ${perimeter} m × RM${costPerMeter} = RM ${totalCost}.`;
                 }
 
@@ -474,6 +481,23 @@
 
     <!-- App State and Logic Management Engine -->
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t5_sub6_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && typeof u.displayname === "string" && typeof u.createdAt === "string")
+                : [];
+            localStorage.setItem(usersKey, JSON.stringify(users));
+        })();
+
         class MathApp {
             constructor() {
                 this.currentUser = null;
@@ -495,8 +519,8 @@
             }
 
             initLocalData() {
-                if (!localStorage.getItem('math_kids_users')) {
-                    localStorage.setItem('math_kids_users', JSON.stringify([]));
+                if (!localStorage.getItem('edukidz_t5_sub6_users')) {
+                    localStorage.setItem('edukidz_t5_sub6_users', JSON.stringify([]));
                 }
                 if (!localStorage.getItem('math_kids_scores')) {
                     localStorage.setItem('math_kids_scores', JSON.stringify([]));
@@ -504,13 +528,13 @@
             }
 
             getUsers() {
-                return JSON.parse(localStorage.getItem('math_kids_users') || '[]');
+                return JSON.parse(localStorage.getItem('edukidz_t5_sub6_users') || '[]');
             }
 
             saveUser(user) {
                 const users = this.getUsers();
                 users.push(user);
-                localStorage.setItem('math_kids_users', JSON.stringify(users));
+                localStorage.setItem('edukidz_t5_sub6_users', JSON.stringify(users));
             }
 
             getScores() {

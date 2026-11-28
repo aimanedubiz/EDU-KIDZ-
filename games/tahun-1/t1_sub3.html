@@ -657,6 +657,24 @@
     </footer>
 
     <script>
+
+        // Load compatible records from the old shared key once.
+        (() => {
+            const key = 'edukidz_t1_sub3_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const previous = read('mathkids_users');
+            const users = Array.isArray(previous)
+                ? previous.filter(u => u && typeof u.username === "string" && Number.isFinite(u.easyDone) && Number.isFinite(u.medDone) && Number.isFinite(u.hardDone))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const oldActive = read('mathkids_current_user');
+            const active = oldActive && users.find(u => u.username === oldActive.username);
+            if (active) localStorage.setItem('edukidz_t1_sub3_active_user', JSON.stringify(active));
+        })();
+
         /* ==========================================================================
            AUDIO SYNTHESIZER ENGINE (Web Audio API)
            ========================================================================== */
@@ -753,12 +771,12 @@
             { username: 'aaron123', password: '123', name: 'Aaron Tan', highScore: 85, totalGames: 3, accuracy: 85, easyDone: 80, medDone: 40, hardDone: 0 }
         ];
 
-        let appUsers = JSON.parse(localStorage.getItem('mathkids_users')) || DEFAULT_DEMO_USERS;
-        let currentUser = JSON.parse(localStorage.getItem('mathkids_current_user')) || appUsers[0];
+        let appUsers = JSON.parse(localStorage.getItem('edukidz_t1_sub3_users')) || DEFAULT_DEMO_USERS;
+        let currentUser = JSON.parse(localStorage.getItem('edukidz_t1_sub3_active_user')) || appUsers[0];
 
         function saveState() {
-            localStorage.setItem('mathkids_users', JSON.stringify(appUsers));
-            localStorage.setItem('mathkids_current_user', JSON.stringify(currentUser));
+            localStorage.setItem('edukidz_t1_sub3_users', JSON.stringify(appUsers));
+            localStorage.setItem('edukidz_t1_sub3_active_user', JSON.stringify(currentUser));
             updateUIForUser();
         }
 
@@ -886,8 +904,6 @@
         // Topic 3: Complete Math Sentence
         // Topic 4: Real Life Problem Solving
 
-        const SHAPE_TYPES = ['CIRCLE', 'RECT', 'PIZZA', 'CHOCOLATE', 'CAKE'];
-
         // Helper to shuffle arrays
         function shuffle(arr) {
             const copy = [...arr];
@@ -902,41 +918,19 @@
         function generateQuestionBank(topicId, difficulty, mode) {
             const questions = [];
 
-            // Define fractions appropriate for Year 1 based on difficulty
-            let fractionPool = [];
-            if (difficulty === 'MUDAH') {
-                fractionPool = [
-                    { num: 1, den: 2, label: '1/2', word: 'satu per dua', altWord: 'separuh / setengah' },
-                    { num: 1, den: 3, label: '1/3', word: 'satu per tiga', altWord: 'satu per tiga' },
-                    { num: 1, den: 4, label: '1/4', word: 'satu per empat', altWord: 'suku' }
-                ];
-            } else if (difficulty === 'SEDERHANA') {
-                fractionPool = [
-                    { num: 1, den: 2, label: '1/2', word: 'satu per dua', altWord: 'separuh' },
-                    { num: 1, den: 3, label: '1/3', word: 'satu per tiga', altWord: 'satu per tiga' },
-                    { num: 2, den: 3, label: '2/3', word: 'dua per tiga', altWord: 'dua per tiga' },
-                    { num: 1, den: 4, label: '1/4', word: 'satu per empat', altWord: 'suku' },
-                    { num: 2, den: 4, label: '2/4', word: 'dua per empat', altWord: 'separuh / dua per empat' },
-                    { num: 3, den: 4, label: '3/4', word: 'tiga per empat', altWord: 'tiga suku' }
-                ];
-            } else { // SUSAH
-                fractionPool = [
-                    { num: 1, den: 2, label: '1/2', word: 'satu per dua', altWord: 'separuh' },
-                    { num: 2, den: 3, label: '2/3', word: 'dua per tiga', altWord: 'dua per tiga' },
-                    { num: 1, den: 4, label: '1/4', word: 'satu per empat', altWord: 'suku' },
-                    { num: 2, den: 4, label: '2/4', word: 'dua per empat', altWord: 'dua per empat' },
-                    { num: 3, den: 4, label: '3/4', word: 'tiga per empat', altWord: 'tiga suku' }
-                ];
-            }
-
-            const foodItems = ['pizza', 'kek hari jadi', 'coklat', 'pie epal', 'roti canai', 'biskut'];
-            const names = ['Ali', 'Amir', 'Sara', 'Siti', 'Mei Ling', 'Muthu', 'Danial', 'Aina'];
+            const tier = ['MUDAH', 'SEDERHANA', 'SUSAH'].indexOf(difficulty);
+            const fractions = tier === 0 ? [[1, 2], [1, 3], [1, 4]] : [[2, 3], [2, 4], [3, 4]];
+            const foods = ['piza', 'kek', 'coklat', 'pai', 'roti canai', 'biskut', 'sandwic'];
+            const names = ['Ali', 'Sara', 'Siti', 'Mei Ling', 'Muthu', 'Danial', 'Aina'];
+            const words = ['', 'satu', 'dua', 'tiga', 'empat'];
 
             for (let i = 0; i < 20; i++) {
-                const frac = fractionPool[i % fractionPool.length];
-                const shape = SHAPE_TYPES[i % SHAPE_TYPES.length];
-                const food = foodItems[i % foodItems.length];
+                const [num, den] = fractions[i % fractions.length];
+                const layout = Math.floor(i / fractions.length);
+                const shape = ['CIRCLE', 'PIZZA', 'RECT', 'RECT', 'RECT', 'RECT', 'RECT'][layout];
+                const food = foods[layout];
                 const name = names[i % names.length];
+                const frac = {num, den, label: `${num}/${den}`, word: `${words[num]} per ${words[den]}`};
 
                 let actualMode = mode;
                 if (mode === 'CAMPURAN') {
@@ -953,33 +947,53 @@
                     den: frac.den,
                     fracLabel: frac.label,
                     fracWord: frac.word,
-                    shape: shape,
+                    shape,
+                    layout,
                     explanation: `${frac.den} bahagian sama besar, ${frac.num} bahagian diwarnakan/dimakan. Jadi pecahannya ialah ${frac.label} (${frac.word}).`
                 };
 
-                // Formulate content according to topic
-                if (topicId === 1) { // KENALI PECAHAN BERDASARKAN GAMBARAJAH
-                    qObj.questionText = `Apakah pecahan bagi bahagian yang diwarnakan pada gambarajah di bawah?`;
-                    qObj.correctAnswer = frac.label;
-                    qObj.distractors = generateDistractors(frac.label, ['1/2', '1/3', '2/3', '1/4', '2/4', '3/4']);
-
-                } else if (topicId === 2) { // WARNAKAN / CLICK GAMBARAJAH
-                    qObj.questionText = `Sila klik/pilih ${frac.label} (${frac.word}) daripada gambarajah di bawah:`;
+                if (topicId === 1) {
+                    const unshaded = tier === 2;
+                    const part = unshaded ? den - num : num;
+                    const color = unshaded ? 'tidak diwarnakan' : 'diwarnakan';
+                    qObj.questionText = tier === 1
+                        ? 'Berapa bahagian yang diwarnakan daripada semua bahagian sama besar? Nyatakan sebagai pecahan.'
+                        : `Apakah pecahan bagi bahagian yang ${color}?`;
+                    qObj.correctAnswer = `${part}/${den}`;
+                    qObj.explanation = `Ada ${part} daripada ${den} bahagian yang ${color}.`;
+                } else if (topicId === 2) {
+                    const given = den - num;
+                    qObj.questionText = tier === 2
+                        ? `Biarkan ${given}/${den} bahagian tanpa warna. Warnakan semua bahagian yang lain.`
+                        : tier === 1
+                            ? `Pilih ${num} daripada ${den} bahagian sama besar untuk mewarna.`
+                            : `Warnakan ${frac.label} daripada rajah.`;
                     qObj.correctAnswer = frac.label;
                     qObj.mode = 'INTERACTIVE_COLOR';
-
-                } else if (topicId === 3) { // LENGKAPKAN AYAT MATEMATIK
-                    qObj.questionText = `Gambar menunjukkan ${frac.num} daripada ${frac.den} bahagian sama besar diwarnakan. Lengkapkan pecahan berikut:`;
-                    qObj.fillBlankPattern = `___ / ${frac.den}`;
-                    qObj.correctAnswer = `${frac.num}`;
-                    qObj.distractors = shuffle(['1', '2', '3', '4'].filter(n => n !== `${frac.num}`));
-
-                } else if (topicId === 4) { // PENYELESAIAN MASALAH
-                    qObj.questionText = `${name} membahagikan sebiji ${food} kepada ${frac.den} bahagian sama besar. ${name} makan ${frac.num} bahagian daripada ${food} tersebut. Apakah pecahan ${food} yang dimakan oleh ${name}?`;
-                    qObj.correctAnswer = frac.label;
-                    qObj.distractors = generateDistractors(frac.label, ['1/2', '1/3', '2/3', '1/4', '2/4', '3/4']);
+                } else if (topicId === 3) {
+                    const missingDenominator = tier === 1;
+                    const part = tier === 2 ? den - num : num;
+                    const color = tier === 2 ? 'tidak diwarnakan' : 'diwarnakan';
+                    qObj.fillBlankPattern = missingDenominator ? `${part} / ___` : `___ / ${den}`;
+                    qObj.questionText = `Lengkapkan pecahan bagi bahagian yang ${color}: ${qObj.fillBlankPattern}.`;
+                    qObj.correctAnswer = String(missingDenominator ? den : part);
+                    qObj.explanation = `Ada ${part} daripada ${den} bahagian yang ${color}. Pecahannya ialah ${part}/${den}.`;
+                } else {
+                    const part = tier === 2 ? den - num : num;
+                    qObj.questionText = tier === 2
+                        ? `${name} membahagikan ${food} kepada ${den} bahagian sama besar. Dia makan ${num} bahagian. Apakah pecahan yang masih tinggal?`
+                        : tier === 1
+                            ? `${name} memotong ${food} kepada ${den} bahagian sama besar. Dia memberi ${num} bahagian kepada rakannya. Apakah pecahan yang diberi?`
+                            : `${name} membahagikan ${food} kepada ${den} bahagian sama besar dan makan ${num} bahagian. Apakah pecahan yang dimakan?`;
+                    qObj.correctAnswer = `${part}/${den}`;
+                    qObj.explanation = `Jawapannya ${part}/${den} kerana ${part} daripada ${den} bahagian memenuhi kehendak soalan.`;
                 }
 
+                if (topicId === 3) {
+                    qObj.distractors = ['1', '2', '3', '4'].filter(value => value !== qObj.correctAnswer);
+                } else if (topicId !== 2) {
+                    qObj.distractors = generateDistractors(qObj.correctAnswer, ['1/2', '1/3', '2/3', '1/4', '2/4', '3/4']);
+                }
                 questions.push(qObj);
             }
 
@@ -987,7 +1001,11 @@
         }
 
         function generateDistractors(correct, pool) {
-            const filtered = pool.filter(p => p !== correct);
+            const [a, b] = correct.split('/').map(Number);
+            const filtered = pool.filter(value => {
+                const [n, d] = value.split('/').map(Number);
+                return n * b !== a * d;
+            });
             const shuffled = shuffle(filtered);
             return shuffled.slice(0, 3);
         }
@@ -1005,7 +1023,7 @@
             const colorUnselected = '#FFF3BF'; // Light yellow slice
 
             if (shape === 'CIRCLE' || shape === 'PIZZA' || shape === 'CAKE') {
-                const radius = 80;
+                const radius = shape === 'PIZZA' ? 68 : 80;
                 const center = 100;
                 let slicesSvg = '';
 
@@ -1051,7 +1069,7 @@
 
             } else { // RECT / CHOCOLATE / BAR
                 const width = 220;
-                const height = 90;
+                const height = [90, 90, 38, 61, 84, 107, 130][q.layout] ?? 90;
                 const sliceWidth = width / den;
                 let rectsSvg = '';
 
@@ -1153,6 +1171,9 @@
             playSound('click');
             currentSession.questionList = generateQuestionBank(currentSession.topic, currentSession.difficulty, currentSession.gameMode);
             currentSession.currentIndex = 0;
+            currentSession.answeredIndex = -1;
+            currentSession.resultRecorded = false;
+            currentSession.advancing = false;
             currentSession.score = 0;
             currentSession.correctCount = 0;
             currentSession.wrongCount = 0;
@@ -1241,7 +1262,7 @@
                         <div class="text-3xl font-black font-fredoka text-purple-900 bg-purple-50 py-3 rounded-2xl border-2 border-purple-200">
                             ${q.fillBlankPattern || '___'}
                         </div>
-                        <input type="number" id="blankInput" min="1" max="10" placeholder="Taip nombor..." class="w-full text-center px-4 py-3 rounded-2xl border-4 border-yellow-400 text-2xl font-black focus:outline-none focus:border-yellow-500">
+                        <input type="text" id="blankInput" placeholder="Contoh: 1/2 atau 2" class="w-full text-center px-4 py-3 rounded-2xl border-4 border-yellow-400 text-2xl font-black focus:outline-none focus:border-yellow-500">
                         <button onclick="submitFillBlankAnswer()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-fredoka font-bold text-xl py-3 rounded-2xl shadow-3d border-b-4 border-emerald-800">
                             ✅ HANTAR JAWAPAN
                         </button>
@@ -1279,7 +1300,7 @@
             clearInterval(currentSession.timerInterval);
             const inputVal = document.getElementById('blankInput').value.trim();
             const q = currentSession.questionList[currentSession.currentIndex];
-            const isCorrect = inputVal === q.correctAnswer;
+            const isCorrect = inputVal.replace(/\s+/g, "") === q.correctAnswer;
             processAnswerResult(isCorrect, inputVal, q.correctAnswer, q.explanation);
         }
 
@@ -1299,6 +1320,8 @@
         }
 
         function processAnswerResult(isCorrect, userAns, correctAns, explanation) {
+            if (currentSession.answeredIndex === currentSession.currentIndex) return;
+            currentSession.answeredIndex = currentSession.currentIndex;
             const box = document.getElementById('feedbackBox');
             const icon = document.getElementById('feedbackIcon');
             const title = document.getElementById('feedbackTitle');
@@ -1349,6 +1372,8 @@
         }
 
         function closeFeedbackAndNext() {
+            if (currentSession.advancing || currentSession.answeredIndex !== currentSession.currentIndex) return;
+            currentSession.advancing = true;
             playSound('click');
             const box = document.getElementById('feedbackBox');
             const modal = document.getElementById('feedbackModal');
@@ -1358,12 +1383,15 @@
 
             setTimeout(() => {
                 modal.classList.add('hidden');
+                currentSession.advancing = false;
                 currentSession.currentIndex++;
                 loadCurrentQuestion();
             }, 200);
         }
 
         function finishGameSession() {
+            if (currentSession.resultRecorded) return;
+            currentSession.resultRecorded = true;
             const totalQ = 20;
             const score = currentSession.score;
             const correct = currentSession.correctCount;

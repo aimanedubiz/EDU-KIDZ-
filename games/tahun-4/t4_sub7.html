@@ -100,8 +100,26 @@
     </div>
 
     <script>
+
+        // Load compatible records from the old shared key once.
+        (() => {
+            const key = 'edukidz_t4_sub7_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const previous = read('mathkids_users');
+            const users = Array.isArray(previous)
+                ? previous.filter(u => u && typeof u.playerId === "string" && u.stats && u.topicsCompleted)
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const oldActive = read('mathkids_active_user');
+            const active = oldActive && users.find(u => u.playerId === oldActive.playerId);
+            if (active) localStorage.setItem('edukidz_t4_sub7_active_user', JSON.stringify(active));
+        })();
+
         let currentUser = null;
-        let usersList = JSON.parse(localStorage.getItem('mathkids_users') || '[]');
+        let usersList = JSON.parse(localStorage.getItem('edukidz_t4_sub7_users') || '[]');
         let currentView = 'welcome';
         let currentGameSession = {
             topicId: null,
@@ -127,9 +145,9 @@
             for (let i = 1; i <= 60; i++) {
                 let diff = i <= 20 ? 'Senang' : i <= 40 ? 'Sederhana' : 'Susah';
                 let aras = i <= 10 ? 'Mengingat' : i <= 40 ? 'Memahami' : 'Mengaplikasi';
-                let x = ((i * 3) % 5) + 1;
-                let y = ((i * 7) % 5) + 1;
-                if (x === y) y = (y % 5) + 1;
+                const step = (i - 1) % 20;
+                const x = Math.floor(step / 4) + 1;
+                const y = (x + step % 4) % 5 + 1;
 
                 let qText = "";
                 let options = [];
@@ -174,7 +192,7 @@
                     question: qText,
                     visualType: 'grid',
                     visualData: { x: x, y: y, label: lbl },
-                    options: options,
+                    options: [...new Set(options)],
                     correct: correctAns,
                     marks: 5,
                     explanation: explanation
@@ -185,8 +203,9 @@
             for (let i = 1; i <= 60; i++) {
                 let diff = i <= 20 ? 'Senang' : i <= 40 ? 'Sederhana' : 'Susah';
                 let aras = i <= 15 ? 'Mengingat' : i <= 45 ? 'Memahami' : 'Mengaplikasi';
-                let cx = ((i * 2) % 4) + 1;
-                let cy = ((i * 5) % 4) + 1;
+                const step = (i - 1) % 20;
+                const cx = Math.floor(step / 4) + 1;
+                const cy = (cx + step % 4) % 5 + 1;
                 let labels2 = ['P', 'Q', 'R', 'S', 'T', 'K', 'L', 'M'];
                 let lbl2 = labels2[i % labels2.length];
                 let qText = "";
@@ -217,7 +236,7 @@
                     question: qText,
                     visualType: 'grid',
                     visualData: { x: cx, y: cy, label: lbl2 },
-                    options: options,
+                    options: [...new Set(options)],
                     correct: correctAns,
                     marks: 5,
                     explanation: `Titik koordinat (x, y) ditandakan dengan mencari nilai pada paksi-x (${cx}) terlebih dahulu, kemudian bergerak ke nilai pada paksi-y (${cy}).`
@@ -237,8 +256,9 @@
                 let diff = i <= 20 ? 'Senang' : i <= 40 ? 'Sederhana' : 'Susah';
                 let aras = i <= 15 ? 'Mengingat' : i <= 45 ? 'Memahami' : 'Mengaplikasi';
                 let item = itemsList[i % itemsList.length];
-                let numA = ((i * 3) % 4) + 2;
-                let numB = ((i * 5) % 5) + 2;
+                const step = (i - 1) % 20;
+                const numA = 2 + step % 5;
+                const numB = numA * (1 + Math.floor(step / 5)) + 1;
                 let qText = "";
                 let options = [];
                 let correctAns = `${numA} kepada ${numB}`;
@@ -270,7 +290,7 @@
                     question: qText,
                     visualType: 'ratio',
                     visualData: { countA: numA, countB: numB, iconA: item.iconA, iconB: item.iconB, labelA: item.a, labelB: item.b },
-                    options: options,
+                    options: [...new Set(options)],
                     correct: correctAns,
                     marks: 5,
                     explanation: `Nisbah membandingkan kuantiti ${item.a} (${numA}) kepada ${item.b} (${numB}). Susunan jawapan mestilah mengikut tertib yang diminta dalam soalan.`
@@ -295,7 +315,7 @@
                 let item = kadaranItems[i % kadaranItems.length];
                 
                 // Completely unique mathematical parameters to prevent any repetition
-                let unitPrice = ((i * 3) % 5) + 2; // price per unit (2 to 6 RM)
+                const unitPrice = 2 + (i - 1) % 20;
                 let qText = "";
                 let options = [];
                 let correctAns = "";
@@ -358,7 +378,7 @@
                     question: qText,
                     visualType: 'proportion',
                     visualData: { price: unitPrice, qty: 3, item: item.name, icon: item.icon },
-                    options: options,
+                    options: [...new Set(options)],
                     correct: correctAns,
                     marks: 5,
                     explanation: explanation
@@ -376,8 +396,8 @@
 
                 if (diff === 'Senang') {
                     // Unique coordinate and simple everyday word problems
-                    let startX = (i % 4) + 1;
-                    let moveX = ((i * 2) % 3) + 2;
+                    const startX = 1 + (i - 1) % 5;
+                    const moveX = 1 + Math.floor((i - 1) / 5);
                     let endX = startX + moveX;
                     qText = `Siti berada di titik (${startX}, 3) pada grid koordinat dan bergerak ke kanan sejauh ${moveX} unit secara melintang. Apakah koordinat baharu Siti?`;
                     correctAns = `(${endX}, 3)`;
@@ -391,7 +411,7 @@
                     // Unique ratio word problems
                     let ratioA = (i % 3) + 2; // 2, 3, 4
                     let ratioB = ((i * 2) % 4) + 3; // 3, 4, 5, 6
-                    let multiplier = (i % 3) + 2; // 2, 3, 4
+                    const multiplier = i - 19;
                     let totalA = ratioA * multiplier;
                     let totalB = ratioB * multiplier;
 
@@ -406,7 +426,7 @@
                 } else {
                     // Unique complex unitary method / proportion problem
                     let unitCount = (i % 3) + 3; // 3, 4, 5
-                    let unitPrice = ((i * 5) % 4) + 3; // 3, 4, 5, 6 RM per unit
+                    const unitPrice = i - 36;
                     let totalCost = unitCount * unitPrice;
                     let targetCount = unitCount + 4; // e.g. +4 units
                     let targetCost = targetCount * unitPrice;
@@ -429,7 +449,7 @@
                     question: qText,
                     visualType: 'problem',
                     visualData: { title: 'Penyelesaian Masalah Harian' },
-                    options: options,
+                    options: [...new Set(options)],
                     correct: correctAns,
                     marks: 5,
                     explanation: explanation
@@ -449,7 +469,7 @@
         }
 
         function checkStoredSession() {
-            const activeUserStr = localStorage.getItem('mathkids_active_user');
+            const activeUserStr = localStorage.getItem('edukidz_t4_sub7_active_user');
             if (activeUserStr) {
                 currentUser = JSON.parse(activeUserStr);
             }
@@ -623,8 +643,8 @@
             };
 
             usersList.push(newUser);
-            localStorage.setItem('mathkids_users', JSON.stringify(usersList));
-            localStorage.setItem('mathkids_active_user', JSON.stringify(newUser));
+            localStorage.setItem('edukidz_t4_sub7_users', JSON.stringify(usersList));
+            localStorage.setItem('edukidz_t4_sub7_active_user', JSON.stringify(newUser));
             currentUser = newUser;
 
             showModal('🎉 Berjaya!', `Selamat datang, ${username}!`, '🌟');
@@ -671,13 +691,13 @@
             }
 
             currentUser = found;
-            localStorage.setItem('mathkids_active_user', JSON.stringify(found));
+            localStorage.setItem('edukidz_t4_sub7_active_user', JSON.stringify(found));
             showModal('🎉 Berjaya!', `Selamat kembali, ${found.username}!`, '⭐');
             setTimeout(() => { closeModal(); navigateTo('home'); }, 1000);
         }
 
         function logoutUser() {
-            localStorage.removeItem('mathkids_active_user');
+            localStorage.removeItem('edukidz_t4_sub7_active_user');
             currentUser = null;
             navigateTo('welcome');
         }
@@ -1098,8 +1118,8 @@
             if (idx !== -1) {
                 usersList[idx] = currentUser;
             }
-            localStorage.setItem('mathkids_users', JSON.stringify(usersList));
-            localStorage.setItem('mathkids_active_user', JSON.stringify(currentUser));
+            localStorage.setItem('edukidz_t4_sub7_users', JSON.stringify(usersList));
+            localStorage.setItem('edukidz_t4_sub7_active_user', JSON.stringify(currentUser));
 
             navigateTo('result');
         }

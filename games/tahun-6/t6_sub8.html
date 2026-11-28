@@ -90,10 +90,28 @@
 
     <!-- MAIN APPLICATION SCRIPT -->
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t6_sub8_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edu_kidz_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && typeof u.id === "string" && Number.isFinite(u.totalWrong) && Number.isFinite(u.totalAnswered) && Array.isArray(u.history))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const previous = read('edu_kidz_current_user');
+            const active = previous && Object.values(users).find(u => u.username === previous.username);
+            if (active) localStorage.setItem('edukidz_t6_sub8_active_user', JSON.stringify(active));
+        })();
+
         const APP_STATE = {
             currentView: 'home', // home, login, register, topicSelect, difficultySelect, timerSelect, game, summary, progress, leaderboard, settings
             currentUser: null,   // active user object
-            users: JSON.parse(localStorage.getItem('edu_kidz_users') || '[]'),
+            users: JSON.parse(localStorage.getItem('edukidz_t6_sub8_users') || '[]'),
             gameSettings: {
                 topic: null,       // 1: Carta Pai, 2: Kebolehjadian, 3: Penyelesaian Masalah
                 difficulty: null,  // mudah, sederhana, susah
@@ -1643,11 +1661,11 @@
         const app = {
             init() {
                 // Load users from storage
-                const savedUsers = localStorage.getItem('edu_kidz_users');
+                const savedUsers = localStorage.getItem('edukidz_t6_sub8_users');
                 if (savedUsers) {
                     APP_STATE.users = JSON.parse(savedUsers);
                 }
-                const active = localStorage.getItem('edu_kidz_current_user');
+                const active = localStorage.getItem('edukidz_t6_sub8_active_user');
                 if (active) {
                     APP_STATE.currentUser = JSON.parse(active);
                 }
@@ -1655,9 +1673,9 @@
             },
 
             saveUsers() {
-                localStorage.setItem('edu_kidz_users', JSON.stringify(APP_STATE.users));
+                localStorage.setItem('edukidz_t6_sub8_users', JSON.stringify(APP_STATE.users));
                 if (APP_STATE.currentUser) {
-                    localStorage.setItem('edu_kidz_current_user', JSON.stringify(APP_STATE.currentUser));
+                    localStorage.setItem('edukidz_t6_sub8_active_user', JSON.stringify(APP_STATE.currentUser));
                 }
             },
 
@@ -1825,7 +1843,7 @@
 
             logout() {
                 APP_STATE.currentUser = null;
-                localStorage.removeItem('edu_kidz_current_user');
+                localStorage.removeItem('edukidz_t6_sub8_active_user');
                 renderHeaderNav();
                 this.goHome();
             },

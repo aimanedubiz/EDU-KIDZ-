@@ -199,8 +199,12 @@
 
         function buildQuestion(topicId, diff, index) {
             let id = `T${topicId}-${diff.toUpperCase()}-${index < 10 ? '0' + index : index}`;
-            let modes = ['objektif', 'isikosong', 'padanan', 'dragdrop'];
-            let mode = modes[(index - 1) % modes.length];
+            const level = ['senang', 'sederhana', 'susah'].indexOf(diff);
+            const variant = level * 20 + index;
+            const clock = (hour, minute) => {
+                const suffix = hour === 0 ? 'tengah malam' : hour < 12 ? 'pagi' : hour === 12 ? 'tengah hari' : hour < 19 ? 'petang' : 'malam';
+                return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${suffix}`;
+            };
             
             if (topicId === 1) {
                 if (diff === 'senang') {
@@ -239,7 +243,7 @@
                         };
                     }
                 } else if (diff === 'sederhana') {
-                    let min = (index * 5) % 60;
+                    let min = (index * 7) % 60;
                     let h24 = 10 + (index % 12);
                     let h12Val = h24 > 12 ? h24 - 12 : h24;
                     let timeOfDay = h24 >= 19 ? 'malam' : (h24 >= 12 ? 'petang' : 'pagi');
@@ -263,11 +267,10 @@
                     let totalMin = index * 5;
                     let extraH = Math.floor(totalMin / 60);
                     let m = totalMin % 60;
-                    let h12 = 6 + extraH;
                     let h24 = 18 + extraH;
                     return {
                         id, topic: topicId, diff, aras: 'Mengaplikasi', mode: 'objektif',
-                        question: `Penerbangan MH${flightNo} berlepas pada pukul ${h12}:${String(m).padStart(2,'0')} petang. Apakah waktu berlepas dalam sistem 24 jam?`,
+                        question: `Penerbangan MH${flightNo} berlepas pada pukul ${clock(h24, m)}. Apakah waktu berlepas dalam sistem 24 jam?`,
                         options: [
                             `jam ${h24}:${String(m).padStart(2,'0')}`,
                             `jam ${h24 === 23 ? 0 : h24 + 1}:${String(m).padStart(2,'0')}`,
@@ -275,17 +278,17 @@
                             `jam ${h24 > 0 ? h24 - 1 : 23}:${String(m).padStart(2,'0')}`
                         ].sort(() => Math.random() - 0.5),
                         correct: `jam ${h24}:${String(m).padStart(2,'0')}`,
-                        explanation: `Waktu petang ${h12}:${String(m).padStart(2,'0')} ditambah 12 jam dalam sistem 24 jam menjadi jam ${h24}:${String(m).padStart(2,'0')}.`
+                        explanation: `Waktu ${clock(h24, m)} ditambah 12 jam dalam sistem 24 jam menjadi jam ${h24}:${String(m).padStart(2,'0')}.`
                     };
                 }
             } else if (topicId === 2) {
-                let startH = 8, startM = 10, durationM = index * 10;
+                let startH = 8, startM = 10, durationM = 10 + variant * 3;
                 let endMTotal = startM + durationM;
                 let endH = startH + Math.floor(endMTotal / 60);
                 let endM = endMTotal % 60;
                 return {
                     id, topic: topicId, diff, aras: 'Mengaplikasi', mode: 'objektif',
-                    question: `Aktiviti bermula pada pukul 08:10 pagi dan tamat pada pukul ${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')} pagi. Berapakah tempoh aktiviti tersebut?`,
+                    question: `Aktiviti bermula pada pukul 08:10 pagi dan tamat pada pukul ${clock(endH, endM)}. Berapakah tempoh aktiviti tersebut?`,
                     options: [`${durationM} minit`, `${durationM + 15} minit`, `${durationM - 10} minit`, `${durationM + 30} minit`],
                     correct: `${durationM} minit`,
                     explanation: `Tempoh dikira dari 08:10 hingga ${endH}:${String(endM).padStart(2,'0')} iaitu ${durationM} minit.`
@@ -293,7 +296,7 @@
             } else if (topicId === 3) {
                 let subType = index % 5;
                 if (subType === 0) {
-                    let abad = ((index - 1) % 5) + 1;
+                    let abad = variant / 5;
                     let tahun = abad * 100;
                     return {
                         id, topic: topicId, diff, aras: 'Memahami', mode: 'objektif',
@@ -303,17 +306,17 @@
                         explanation: `1 abad = 100 tahun. Maka ${abad} abad × 100 = ${tahun} tahun.`
                     };
                 } else if (subType === 1) {
-                    let alaf = 1;
+                    let alaf = Math.floor(variant / 5) + 1;
                     let abadVal = alaf * 10;
                     return {
                         id, topic: topicId, diff, aras: 'Memahami', mode: 'objektif',
                         question: `${alaf} alaf adalah sama dengan berapa abad?`,
                         options: [`${abadVal} abad`, `${abadVal + 5} abad`, `${abadVal * 2} abad`, `${abadVal - 2} abad`].sort(() => Math.random() - 0.5),
                         correct: `${abadVal} abad`,
-                        explanation: `1 alaf = 10 abad atau 1000 tahun.`
+                        explanation: `1 alaf = 10 abad, jadi ${alaf} × 10 = ${abadVal} abad.`
                     };
                 } else if (subType === 2) {
-                    let tahunVal = ((index - 1) % 4) + 1;
+                    let tahunVal = Math.floor(variant / 5) + 1;
                     let bulanVal = tahunVal * 12;
                     return {
                         id, topic: topicId, diff, aras: 'Memahami', mode: 'objektif',
@@ -323,7 +326,7 @@
                         explanation: `1 tahun = 12 bulan. Maka ${tahunVal} tahun × 12 = ${bulanVal} bulan.`
                     };
                 } else if (subType === 3) {
-                    let mingguVal = ((index - 1) % 4) + 2;
+                    let mingguVal = Math.floor(variant / 5) + 2;
                     let hariVal = mingguVal * 7;
                     return {
                         id, topic: topicId, diff, aras: 'Memahami', mode: 'objektif',
@@ -333,16 +336,19 @@
                         explanation: `1 minggu = 7 hari. Maka ${mingguVal} minggu × 7 = ${hariVal} hari.`
                     };
                 } else {
+                    const days = Math.floor(variant / 5) + 1;
+                    const hours = 4 + level * 5;
+                    const total = days * 24 + hours;
                     return {
                         id, topic: topicId, diff, aras: 'Mengaplikasi', mode: 'objektif',
-                        question: `Antara berikut, yang manakah anggaran masa yang paling munasabah untuk memasak sebiji kek di dalam ketuhar?`,
-                        options: [`45 minit`, `45 saat`, `45 jam`, `45 hari`].sort(() => Math.random() - 0.5),
-                        correct: `45 minit`,
-                        explanation: `Memasak kek di dalam ketuhar biasanya mengambil masa sekitar 45 minit, iaitu unit masa yang paling munasabah.`
+                        question: `Tukarkan ${days} hari ${hours} jam kepada jam.`,
+                        options: [total, total + 24, total - hours, total + hours].map(value => `${value} jam`),
+                        correct: `${total} jam`,
+                        explanation: `${days} × 24 + ${hours} = ${total} jam.`
                     };
                 }
             } else if (topicId === 4) {
-                let hours = (index % 5) + 1;
+                let hours = variant;
                 let minutes = hours * 60;
                 return {
                     id, topic: topicId, diff, aras: 'Mengingat', mode: 'isikosong',
@@ -352,7 +358,7 @@
                     explanation: `1 jam = 60 minit. ${hours} jam × 60 = ${minutes} minit.`
                 };
             } else if (topicId === 5) {
-                let h1 = 1, m1 = 15, h2 = 2, m2 = (index * 5) % 55;
+                let h1 = 1 + level, m1 = 15 + level * 16, h2 = 2, m2 = index + 10;
                 let totalM = m1 + m2;
                 let extraH = Math.floor(totalM / 60);
                 let finalM = totalM % 60;
@@ -384,6 +390,8 @@
                     m2 = 25;
                 }
 
+                h1 += level * 4;
+                m1 = 10 + index * 2;
                 let totalMin1 = h1 * 60 + m1;
                 let totalMin2 = h2 * 60 + m2;
                 if (totalMin2 > totalMin1) {
@@ -397,7 +405,7 @@
 
                 let wrong1 = `${resH + 1} jam ${resM} minit`;
                 let wrong2 = `${resH} jam ${resM > 15 ? resM - 15 : resM + 15} minit`;
-                let wrong3 = `${resH > 0 ? resH - 1 : 0} jam ${resM} minit`;
+                let wrong3 = `${resH > 0 ? resH - 1 : resH + 2} jam ${resM} minit`;
 
                 return {
                     id, topic: topicId, diff, aras: m1 < m2 ? 'Memahami' : 'Mengingat', mode: 'objektif',
@@ -422,7 +430,7 @@
                     expl = `Darabkan jam dan minit dengan ${multiplier}. Jumlahnya ialah ${ansStr}.`;
                     wrong1 = `${resH + 1} jam ${resM} minit`;
                     wrong2 = `${resH} jam ${resM > 10 ? resM - 10 : resM + 15} minit`;
-                    wrong3 = `${Math.max(0, resH - 1)} jam ${resM} minit`;
+                    wrong3 = `${(resH > 0 ? resH - 1 : resH + 2)} jam ${resM} minit`;
                 } else if (diff === 'sederhana') {
                     let isSec = index % 2 === 0;
                     if (isSec) {
@@ -437,7 +445,7 @@
                         expl = `Darabkan minit dan saat dengan ${multiplier} untuk mendapatkan ${ansStr}.`;
                         wrong1 = `${resMin + 1} minit ${resSec} saat`;
                         wrong2 = `${resMin} minit ${resSec > 15 ? resSec - 15 : resSec + 15} saat`;
-                        wrong3 = `${Math.max(0, resMin - 1)} minit ${resSec} saat`;
+                        wrong3 = `${(resMin > 0 ? resMin - 1 : resMin + 2)} minit ${resSec} saat`;
                     } else {
                         h = (index % 4) + 2;
                         m = ((index * 11) % 40) + 10;
@@ -450,7 +458,7 @@
                         expl = `Darabkan ${h} jam ${m} minit dengan ${multiplier} untuk mendapatkan ${ansStr}.`;
                         wrong1 = `${resH + 1} jam ${resM} minit`;
                         wrong2 = `${resH} jam ${resM > 20 ? resM - 20 : resM + 20} minit`;
-                        wrong3 = `${Math.max(0, resH - 1)} jam ${resM} minit`;
+                        wrong3 = `${(resH > 0 ? resH - 1 : resH + 2)} jam ${resM} minit`;
                     }
                 } else {
                     let activityName = ['Kursus latihan robotik', 'Projek seni lukis', 'Sesi latihan bola sepak', 'Kelas ulangkaji matematik', 'Perjalanan ekspres bas', 'Bengkel sains inovasi', 'Aktiviti senamrobik'][index % 7];
@@ -465,7 +473,7 @@
                     expl = `Darabkan masa satu sesi dengan ${multiplier}. Jumlah keseluruhan ialah ${ansStr}.`;
                     wrong1 = `${resH + 1} jam ${resM} minit`;
                     wrong2 = `${resH} jam ${resM > 15 ? resM - 15 : resM + 15} minit`;
-                    wrong3 = `${Math.max(0, resH - 1)} jam ${resM} minit`;
+                    wrong3 = `${(resH > 0 ? resH - 1 : resH + 2)} jam ${resM} minit`;
                 }
 
                 return {
@@ -499,7 +507,7 @@
                     
                     wrong1 = `${resH + 1} jam ${resM} minit`;
                     wrong2 = `${resH} jam ${resM > 10 ? resM - 10 : resM + 15} minit`;
-                    wrong3 = `${Math.max(0, resH - 1)} jam ${resM} minit`;
+                    wrong3 = `${(resH > 0 ? resH - 1 : resH + 2)} jam ${resM} minit`;
                 } else if (diff === 'sederhana') {
                     // Sederhana: Minutes and seconds division with remainder conversion
                     let minInput = (index % 4) + 2; // 2 to 5 minutes
@@ -520,12 +528,12 @@
                     
                     wrong1 = `${resMin + 1} minit ${resSec} saat`;
                     wrong2 = `${resMin} minit ${resSec > 15 ? resSec - 15 : resSec + 15} saat`;
-                    wrong3 = `${Math.max(0, resMin - 1)} minit ${resSec} saat`;
+                    wrong3 = `${(resMin > 0 ? resMin - 1 : resMin + 2)} minit ${resSec} saat`;
                 } else {
                     // Susah: Word problems / Situasi harian division
                     let scenario = ['program motivasi', 'latihan projek sains', 'aktiviti sukaneka', 'seminar kemahiran', 'sesi ulangkaji berkumpulan', 'bengkel reka cipta'][index % 6];
                     let totalH = (index % 3) + 2; // 2, 3, 4 hours
-                    let totalM = ((index * 11) % 40) + 10;
+                    let totalM = 8 + index * 2;
                     divisor = (index % 3) + 2; // 2, 3, 4 equal sessions
                     
                     let totalMins = totalH * 60 + totalM;
@@ -542,7 +550,7 @@
                     
                     wrong1 = `${resH + 1} jam ${resM} minit`;
                     wrong2 = `${resH} jam ${resM > 15 ? resM - 15 : resM + 15} minit`;
-                    wrong3 = `${Math.max(0, resH - 1)} jam ${resM} minit`;
+                    wrong3 = `${(resH > 0 ? resH - 1 : resH + 2)} jam ${resM} minit`;
                 }
 
                 return {
@@ -560,20 +568,19 @@
                 if (subType === 0) {
                     let startH = 8 + (index % 3);
                     let startM = (index * 10) % 50;
-                    let durationM = 45 + (index * 5);
+                    let durationM = 20 + Math.floor(index / 5) * 8 + level * 25;
                     let totalM = startM + durationM;
                     let endH = startH + Math.floor(totalM / 60);
                     let endM = totalM % 60;
-                    let endStr = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
                     qText = `Aktiviti ulang kaji kelas bermula pada pukul ${String(startH).padStart(2,'0')}:${String(startM).padStart(2,'0')} pagi dan mengambil masa ${durationM} minit. Pukul berapakah aktiviti itu tamat?`;
-                    correctAns = `${endStr} pagi`;
-                    expl = `Masa mula ${startH}:${String(startM).padStart(2,'0')} ditambah dengan tempoh ${durationM} minit menghasilkan waktu tamat ${endStr} pagi.`;
-                    wrong1 = `${String(endH + 1).padStart(2,'0')}:${String(endM).padStart(2,'0')} pagi`;
-                    wrong2 = `${String(endH).padStart(2,'0')}:${String((endM+15)%60).padStart(2,'0')} pagi`;
-                    wrong3 = `${String(Math.max(1, endH-1)).padStart(2,'0')}:${String(endM).padStart(2,'0')} pagi`;
+                    correctAns = clock(endH, endM);
+                    expl = `Masa mula ${startH}:${String(startM).padStart(2,'0')} ditambah dengan tempoh ${durationM} minit menghasilkan waktu tamat ${correctAns}.`;
+                    wrong1 = `${clock(endH + 1, endM)}`;
+                    wrong2 = `${clock(endH, (endM + 15) % 60)}`;
+                    wrong3 = `${clock(endH - 1, endM)}`;
                 } else if (subType === 1) {
                     let hours = 1 + (index % 3);
-                    let mins = 15 + ((index * 5) % 35);
+                    let mins = 10 + index + level * 9;
                     let multiplier = 2 + (index % 3);
                     let totalMins = (hours * 60 + mins) * multiplier;
                     let resH = Math.floor(totalMins / 60);
@@ -583,10 +590,10 @@
                     expl = `Darabkan masa satu sesi (${formatTimeStr(hours, mins)}) dengan ${multiplier}. Jumlahnya ialah ${correctAns}.`;
                     wrong1 = formatTimeStr(resH + 1, resM);
                     wrong2 = formatTimeStr(resH, resM > 15 ? resM - 15 : resM + 15);
-                    wrong3 = formatTimeStr(Math.max(0, resH - 1), resM);
+                    wrong3 = formatTimeStr((resH > 0 ? resH - 1 : resH + 2), resM);
                 } else if (subType === 2) {
                     let totalH = 2 + (index % 2);
-                    let totalM = 30 + ((index * 10) % 25);
+                    let totalM = 6 + index * 2 + level * 3;
                     let divisor = 2 + (index % 2);
                     let totalMins = totalH * 60 + totalM;
                     totalMins = Math.ceil(totalMins / divisor) * divisor;
@@ -596,25 +603,24 @@
                     let origH = Math.floor(totalMins / 60);
                     let origM = totalMins % 60;
                     correctAns = formatTimeStr(resH, resM);
-                    qText = `Jumlah masa bagi ${divisor} sesi bengkel reka cipta yang sama panjang ialah ${formatTimeStr(origH, origM)}. Berapakah masa yang diambil untuk satu sesi bengkel tersebut?`;
+                    qText = `Jumlah masa bagi ${divisor} sesi kelas muzik yang sama panjang ialah ${formatTimeStr(origH, origM)}. Berapakah masa yang diambil untuk satu sesi kelas muzik tersebut?`;
                     expl = `Bahagikan jumlah masa ${formatTimeStr(origH, origM)} dengan ${divisor}. Masa untuk satu sesi ialah ${correctAns}.`;
                     wrong1 = formatTimeStr(resH + 1, resM);
                     wrong2 = formatTimeStr(resH, resM > 10 ? resM - 10 : resM + 15);
-                    wrong3 = formatTimeStr(Math.max(0, resH - 1), resM);
+                    wrong3 = formatTimeStr((resH > 0 ? resH - 1 : resH + 2), resM);
                 } else if (subType === 3) {
-                    let price1 = 30 + (index * 5);
-                    let price2 = 15 + (index * 2);
-                    let totalRM = price1 + price2;
-                    let duration = 30 + (index * 10);
-                    qText = `Ibu membeli sebuah buku rujukan matematik berharga RM${price1}.00 dan sebuah alat tulis berharga RM${price2}.00. Urusan pembelian di kedai mengambil masa ${duration} minit. Berapakah jumlah wang yang dibayar oleh ibu?`;
-                    correctAns = `RM${totalRM}.00`;
-                    expl = `Jumlah wang dikira dengan menambah harga buku (RM${price1}.00) dan alat tulis (RM${price2}.00), iaitu RM${totalRM}.00 (tempoh masa ${duration} minit adalah maklumat tambahan).`;
-                    wrong1 = `RM${totalRM + 10}.00`;
-                    wrong2 = `RM${Math.max(10, totalRM - 10)}.00`;
-                    wrong3 = `RM${totalRM + 20}.00`;
+                    const outbound = 15 + variant;
+                    const returnTrip = 12 + level * 10;
+                    const total = outbound + returnTrip;
+                    qText = `Perjalanan bas ke perpustakaan mengambil masa ${outbound} minit. Perjalanan balik mengambil masa ${returnTrip} minit. Berapakah jumlah tempoh perjalanan pergi dan balik dalam minit?`;
+                    correctAns = `${total} minit`;
+                    expl = `${outbound} minit + ${returnTrip} minit = ${correctAns}.`;
+                    wrong1 = `${outbound} minit`;
+                    wrong2 = `${total + 5} minit`;
+                    wrong3 = `${total - 5} minit`;
                 } else {
                     let h1 = 1 + (index % 2);
-                    let m1 = 20 + (index % 20);
+                    let m1 = 5 + index + level * 12;
                     let h2 = 1 + ((index + 1) % 2);
                     let m2 = 30 + ((index * 3) % 25);
                     let totalM = m1 + m2;
@@ -1001,6 +1007,8 @@
 
             appState.currentQuestions = selected.sort(() => Math.random() - 0.5);
             appState.currentQuestionIndex = 0;
+            appState.answeredCurrent = false;
+            appState.resultSaved = false;
             appState.sessionScore = 0;
             appState.sessionCorrect = 0;
             appState.sessionWrong = 0;
@@ -1099,6 +1107,8 @@
         }
 
         function handleTimeOut() {
+            if (appState.answeredCurrent || !appState.currentQuestions[appState.currentQuestionIndex]) return;
+            appState.answeredCurrent = true;
             playSound('wrong');
             appState.sessionWrong++;
             const q = appState.currentQuestions[appState.currentQuestionIndex];
@@ -1107,8 +1117,8 @@
         }
 
         function checkAnswer() {
-            if (appState.timerInterval) clearInterval(appState.timerInterval);
             const q = appState.currentQuestions[appState.currentQuestionIndex];
+            if (!q || appState.answeredCurrent) return;
             let userAns = null;
 
             if (q.mode === 'isikosong' || appState.selectedGameMode === 'isikosong') {
@@ -1120,10 +1130,11 @@
 
             if (!userAns) {
                 showModalMessage('Sila pilih atau masukkan jawapan terlebih dahulu!');
-                setupGameHandlers();
                 return;
             }
 
+            appState.answeredCurrent = true;
+            if (appState.timerInterval) clearInterval(appState.timerInterval);
             const isCorrect = userAns.toLowerCase() === q.correct.toLowerCase();
             markQuestionAsAnswered(q.id);
 
@@ -1174,6 +1185,8 @@
         }
 
         function nextQuestion() {
+            if (!appState.answeredCurrent || !appState.currentQuestions[appState.currentQuestionIndex]) return;
+            appState.answeredCurrent = false;
             const modal = document.getElementById('feedback-modal');
             if (modal) modal.remove();
 
@@ -1186,6 +1199,8 @@
         }
 
         function finishGameSession() {
+            if (appState.resultSaved || appState.currentQuestionIndex !== appState.currentQuestions.length) return;
+            appState.resultSaved = true;
             if (!appState.currentUser.completedTopics.includes(appState.selectedTopic)) {
                 appState.currentUser.completedTopics.push(appState.selectedTopic);
             }

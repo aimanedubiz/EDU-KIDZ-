@@ -563,6 +563,21 @@
     </main>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t1_sub8_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edukidz_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && typeof u.id === "string" && Number.isFinite(u.gamesPlayed) && Array.isArray(u.badges) && Array.isArray(u.history))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+        })();
+
         /* ====================================================================
            1. APP STATE & LOCAL STORAGE DATABASE
            ==================================================================== */
@@ -612,12 +627,12 @@
 
         // Load users from storage or set default
         function getUsersDB() {
-            const data = localStorage.getItem('edukidz_users');
+            const data = localStorage.getItem('edukidz_t1_sub8_users');
             return data ? JSON.parse(data) : DEFAULT_USERS;
         }
 
         function saveUsersDB(users) {
-            localStorage.setItem('edukidz_users', JSON.stringify(users));
+            localStorage.setItem('edukidz_t1_sub8_users', JSON.stringify(users));
         }
 
         // Active Session State
@@ -730,11 +745,11 @@
             if (seed % 3 === 2) itemSet = VEHICLES;
 
             // Pick 3 items with distinct unique amounts suitable for Year 1 (1 to 9)
-            let v1 = (seed % 5) + 2; 
+            let v1 = (seed % 5) + 2 + (seed > 15 ? 2 : 0); 
             let v2 = ((seed + 2) % 4) + 1;
             if (v1 === v2) v2++;
             let v3 = ((seed + 3) % 5) + 3;
-            if (v3 === v1 || v3 === v2) v3++;
+            while (v3 === v1 || v3 === v2) v3++;
 
             const itemA = itemSet[0];
             const itemB = itemSet[1];

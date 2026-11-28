@@ -531,6 +531,21 @@
     </footer>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t3_sub3_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edukidz_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && u.stats && Number.isFinite(u.stats.correctQuestions) && u.stats.topicStats)
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+        })();
+
         /*
          * MATH KIDS BERNAMA EDU KIDZ TAHUN 3 - GAME ENGINE
          * Strictly 330 Unique Questions across 11 Topics x 3 Difficulty Levels x 10 Questions
@@ -568,7 +583,7 @@
 
         function getUsers() {
             try {
-                return JSON.parse(localStorage.getItem('edukidz_users')) || [];
+                return JSON.parse(localStorage.getItem('edukidz_t3_sub3_users')) || [];
             } catch (e) {
                 return [];
             }
@@ -576,7 +591,7 @@
 
         function saveUsers(users) {
             try {
-                localStorage.setItem('edukidz_users', JSON.stringify(users));
+                localStorage.setItem('edukidz_t3_sub3_users', JSON.stringify(users));
             } catch (e) {
                 console.error("Storage error", e);
             }
@@ -709,8 +724,8 @@
             else if (topic === "Tambah pecahan") {
                 const den = index + 3;
                 const n1 = 1;
-                const n2 = diff === 'Senang' ? 1 : (diff === 'Sederhana' ? 2 : (index % 2) + 2);
-                qText = `(${index}) Kira sum / jumlah: ${n1}/${den} + ${n2}/${den} = ?`;
+                const n2 = diff === 'Senang' ? 1 : (diff === 'Sederhana' ? 2 : 3);
+                qText = `(${index}) Hitung jumlah: ${n1}/${den} + ${n2}/${den} = ?`;
                 correct = `${n1 + n2}/${den}`;
                 choices = [`${n1 + n2}/${den}`, `${n1 + n2 + 1}/${den}`, `${n1 + n2}/${den + 1}`, `${n1}/${den}`];
                 diagramVal = { numerator: n1 + n2, denominator: den };
@@ -724,14 +739,14 @@
                 const result = n1 - n2;
                 qText = `(${index}) Hitung baki penolakan: ${n1}/${den} - ${n2}/${den} = ?`;
                 correct = `${result}/${den}`;
-                choices = [`${result}/${den}`, `${result + 1}/${den}`, `${result}/${den + 1}`, `${n1}/${den}`];
+                choices = [`${result}/${den}`, `${result + 1}/${den}`, `${result + 2}/${den + 1}`, `${n1 + 1}/${den}`];
                 diagramVal = { numerator: result, denominator: den };
                 steps = `Tolak pembilang: ${n1} - ${n2} = ${result}. Penyebut kekal ${den}.`;
                 explanation = `Tolak pembilang sahaja manakala penyebut dikekalkan.`;
             }
             else if (topic === "Kenal pecahan perseratus dan perpuluhan") {
                 diagramType = "grid_100";
-                const val = (index * 7) + (diff === 'Senang' ? 5 : (diff === 'Sederhana' ? 10 : 15));
+                const val = (index * 5) + (diff === 'Senang' ? 5 : (diff === 'Sederhana' ? 10 : 15));
                 const dec = (val / 100).toFixed(2);
                 qText = `(${index}) Tuliskan pecahan ${val}/100 dalam bentuk nombor perpuluhan.`;
                 correct = `${dec}`;
@@ -750,7 +765,7 @@
                 explanation = `Bandingkan digit pada nilai tempat persepuluh dan perseratus.`;
             }
             else if (topic === "Tambah dan tolak perpuluhan") {
-                const a = (index * 0.12).toFixed(2);
+                const a = (index * 0.12 + (diff === "Sederhana" ? 1.5 : 0)).toFixed(2);
                 const b = (index * 0.05 + 0.1).toFixed(2);
                 if (diff === 'Senang' || diff === 'Sederhana') {
                     const sum = (parseFloat(a) + parseFloat(b)).toFixed(2);
@@ -762,14 +777,14 @@
                     const diffVal = (Math.max(parseFloat(a), parseFloat(b)) - Math.min(parseFloat(a), parseFloat(b))).toFixed(2);
                     qText = `(${index}) Cari beza antara ${Math.max(a,b)} dan ${Math.min(a,b)}.`;
                     correct = `${diffVal}`;
-                    choices = [`${diffVal}`, `${(parseFloat(diffVal) + 0.05).toFixed(2)}`, `${a}`, `${b}`];
+                    choices = [`${diffVal}`, `${(parseFloat(diffVal) + 0.05).toFixed(2)}`, `${(parseFloat(diffVal) + 0.1).toFixed(2)}`, `${(parseFloat(diffVal) + 0.2).toFixed(2)}`];
                     steps = `Tolak perpuluhan selari: ${Math.max(a,b)} - ${Math.min(a,b)} = ${diffVal}.`;
                 }
                 explanation = `Pastikan titik perpuluhan disusun sebaris sebelum menambah atau menolak.`;
             }
             else if (topic === "Kenal peratus") {
                 diagramType = "grid_100";
-                const p = index * 9 + (diff === 'Senang' ? 2 : (diff === 'Sederhana' ? 5 : 7));
+                const p = index * 8 + (diff === 'Senang' ? 2 : (diff === 'Sederhana' ? 5 : 7));
                 qText = `(${index}) Nyatakan peratus bagi ${p} daripada 100 petak yang diwarnakan.`;
                 correct = `${p}%`;
                 choices = [`${p}%`, `${p/10}%`, `${p+2}%`, `100%`];

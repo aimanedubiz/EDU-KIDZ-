@@ -506,8 +506,9 @@
             };
 
             if (topik === 'KOORD') {
-                const x1 = (index % 5) + 1;
-                const y1 = (index % 4) + 2;
+                const pair = Math.floor((index - 1) / 2);
+                const x1 = pair % 5;
+                const y1 = Math.floor(pair / 5);
                 let x2 = x1, y2 = y1;
                 let isHorizontal = index % 2 === 0;
 
@@ -515,7 +516,7 @@
                     let offset = (tahap === 'S') ? 2 : (tahap === 'M') ? 4 : 6;
                     x2 = x1 + offset;
                 } else {
-                    let offset = (tahap === 'S') ? 3 : (tahap === 'M') ? 5 : 7;
+                    let offset = (tahap === 'S') ? 2 : (tahap === 'M') ? 3 : 4;
                     y2 = y1 + offset;
                 }
 
@@ -532,13 +533,13 @@
 
                 q.soalan = `Di dalam sebuah kotak terdapat ${a} biji guli merah dan ${b} biji guli biru. Nyatakan nisbah bilangan guli merah kepada bilangan guli biru.`;
                 q.jawapan = `${a}:${b}`;
-                q.pilihan = [`${a}:${b}`, `${b}:${a}`, `1:${a}`, `${a + 1}:${b}`].sort(() => Math.random() - 0.5);
+                q.pilihan = [`${a}:${b}`, `${b}:${a}`, `${a}:${b + 1}`, `${a + 1}:${b}`].sort(() => Math.random() - 0.5);
                 q.penerangan = `Tertib kuantiti ialah Merah kepada Biru, jadi nisbahnya ditulis sebagai ${a}:${b}.`;
                 q.visualData = { type: 'objects', countA: a, countB: b, labelA: 'Merah', labelB: 'Biru' };
 
             } else if (topik === 'KADARAN') {
                 let unitPrice = (tahap === 'S') ? 3 : (tahap === 'M') ? 7 : 12;
-                let qty1 = (index % 3) + 2;
+                const qty1 = index + 1;
                 let total1 = unitPrice * qty1;
                 let qty2 = qty1 + (tahap === 'S' ? 2 : 4);
                 let ans = unitPrice * qty2;
@@ -551,13 +552,13 @@
 
             } else { // MASALAH
                 let scale = (tahap === 'S') ? 5 : (tahap === 'M') ? 10 : 25;
-                let items = index + 2;
+                const items = 2 * (index + 1);
                 let total = items * scale;
 
                 q.soalan = `Cikgu Hassan membeli ${items} paket pembaris untuk murid Tahun 5. Setiap paket mengandungi ${scale} batang pembaris. Jika nisbah pembaris merah kepada hijau ialah 1:1, berapakah bilangan pembaris merah?`;
                 let ansNum = total / 2;
                 q.jawapan = `${ansNum} batang`;
-                q.pilihan = [`${ansNum} batang`, `${total} batang`, `${ansNum / 2} batang`, `${ansNum + 5} batang`].sort(() => Math.random() - 0.5);
+                q.pilihan = [`${ansNum} batang`, `${total} batang`, `${Math.floor(ansNum / 2)} batang`, `${ansNum + 5} batang`].sort(() => Math.random() - 0.5);
                 q.penerangan = `Jumlah pembaris = ${items} × ${scale} = ${total}. Nisbah 1:1 bermaksud bilangan pembaris merah ialah separuh daripada jumlah asal, iaitu ${total} ÷ 2 = ${ansNum}.`;
                 q.visualData = { type: 'text', text: `Jumlah Paket: ${items}\nIsi Sepaket: ${scale} batang` };
             }

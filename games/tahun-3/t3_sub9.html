@@ -604,6 +604,27 @@
     </footer>
 
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t3_sub9_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = legacy && typeof legacy === "object" && !Array.isArray(legacy)
+                ? Object.fromEntries(Object.entries(legacy).filter(([key, u]) => u && u.username === key && typeof u.fullname === "string" && Number.isFinite(u.totalScore) && u.categoryProgress))
+                : {};
+            localStorage.setItem(usersKey, JSON.stringify(users));
+            const active = localStorage.getItem('math_kids_active_user');
+            if (active && Object.hasOwn(users, active)) {
+                localStorage.setItem('edukidz_t3_sub9_active_user', active);
+            }
+        })();
+
         
         // Helper function to map text/item names directly to accurate hex colors
         function getColorForKey(key, index) {
@@ -693,6 +714,8 @@
         
         let currentQuestions = [];
         let currentQuestionIndex = 0;
+        let answerSubmitted = false;
+        let resultSaved = false;
         let currentScore = 0;
         let correctCount = 0;
         let wrongCount = 0;
@@ -702,11 +725,11 @@
 
         // User Data Store with LocalStorage Fallback
         function getUsers() {
-            return JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+            return JSON.parse(localStorage.getItem('edukidz_t3_sub9_users') || '{}');
         }
 
         function saveUsers(users) {
-            localStorage.setItem('math_kids_users', JSON.stringify(users));
+            localStorage.setItem('edukidz_t3_sub9_users', JSON.stringify(users));
         }
 
         // Initialize App
@@ -716,7 +739,7 @@
         });
 
         function checkActiveSession() {
-            const active = localStorage.getItem('math_kids_active_user');
+            const active = localStorage.getItem('edukidz_t3_sub9_active_user');
             if (active) {
                 const users = getUsers();
                 if (users[active]) {
@@ -780,7 +803,7 @@
             const users = getUsers();
             if (users[username] && users[username].password === password) {
                 currentUser = users[username];
-                localStorage.setItem('math_kids_active_user', username);
+                localStorage.setItem('edukidz_t3_sub9_active_user', username);
                 updateHeaderUser();
                 errEl.classList.add('hidden');
                 showScreen('screen-dashboard');
@@ -821,7 +844,7 @@
             saveUsers(users);
 
             currentUser = users[username];
-            localStorage.setItem('math_kids_active_user', username);
+            localStorage.setItem('edukidz_t3_sub9_active_user', username);
             updateHeaderUser();
             errEl.classList.add('hidden');
             showScreen('screen-dashboard');
@@ -829,7 +852,7 @@
 
         function logoutUser() {
             currentUser = null;
-            localStorage.removeItem('math_kids_active_user');
+            localStorage.removeItem('edukidz_t3_sub9_active_user');
             updateHeaderUser();
             showScreen('screen-welcome');
         }
@@ -889,18 +912,17 @@
             const id = `DATA-${cat}-${diff.charAt(0)}-${String(idx).padStart(3, '0')}`;
             let cognitiveLevel = diff === 'Easy' ? 'Mengingat / Memahami' : (diff === 'Medium' ? 'Memahami / Mengaplikasi' : 'Mengaplikasi / KBAT');
             
-            // Values tailored for precise charts (Sum = 20, 24, 30, 40, etc.)
-            let baseValues = [];
-            if (diff === 'Easy') {
-                baseValues = [4, 6, 8, 2]; // Total = 20
-            } else if (diff === 'Medium') {
-                baseValues = [6, 9, 12, 3]; // Total = 30
-            } else {
-                baseValues = [8, 12, 16, 4]; // Total = 40
+            // The first two counts encode a different dataset for each question.
+            // Even counts keep the pictograph's two-unit key exact.
+            const step = idx - 1;
+            const levelIndex = ['Easy', 'Medium', 'Hard'].indexOf(diff);
+            const variant = levelIndex * 20 + step;
+            const v = [4 + 2 * (variant % 10), 26 + 2 * Math.floor(variant / 10),
+                10 + 2 * (variant % 7), 2 + 2 * (Math.floor(variant / 7) % 7)];
+            // Prevent ties in questions about highest and lowest counts.
+            for (let i = 1; i < v.length; i++) {
+                while (v.slice(0, i).includes(v[i])) v[i] += 2;
             }
-
-            // Shuffle values per index
-            const v = [...baseValues].map((x, k) => x + (idx % 2));
             const total = v.reduce((a, b) => a + b, 0);
 
             const items = theme.items;
@@ -1027,15 +1049,16 @@
                 } else if (pType === 1) {
                     // Difference word problem: visualized as a Table comparing items[2] and items[3]
                     diagramType = 'table';
-                    dataObj = { [items[2]]: v[2], [items[3]]: v[3] };
+                    dataObj = { [items[2]]: 2 + variant * 2, [items[3]]: v[3] };
                     
                     questionText = `Jadual merekodkan bilangan peserta bagi Kumpulan ${items[2]} dan Kumpulan ${items[3]}. Berapakah beza bilangan ahli antara kedua-dua kumpulan itu?`;
-                    const diffVal = Math.abs(v[2] - v[3]);
+                    const diffVal = Math.abs(dataObj[items[2]] - dataObj[items[3]]);
                     correctAnswer = `${diffVal}`;
-                    explanation = `Beza = ${v[2]} - ${v[3]} = ${diffVal}.`;
+                    explanation = `Beza = ${Math.max(...Object.values(dataObj))} - ${Math.min(...Object.values(dataObj))} = ${diffVal}.`;
                 } else if (pType === 2) {
                     // Remainder word problem: visualized as a Pie Chart representing total and categories
                     diagramType = 'pie';
+                    dataObj = { [items[0]]: v[0], [items[1]]: total - v[0] };
                     questionText = `Carta pai menunjukkan taburan ${total} item pameran. Jika ${v[0]} daripadanya ialah ${items[0]} dan bakunya ialah ${items[1]}, berapakah bilangan ${items[1]}?`;
                     const remaining = total - v[0];
                     correctAnswer = `${remaining}`;
@@ -1043,21 +1066,23 @@
                 } else if (pType === 3) {
                     // Multiplication / multiple groups: visualized via Pictograph
                     diagramType = 'pictograph';
-                    dataObj = { [items[1]]: v[1] };
+                    dataObj = { [items[1]]: 2 * (1 + idx) };
                     
-                    questionText = `Piktograf menunjukkan bilangan ${items[1]} dalam sebuah bakul. Jika terdapat 2 buah bakul dengan bilangan yang sama, berapakah jumlah keseluruhan ${items[1]}?`;
-                    const doubled = v[1] * 2;
+                    const baskets = 2 + levelIndex * 2;
+                    questionText = `Piktograf menunjukkan bilangan ${items[1]} dalam sebuah bakul. Jika terdapat ${baskets} buah bakul dengan bilangan yang sama, berapakah jumlah keseluruhan ${items[1]}?`;
+                    const doubled = dataObj[items[1]] * baskets;
                     correctAnswer = `${doubled}`;
-                    explanation = `Jumlah kad/objek untuk 2 bakul = ${v[1]} × 2 = ${doubled}.`;
+                    explanation = `Jumlah untuk ${baskets} bakul = ${dataObj[items[1]]} × ${baskets} = ${doubled}.`;
                 } else {
                     // Division / sharing: visualized via Table
                     diagramType = 'table';
-                    dataObj = { 'Jumlah Guli': total };
+                    const marbleCount = 20 + variant * 2;
+                    dataObj = { 'Jumlah Guli': marbleCount };
                     
-                    questionText = `Jadual mencatatkan sejumlah ${total} biji guli yang dikongsi sama rata di antara 2 buah balang. Berapakah bilangan guli di dalam setiap balang?`;
-                    const shared = Math.round(total / 2);
+                    questionText = `Jadual mencatatkan sejumlah ${marbleCount} biji guli yang dikongsi sama rata di antara 2 buah balang. Berapakah bilangan guli di dalam setiap balang?`;
+                    const shared = marbleCount / 2;
                     correctAnswer = `${shared}`;
-                    explanation = `Bahagi sama rata: ${total} ÷ 2 = ${shared}.`;
+                    explanation = `Bahagi sama rata: ${marbleCount} ÷ 2 = ${shared}.`;
                 }
             }
 
@@ -1073,8 +1098,6 @@
             } else if (['lebih banyak', 'kurang', maxKey, minKey].includes(correctAnswer) || isNaN(correctAnswer)) {
                 options = [...items];
                 if (!options.includes(correctAnswer)) options[0] = correctAnswer;
-                if (!options.includes('lebih banyak')) options[1] = 'lebih banyak';
-                if (!options.includes('kurang')) options[2] = 'kurang';
             } else {
                 const cNum = parseInt(correctAnswer) || 10;
                 options = [`${cNum}`, `${cNum + 2}`, `${cNum - 1 > 0 ? cNum - 1 : cNum + 4}`, `${cNum + 5}`];
@@ -1110,6 +1133,7 @@
             currentQuestions.sort(() => Math.random() - 0.5);
             
             currentQuestionIndex = 0;
+            resultSaved = false;
             currentScore = 0;
             correctCount = 0;
             wrongCount = 0;
@@ -1120,6 +1144,7 @@
         }
 
         function renderQuestion() {
+            answerSubmitted = false;
             if (currentQuestionIndex >= currentQuestions.length) {
                 finishQuiz();
                 return;
@@ -1421,8 +1446,10 @@
 
         // Answer Validation Engine
         function submitAnswer(userAns) {
-            clearInterval(timerInterval);
             const q = currentQuestions[currentQuestionIndex];
+            if (!q || answerSubmitted) return;
+            answerSubmitted = true;
+            clearInterval(timerInterval);
             
             const cleanUser = String(userAns).trim().toLowerCase();
             const cleanCorrect = String(q.correctAnswer).trim().toLowerCase();
@@ -1463,12 +1490,15 @@
         }
 
         function nextQuestion() {
+            if (!answerSubmitted || !currentQuestions[currentQuestionIndex]) return;
             currentQuestionIndex++;
             renderQuestion();
         }
 
         // End of Quiz Processing
         function finishQuiz() {
+            if (resultSaved || currentQuestionIndex !== currentQuestions.length) return;
+            resultSaved = true;
             showScreen('screen-result');
 
             document.getElementById('res-score').textContent = currentScore;

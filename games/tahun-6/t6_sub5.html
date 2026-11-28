@@ -88,11 +88,29 @@
     </div>
 
     <script>
+
+        // Copy compatible records from the old game database once.
+        (() => {
+            const key = 'edukidz_t6_sub5_users';
+            if (localStorage.getItem(key) !== null) return;
+            const read = name => {
+                try { return JSON.parse(localStorage.getItem(name)); } catch { return null; }
+            };
+            const legacy = read('edu_kidz_users');
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && Array.isArray(u.completedLevels) && u.progress && Number.isFinite(u.totalCorrect))
+                : [];
+            localStorage.setItem(key, JSON.stringify(users));
+            const previous = read('edu_kidz_active_user');
+            const active = previous && Object.values(users).find(u => u.username === previous.username);
+            if (active) localStorage.setItem('edukidz_t6_sub5_active_user', JSON.stringify(active));
+        })();
+
         // --- APPLICATION STATE ---
         let appState = {
             currentView: 'auth', // 'auth', 'menu', 'topic_select', 'level_select', 'timer_select', 'game', 'result', 'progress', 'leaderboard', 'profile', 'howto'
             currentUser: null,
-            users: JSON.parse(localStorage.getItem('edu_kidz_users') || '[]'),
+            users: JSON.parse(localStorage.getItem('edukidz_t6_sub5_users') || '[]'),
             selectedTopic: null, // 1: Panjang, 2: Isipadu, 3: Jisim
             selectedLevel: null, // 'Mudah', 'Sederhana', 'Sukar'
             selectedTimer: 30, // 30, 60, Infinity
@@ -114,7 +132,7 @@
                 {
                     id: "PJR_M_001", topik: "Panjang, Jarak dan Ruang", tahap: "Mudah", aras_kognitif: "Mengingat", mod_permainan: "Objektif",
                     soalan: "Tukarkan 3 m 45 cm kepada cm.",
-                    pilihan_jawapan: ["A. 345 cm", "B. 3 045 cm", "C. 345 cm", "D. 354 cm"],
+                    pilihan_jawapan: ["A. 345 cm", "B. 3 045 cm", "C. 305 cm", "D. 354 cm"],
                     jawapan_betul: "A. 345 cm",
                     penerangan_jawapan: "1 m = 100 cm. Oleh itu, 3 m = 300 cm. Tambah 45 cm menjadi 345 cm.",
                     markah: 5, jenis_gambar: "Ilustrasi Pembaris", deskripsi_gambar: "Pembaris menunjukkan ukuran meter dan sentimeter."
@@ -135,10 +153,10 @@
                     markah: 5, jenis_gambar: "Pensel", deskripsi_gambar: "Pensel di atas kertas berpetak milimeter."
                 },
                 {
-                    id: "PJR_M_004", topik: "Panjang, Jarak dan Ruang", tahap: "Mudah", aras_kognitif: "Memahami", mod_permainan: "Padanan",
-                    soalan: "Padankan ukuran panjang dengan nilai setaranya.",
-                    pilihan_jawapan: ["2.5 m", "250 cm", "0.45 km", "450 m"],
-                    jawapan_betul: "2.5 m = 250 cm",
+                    id: "PJR_M_004", topik: "Panjang, Jarak dan Ruang", tahap: "Mudah", aras_kognitif: "Memahami", mod_permainan: "Objektif",
+                    soalan: "Pilih ukuran dalam sentimeter yang setara dengan 2.5 m.",
+                    pilihan_jawapan: ["25 cm", "250 cm", "2 500 cm", "25 000 cm"],
+                    jawapan_betul: "250 cm",
                     penerangan_jawapan: "2.5 × 100 = 250 cm.",
                     markah: 5, jenis_gambar: "Pita ukur", deskripsi_gambar: "Pita ukur terbuka menunjukkan unit meter dan sentimeter."
                 },
@@ -273,7 +291,7 @@
                 {
                     id: "PJR_S_021", topik: "Panjang, Jarak dan Ruang", tahap: "Sederhana", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Amir berlari sejauh 1 km 450 m pada hari Isnin dan 2 km 80 m pada hari Selasa. Hitung jumlah jarak lariannya dalam km.",
-                    pilihan_jawapan: ["A. 3.53 km", "B. 3.453 km", "C. 3.530 km", "D. 3.23 km"],
+                    pilihan_jawapan: ["A. 3.53 km", "B. 3.453 km", "C. 3.503 km", "D. 3.23 km"],
                     jawapan_betul: "A. 3.53 km",
                     penerangan_jawapan: "1.45 km + 2.08 km = 3.53 km.",
                     markah: 5, jenis_gambar: "Trek larian", deskripsi_gambar: "Murid berlari di padang sekolah."
@@ -329,7 +347,7 @@
                 {
                     id: "PJR_S_028", topik: "Panjang, Jarak dan Ruang", tahap: "Sederhana", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Sebuah bas memandu sejauh 45 km 600 m dalam masa 1 jam. Selepas itu ia bergerak lagi sejauh 32.4 km. Berapakah jumlah jarak perjalanan bas itu dalam km?",
-                    pilihan_jawapan: ["A. 78 km", "B. 78.0 km", "C. 77.9 km", "D. 78.2 km"],
+                    pilihan_jawapan: ["A. 78 km", "B. 77.4 km", "C. 77.9 km", "D. 78.2 km"],
                     jawapan_betul: "A. 78 km",
                     penerangan_jawapan: "45.6 km + 32.4 km = 78.0 km.",
                     markah: 5, jenis_gambar: "Bas sekolah", deskripsi_gambar: "Bas persiaran di jalan raya."
@@ -442,20 +460,18 @@
                 {
                     id: "PJR_K_042", topik: "Panjang, Jarak dan Ruang", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Seutas tali sepanjang 15.6 m dipotong kepada 3 bahagian. Bahagian pertama ialah 4 m 25 cm, bahagian kedua adalah 1.5 m lebih panjang daripada bahagian pertama. Berapakah panjang bahagian ketiga dalam cm?",
-                    pilihan_jawapan: ["A. 555 cm", "B. 5.55 cm", "C. 655 cm", "D. 485 cm"],
-                    jawapan_betul: "A. 555 cm",
-                    penerangan_jawapan: "Bahagian 1 = 4.25 m. Bahagian 2 = 4.25 + 1.5 = 5.75 m. Jumlah 1 & 2 = 10.0 m. Bahagian 3 = 15.6 - 10.0 = 5.6 m = 560 cm? Semak: 4.25 + 5.75 = 10.0. 15.6 - 10.0 = 5.6 m = 560 cm. Ralat pilihan: A (555) / Sila semak: 15.6 - 10.0 = 5.6 m = 560 cm. Mari kita sesuaikan pilihan: Jikalau Bahagian 2 = 4.25 + 1.75 = 6.0m... Biar betul: Bhg 1 = 4.25m, Bhg 2 = 4.25 + 1.25 = 5.5m. Jumlah = 9.75m. 15.6 - 9.75 = 5.85m = 585cm. Mari kita guna soalan yang tepat: Tali 15 m. Bahagian 1 = 3 m 50 cm, Bahagian 2 = 4 m 20 cm. Baki dipotong kepada 4 bahagian sama panjang. Berapakah panjang satu bahagian baki itu?",
-                    pilihan_jawapan: ["A. 182.5 cm", "B. 173.5 cm", "C. 192 cm", "D. 180 cm"],
-                    jawapan_betul: "A. 182.5 cm",
-                    penerangan_jawapan: "15 m - (3.5 m + 4.2 m) = 15 - 7.7 = 7.3 m = 730 cm. 730 ÷ 4 = 182.5 cm.",
+                    pilihan_jawapan: ["A. 560 cm", "B. 173.5 cm", "C. 192 cm", "D. 180 cm"],
+                    jawapan_betul: "A. 560 cm",
+                    penerangan_jawapan: "Bahagian kedua ialah 425 + 150 = 575 cm. Panjang baki ialah 1 560 − 425 − 575 = 560 cm.",
+                    penerangan_jawapan: "Bahagian kedua ialah 425 + 150 = 575 cm. Panjang baki ialah 1 560 − 425 − 575 = 560 cm.",
                     markah: 5, jenis_gambar: "Tali panjang", deskripsi_gambar: "Tali dipotong kepada beberapa bahagian."
                 },
                 {
                     id: "PJR_K_043", topik: "Panjang, Jarak dan Ruang", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
-                    soalan: "Sebuah taman rekreasi berbentuk gabungan segi empat tepat dan segi empat sama. Bahagian segi empat tepat berukuran 40 m panjang dan 20 m lebar. Bahagian segi empat sama mempunyai sisi 20 m. Hitung perimeter keseluruhan taman rekreasi itu.",
+                    soalan: "Sebuah taman rekreasi berbentuk gabungan segi empat tepat dan segi empat sama. Bahagian segi empat tepat berukuran 40 m panjang dan 20 m lebar. Segi empat sama bersisi 20 m dicantumkan pada sisi 20 m segi empat tepat. Hitung perimeter keseluruhan taman rekreasi itu.",
                     pilihan_jawapan: ["A. 160 m", "B. 140 m", "C. 180 m", "D. 200 m"],
                     jawapan_betul: "A. 160 m",
-                    penerangan_jawapan: "Perimeter luar gabungan = 40 + 20 + 20 + 20 + 20 + 20 + 40... Ringkasnya keliling luar: 40 + 20 + 20 + 20 + 20 + 20 + 20 = 160 m.",
+                    penerangan_jawapan: "Perimeter segi empat tepat ialah 120 m dan perimeter segi empat sama ialah 80 m. Tolak dua sisi yang dikongsi: 120 + 80 − 2 × 20 = 160 m.",
                     markah: 5, jenis_gambar: "Pelan taman", deskripsi_gambar: "Pelan bentuk geometri taman."
                 },
                 {
@@ -492,7 +508,7 @@
                 },
                 {
                     id: "PJR_K_048", topik: "Panjang, Jarak dan Ruang", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
-                    soalan: "Jarak antara Bandar X dan Bandar Y ialah 215.8 km. Sebuah kereta memandu dari X ke Y pada purata kelajuan, manakala sebuah lori bertolak dari Y ke X pada masa yang sama. Selepas 1.5 jam, jarak antara kedua-dua kenderaan itu tinggal 35.8 km lagi sebelum berselisih. Hitung jumlah jarak yang dilalui oleh kedua-dua kenderaan.",
+                    soalan: "Jarak antara Bandar X dan Bandar Y ialah 215.8 km. Sebuah kereta memandu dari X ke Y, manakala sebuah lori bertolak dari Y ke X pada masa yang sama. Selepas 1.5 jam, jarak antara kedua-dua kenderaan itu tinggal 35.8 km lagi sebelum berselisih. Hitung jumlah jarak yang dilalui oleh kedua-dua kenderaan.",
                     pilihan_jawapan: ["A. 180 km", "B. 251.6 km", "C. 195.5 km", "D. 215.8 km"],
                     jawapan_betul: "A. 180 km",
                     penerangan_jawapan: "Jumlah jarak asal 215.8 km. Baki jarak 35.8 km. Jarak dilalui bersama = 215.8 - 35.8 = 180 km.",
@@ -524,7 +540,7 @@
                 },
                 {
                     id: "PJR_K_052", topik: "Panjang, Jarak dan Ruang", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
-                    soalan: "Sebuah kereta api bergerak sejauh 345 km dalam masa 3 jam 30 minit pada bahagian pertama perjalanan, dan 280 km dalam masa 2 jam 30 minit pada bahagian kedua. Hitung purata laju keseluruhan perjalanan dalam km sejam (anggaran terdekat).",
+                    soalan: "Sebuah kereta api bergerak sejauh 345 km dalam masa 3 jam 30 minit pada bahagian pertama perjalanan, dan 280 km dalam masa 2 jam 30 minit pada bahagian kedua. Hitung purata laju keseluruhan perjalanan dalam km sejam, dibundarkan kepada dua tempat perpuluhan.",
                     pilihan_jawapan: ["A. 104.17 km/j", "B. 98.5 km/j", "C. 110.2 km/j", "D. 100.0 km/j"],
                     jawapan_betul: "A. 104.17 km/j",
                     penerangan_jawapan: "Jumlah jarak = 345 + 280 = 625 km. Jumlah masa = 3.5 + 2.5 = 6 jam. Purata = 625 ÷ 6 = 104.17 km/j.",
@@ -548,10 +564,10 @@
                 },
                 {
                     id: "PJR_K_055", topik: "Panjang, Jarak dan Ruang", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
-                    soalan: "Seutas reben sepanjang 24.5 m digunakan untuk mengikat 15 bungkusan hadiah yang sama besar. Jika terdapat baki 2.5 m reben, berapakah panjang reben yang digunakan untuk setiap bungkusan dalam cm?",
+                    soalan: "Seutas reben sepanjang 23.5 m digunakan untuk mengikat 15 bungkusan hadiah yang sama besar. Jika terdapat baki 2.5 m reben, berapakah panjang reben yang digunakan untuk setiap bungkusan dalam cm?",
                     pilihan_jawapan: ["A. 140 cm", "B. 150 cm", "C. 160 cm", "D. 130 cm"],
                     jawapan_betul: "A. 140 cm",
-                    penerangan_jawapan: "Reben digunakan = 24.5 - 2.5 = 22.0 m = 2 200 cm. Per bungkusan = 2 200 ÷ 15 = 146.66 cm? Mari semak: 21 m untuk 15 bungkusan = 2100 ÷ 15 = 140 cm. Ubah soalan: Reben 23.5 m, baki 2.5 m, 15 bungkusan = 21 m ÷ 15 = 1.4 m = 140 cm. Sempurna!",
+                    penerangan_jawapan: "Panjang reben digunakan ialah 23.5 − 2.5 = 21 m, bersamaan 2 100 cm. Setiap bungkusan menggunakan 2 100 ÷ 15 = 140 cm.",
                     markah: 5, jenis_gambar: "Hadiah reben", deskripsi_gambar: "Kotak hadiah berbalut reben."
                 },
                 {
@@ -572,7 +588,7 @@
                 },
                 {
                     id: "PJR_K_058", topik: "Panjang, Jarak dan Ruang", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
-                    soalan: "Empat utas tali berukuran 3.2 m, 4 m 50 cm, 2.85 m dan 3.9 m dicantumkan dengan keratan sambungan 5 cm pada setiap titik cantuman (3 tempat cantuman). Berapakah jumlah panjang tali selepas dicantumkan dalam meter?",
+                    soalan: "Empat utas tali berukuran 3.2 m, 4 m 50 cm, 2.85 m dan 3.9 m dicantumkan dengan tindihan 5 cm pada setiap satu daripada tiga cantuman. Berapakah jumlah panjang tali selepas dicantumkan dalam meter?",
                     pilihan_jawapan: ["A. 14.3 m", "B. 14.45 m", "C. 14.6 m", "D. 14.15 m"],
                     jawapan_betul: "A. 14.3 m",
                     penerangan_jawapan: "Jumlah asal = 3.2 + 4.5 + 2.85 + 3.9 = 14.45 m. 3 cantuman bertindih sebanyak 3 × 5 cm = 15 cm = 0.15 m. Panjang akhir = 14.45 - 0.15 = 14.30 m.",
@@ -847,7 +863,7 @@
                 },
                 {
                     id: "IS_S_032", topik: "Isipadu", tahap: "Sederhana", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
-                    soalan: "Sebuah botol ubat mengandungi 250 ml sirip ubat. Ali mengambil 10 ml ubat itu 3 kali sehari selama 5 hari. Berapakah baki ubat di dalam botol itu dalam ml?",
+                    soalan: "Sebuah botol ubat mengandungi 250 ml sirap ubat. Ali mengambil 10 ml ubat itu 3 kali sehari selama 5 hari. Berapakah baki ubat di dalam botol itu dalam ml?",
                     pilihan_jawapan: ["A. 100 ml", "B. 150 ml", "C. 120 ml", "D. 80 ml"],
                     jawapan_betul: "A. 100 ml",
                     penerangan_jawapan: "Ubat diambil sehari = 10 × 3 = 30 ml. 5 hari = 30 × 5 = 150 ml. Baki = 250 - 150 = 100 ml.",
@@ -929,9 +945,9 @@
                 {
                     id: "IS_K_042", topik: "Isipadu", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Empat buah bekas A, B, C dan D mengandungi air. Bekas A mengandungi 2.4 l. Bekas B mengandungi 750 ml lebih banyak daripada A. Bekas C mengandungi separuh daripada jumlah isipadu A dan B. Bekas D mengandungi 1.2 l kurang daripada C. Hitung isipadu air dalam bekas D.",
-                    pilihan_jawapan: ["A. 1.8 kg? l", "B. 1.95 l", "C. 2.15 l", "D. 1.85 l"],
-                    jawapan_betul: "B. 1.95 l",
-                    penerangan_jawapan: "A = 2.4 l. B = 2.4 + 0.75 = 3.15 l. C = (2.4 + 3.15) ÷ 2 = 5.55 ÷ 2 = 2.775 l. D = 2.775 - 1.2 = 1.575 l? Mari semak: C = 2.775 l, D = 1.575 l. Ganti nilai agar mudah: A = 2.0 l, B = 0.5 l lebih banyak = 2.5 l. C = (2.0 + 2.5) ÷ 2 = 2.25 l. D = 2.25 - 0.3 = 1.95 l. Soalan yang disemak tepat!",
+                    pilihan_jawapan: ["A. 1.575 l", "B. 1.95 l", "C. 2.15 l", "D. 1.85 l"],
+                    jawapan_betul: "A. 1.575 l",
+                    penerangan_jawapan: "B mengandungi 2.4 + 0.75 = 3.15 l. C mengandungi (2.4 + 3.15) ÷ 2 = 2.775 l. D mengandungi 2.775 − 1.2 = 1.575 l.",
                     markah: 5, jenis_gambar: "Empat bekas berlabel", deskripsi_gambar: "Bekas A, B, C, D."
                 },
                 {
@@ -961,9 +977,9 @@
                 {
                     id: "IS_K_046", topik: "Isipadu", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Tiga buah bekas P, Q dan R mengandungi air. Bekas P berisi 4.2 l. Bekas Q berisi 1.5 l kurang daripada P, manakala bekas R berisi dua kali ganda jumlah isipadu bekas Q. Hitung jumlah isipadu air ketiga-tiga bekas itu dalam liter.",
-                    pilihan_jawapan: ["A. 10.8 l", "B. 11.2 l", "C. 9.8 l", "D. 12.0 l"],
-                    jawapan_betul: "A. 10.8 l",
-                    penerangan_jawapan: "P = 4.2 l. Q = 4.2 - 1.5 = 2.7 l. R = 2 × 2.7 = 5.4 l. Jumlah = 4.2 + 2.7 + 5.4 = 12.3 l? Semak: 4.2 + 2.7 + 5.4 = 12.3 l. Mari sesuaikan pilihan: A. 12.3 l. Pilihan A betul.",
+                    pilihan_jawapan: ["A. 12.3 l", "B. 11.2 l", "C. 9.8 l", "D. 12.0 l"],
+                    jawapan_betul: "A. 12.3 l",
+                    penerangan_jawapan: "Q mengandungi 4.2 − 1.5 = 2.7 l. R mengandungi 2 × 2.7 = 5.4 l. Jumlahnya ialah 4.2 + 2.7 + 5.4 = 12.3 l.",
                     markah: 5, jenis_gambar: "Tiga bekas air", deskripsi_gambar: "Bekas P, Q, R."
                 },
                 {
@@ -1024,7 +1040,7 @@
                 },
                 {
                     id: "IS_K_054", topik: "Isipadu", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
-                    soalan: "Satu botol cecair pencuci lantai mengandungi 2.5 l. Setiap kali mencuci lantai, sebanyak 125 ml cecair digunakan. Jika lantai dicuci 3 kali seminggu, untuk berapa minggukah sebotol cecair pencuci itu boleh bertahan?",
+                    soalan: "Satu botol cecair pencuci lantai mengandungi 2.5 l. Setiap kali mencuci lantai, sebanyak 125 ml cecair digunakan. Jika lantai dicuci 3 kali seminggu, berapa minggu penuhkah sebotol cecair pencuci itu boleh bertahan?",
                     pilihan_jawapan: ["A. 6 minggu", "B. 5 minggu", "C. 7 minggu", "D. 8 minggu"],
                     jawapan_betul: "A. 6 minggu",
                     penerangan_jawapan: "Penggunaan seminggu = 125 ml × 3 = 375 ml. Botol = 2 500 ml. Bilangan minggu = 2 500 ÷ 375 = 6.66 minggu. Anggaran bilangan minggu penuh ialah 6 minggu.",
@@ -1033,9 +1049,9 @@
                 {
                     id: "IS_K_055", topik: "Isipadu", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Tiga buah bekas A, B dan C mengandungi air. Bekas A mengandungi 3 l 200 ml. Bekas B mengandungi 1 l 400 ml lebih banyak daripada A. Bekas C mengandungi separuh daripada jumlah isipadu A dan B. Hitung jumlah isipadu ketiga-tiga bekas itu dalam liter.",
-                    pilihan_jawapan: ["A. 11.4 l", "B. 10.8 l", "C. 12.0 l", "D. 9.6 l"],
-                    jawapan_betul: "A. 11.4 l",
-                    penerangan_jawapan: "A = 3.2 l. B = 3.2 + 1.4 = 4.6 l. C = (3.2 + 4.6) ÷ 2 = 7.8 ÷ 2 = 3.9 l. Jumlah = 3.2 + 4.6 + 3.9 = 11.7 l? Mari semak: A = 3.2, B = 4.6, C = 3.9. Jumlah = 11.7 l. Ubah pilihan A kepada 11.7 l. Sempurna!",
+                    pilihan_jawapan: ["A. 11.7 l", "B. 10.8 l", "C. 12.0 l", "D. 9.6 l"],
+                    jawapan_betul: "A. 11.7 l",
+                    penerangan_jawapan: "B mengandungi 3.2 + 1.4 = 4.6 l. C mengandungi (3.2 + 4.6) ÷ 2 = 3.9 l. Jumlahnya ialah 3.2 + 4.6 + 3.9 = 11.7 l.",
                     markah: 5, jenis_gambar: "Tiga bekas bertanda", deskripsi_gambar: "Tiga bekas besar."
                 },
                 {
@@ -1413,9 +1429,9 @@
                 {
                     id: "JS_K_042", topik: "Jisim", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Empat buah bungkusan P, Q, R dan S ditimbang. Bungkusan P berjisim 3.4 kg. Bungkusan Q berjisim 850 g lebih berat daripada P. Bungkusan R berjisim dua kali ganda jisim bungkusan Q. Bungkusan S berjisim 1.5 kg lebih ringan daripada R. Hitung jumlah jisim keempat-empat bungkusan itu dalam kg.",
-                    pilihan_jawapan: ["A. 20.3 kg", "B. 19.5 kg", "C. 21.0 kg", "D. 18.8 kg"],
-                    jawapan_betul: "A. 20.3 kg",
-                    penerangan_jawapan: "P = 3.4. Q = 3.4 + 0.85 = 4.25. R = 2 × 4.25 = 8.5. S = 8.5 - 1.5 = 7.0. Jumlah = 3.4 + 4.25 + 8.5 + 7.0 = 23.15? Semak: 3.4 + 4.25 = 7.65. 7.65 + 8.5 = 16.15. 16.15 + 7.0 = 23.15 kg. Sila ubah pilihan A kepada 23.15 kg. Sempurna!",
+                    pilihan_jawapan: ["A. 23.15 kg", "B. 19.5 kg", "C. 21.0 kg", "D. 18.8 kg"],
+                    jawapan_betul: "A. 23.15 kg",
+                    penerangan_jawapan: "Q berjisim 3.4 + 0.85 = 4.25 kg. R berjisim 2 × 4.25 = 8.5 kg. S berjisim 8.5 − 1.5 = 7 kg. Jumlahnya ialah 3.4 + 4.25 + 8.5 + 7 = 23.15 kg.",
                     markah: 5, jenis_gambar: "Empat bungkusan pos", deskripsi_gambar: "Bungkusan P, Q, R, S."
                 },
                 {
@@ -1436,13 +1452,11 @@
                 },
                 {
                     id: "JS_K_045", topik: "Jisim", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
-                    soalan: "Sebuah gudang menyimpan 120 kampit beras dengan setiap kampit berjisim 10 kg. Setiap minggu, sebanyak 15% daripada jumlah beras itu dijual kepada pemborong. Berapakah baki jisim beras di gudang itu selepas 2 minggu?",
-                    pilihan_jawapan: ["A. 867 kg", "B. 900 kg", "C. 816 kg", "D. 920 kg"],
-                    jawapan_betul: "C. 816 kg",
-                    penerangan_jawapan: "Jumlah asal = 1 200 kg. Minggu 1 jual 15% (180 kg) -> baki 1 020 kg. Minggu 2 jual 15% daripada 1 020 (153 kg) -> baki = 1 020 - 153 = 867 kg? Sila semak: 15% daripada 1 200 = 180. Selepas minggu 1 = 1 200 - 180 = 1 020 kg. Minggu 2 jual 15% daripada 1 200 lagi = 180 kg. Baki = 1 020 - 180 = 840 kg. Mari gunakan soalan mudah: Jual 150 kg setiap minggu selama 2 minggu. Jisim asal 1 200 kg. Baki = 1200 - 300 = 900 kg. Sempurna!",
-                    pilihan_jawapan: ["A. 900 kg", "B. 850 kg", "C. 950 kg", "D. 800 kg"],
-                    jawapan_betul: "A. 900 kg",
-                    penerangan_jawapan: "1 200 kg - (150 × 2) = 1 200 - 300 = 900 kg.",
+                    soalan: "Sebuah gudang menyimpan 120 kampit beras dengan setiap kampit berjisim 10 kg. Setiap minggu, sebanyak 15% daripada baki beras pada awal minggu itu dijual kepada pemborong. Berapakah baki jisim beras di gudang itu selepas 2 minggu?",
+                    pilihan_jawapan: ["A. 867 kg", "B. 850 kg", "C. 950 kg", "D. 800 kg"],
+                    jawapan_betul: "A. 867 kg",
+                    penerangan_jawapan: "Jisim asal ialah 120 × 10 = 1 200 kg. Selepas minggu pertama baki ialah 1 200 × 0.85 = 1 020 kg. Selepas minggu kedua, baki ialah 1 020 × 0.85 = 867 kg.",
+                    penerangan_jawapan: "Jisim asal ialah 120 × 10 = 1 200 kg. Selepas minggu pertama baki ialah 1 200 × 0.85 = 1 020 kg. Selepas minggu kedua, baki ialah 1 020 × 0.85 = 867 kg.",
                     markah: 5, jenis_gambar: "Gudang beras", deskripsi_gambar: "Kampit beras bertimbun."
                 },
                 {
@@ -1464,9 +1478,9 @@
                 {
                     id: "JS_K_048", topik: "Jisim", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Jisim purata bagi 4 orang murid ialah 38.5 kg. Apabila jisim Amir dimasukkan ke dalam kumpulan itu, jisim purata kelima-lima murid menjadi 40.0 kg. Berapakah jisim Amir dalam kg?",
-                    pilihan_jawapan: ["A. 47.5 kg", "B. 45.0 kg", "C. 46.0 kg", "D. 48.2 kg"],
-                    jawapan_betul: "A. 47.5 kg",
-                    penerangan_jawapan: "Jumlah 4 murid = 4 × 38.5 = 154 kg. Jumlah 5 murid = 5 × 40.0 = 200 kg. Jisim Amir = 200 - 154 = 46 kg? Sila semak: 200 - 154 = 46 kg. Ubah pilihan A kepada 46.0 kg. Sempurna!",
+                    pilihan_jawapan: ["A. 46 kg", "B. 45.0 kg", "C. 47.5 kg", "D. 48.2 kg"],
+                    jawapan_betul: "A. 46 kg",
+                    penerangan_jawapan: "Jumlah jisim empat murid ialah 4 × 38.5 = 154 kg. Jumlah jisim lima murid ialah 5 × 40 = 200 kg. Jisim Amir ialah 200 − 154 = 46 kg.",
                     markah: 5, jenis_gambar: "Kumpulan murid", deskripsi_gambar: "Murid berdiri di atas penimbang."
                 },
                 {
@@ -1496,9 +1510,9 @@
                 {
                     id: "JS_K_052", topik: "Jisim", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Pak Hassan memetik 45 kg buah mangga. 30% daripada mangga itu gred A, 50% gred B, dan selebihnya gred C. Hitung perbezaan jisim antara mangga gred A dan gred C dalam kg.",
-                    pilihan_jawapan: ["A. 9 kg", "B. 8 kg", "C. 10 kg", "D. 7.5 kg"],
-                    jawapan_betul: "A. 9 kg",
-                    penerangan_jawapan: "Gred C = 100 - (30+50) = 20%. Perbezaan % = 30% - 20% = 10%. Jisim = 10% daripada 45 kg = 4.5 kg? Sila semak: Gred A = 13.5 kg. Gred C = 9 kg. Perbezaan = 13.5 - 9 = 4.5 kg. Sila ubah pilihan A kepada 4.5 kg. Sempurna!",
+                    pilihan_jawapan: ["A. 4.5 kg", "B. 8 kg", "C. 10 kg", "D. 7.5 kg"],
+                    jawapan_betul: "A. 4.5 kg",
+                    penerangan_jawapan: "Gred C ialah 100% − 30% − 50% = 20%. Beza antara dua gred ialah 10% daripada 45 kg, iaitu 4.5 kg.",
                     markah: 5, jenis_gambar: "Gred mangga", deskripsi_gambar: "Penggredan buah mangga."
                 },
                 {
@@ -1520,9 +1534,9 @@
                 {
                     id: "JS_K_055", topik: "Jisim", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Tiga buah tong drum P, Q dan R mengandungi minyak. Tong P berjisim 45 kg. Tong Q berjisim 12.5 kg lebih berat daripada P, manakala tong R berjisim 1/2 daripada jumlah jisim tong P dan Q. Hitung jumlah jisim ketiga-tiga tong tersebut dalam kg.",
-                    pilihan_jawapan: ["A. 152.5 kg", "B. 148.0 kg", "C. 160.0 kg", "D. 145.5 kg"],
-                    jawapan_betul: "A. 152.5 kg",
-                    penerangan_jawapan: "P = 45. Q = 45 + 12.5 = 57.5. P + Q = 102.5. R = 102.5 ÷ 2 = 51.25. Jumlah = 45 + 57.5 + 51.25 = 153.75 kg? Sila semak: 45 + 57.5 + 51.25 = 153.75 kg. Ubah pilihan A kepada 153.75 kg. Sempurna!",
+                    pilihan_jawapan: ["A. 153.75 kg", "B. 148.0 kg", "C. 160.0 kg", "D. 145.5 kg"],
+                    jawapan_betul: "A. 153.75 kg",
+                    penerangan_jawapan: "Q berjisim 45 + 12.5 = 57.5 kg. R berjisim (45 + 57.5) ÷ 2 = 51.25 kg. Jumlahnya ialah 45 + 57.5 + 51.25 = 153.75 kg.",
                     markah: 5, jenis_gambar: "Tong minyak", deskripsi_gambar: "Tiga tong dram besar."
                 },
                 {
@@ -1536,9 +1550,9 @@
                 {
                     id: "JS_K_057", topik: "Jisim", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Sebuah lori membawa muatan 3 kampit beras berjisim 50 kg setiap satu, 10 kampit beras berjisim 10 kg setiap satu, dan beberapa kampit beras kecil berjisim 5 kg. Jika jumlah keseluruhan muatan beras di atas lori itu ialah 400 kg, berapakah bilangan kampit beras kecil 5 kg di atas lori tersebut?",
-                    pilihan_jawapan: ["A. 10 kampit", "B. 12 kampit", "C. 8 kampit", "D. 15 kampit"],
-                    jawapan_betul: "A. 10 kampit",
-                    penerangan_jawapan: "Jisim beras 50kg = 150 kg. Jisim beras 10kg = 100 kg. Jumlah dua jenis = 250 kg. Baki untuk 5kg = 400 - 250 = 150 kg. Bilangan kampit 5kg = 150 ÷ 5 = 30 kampit? Sila semak: 400 - 250 = 150 kg. 150 ÷ 5 = 30 kampit. Ubah pilihan A kepada 30 kampit. Sempurna!",
+                    pilihan_jawapan: ["A. 30 kampit", "B. 12 kampit", "C. 8 kampit", "D. 15 kampit"],
+                    jawapan_betul: "A. 30 kampit",
+                    penerangan_jawapan: "Dua kumpulan pertama berjisim 3 × 50 + 10 × 10 = 250 kg. Jisim baki ialah 400 − 250 = 150 kg. Bilangan kampit kecil ialah 150 ÷ 5 = 30.",
                     markah: 5, jenis_gambar: "Pelbagai kampit beras", deskripsi_gambar: "Pelbagai saiz kampit beras."
                 },
                 {
@@ -1552,9 +1566,9 @@
                 {
                     id: "JS_K_059", topik: "Jisim", tahap: "Sukar", aras_kognitif: "Mengaplikasi", mod_permainan: "Objektif",
                     soalan: "Jisim purata bagi 3 buah kotak A, B dan C ialah 18.5 kg. Jisim kotak A ialah 15.2 kg, manakala jisim kotak B adalah 4.5 kg lebih berat daripada kotak A. Hitung jisim kotak C dalam kg.",
-                    pilihan_jawapan: ["A. 15.8 kg", "B. 16.2 kg", "C. 15.0 kg", "D. 16.5 kg"],
-                    jawapan_betul: "A. 15.8 kg",
-                    penerangan_jawapan: "Jumlah 3 kotak = 3 × 18.5 = 55.5 kg. Kotak A = 15.2. Kotak B = 15.2 + 4.5 = 19.7 kg. Kotak C = 55.5 - (15.2 + 19.7) = 55.5 - 34.9 = 20.6 kg? Sila semak: 55.5 - 34.9 = 20.6 kg. Ubah pilihan A kepada 20.6 kg. Sempurna!",
+                    pilihan_jawapan: ["A. 20.6 kg", "B. 16.2 kg", "C. 15.0 kg", "D. 16.5 kg"],
+                    jawapan_betul: "A. 20.6 kg",
+                    penerangan_jawapan: "Jumlah jisim ialah 3 × 18.5 = 55.5 kg. Kotak B berjisim 15.2 + 4.5 = 19.7 kg. Kotak C berjisim 55.5 − 15.2 − 19.7 = 20.6 kg.",
                     markah: 5, jenis_gambar: "Tiga kotak", deskripsi_gambar: "Kotak A, B, C bertanda."
                 },
                 {
@@ -1571,7 +1585,7 @@
         // --- CORE NAVIGATION & RENDER FUNCTIONS ---
         window.onload = function() {
             // Check saved users
-            const activeUser = localStorage.getItem('edu_kidz_active_user');
+            const activeUser = localStorage.getItem('edukidz_t6_sub5_active_user');
             if (activeUser) {
                 appState.currentUser = JSON.parse(activeUser);
                 appState.currentView = 'menu';
@@ -2365,10 +2379,10 @@
             };
 
             appState.users.push(newUser);
-            localStorage.setItem('edu_kidz_users', JSON.stringify(appState.users));
+            localStorage.setItem('edukidz_t6_sub5_users', JSON.stringify(appState.users));
             
             appState.currentUser = newUser;
-            localStorage.setItem('edu_kidz_active_user', JSON.stringify(newUser));
+            localStorage.setItem('edukidz_t6_sub5_active_user', JSON.stringify(newUser));
 
             appState.currentView = 'menu';
             renderApp();
@@ -2390,14 +2404,14 @@
             }
 
             appState.currentUser = user;
-            localStorage.setItem('edu_kidz_active_user', JSON.stringify(user));
+            localStorage.setItem('edukidz_t6_sub5_active_user', JSON.stringify(user));
             appState.currentView = 'menu';
             renderApp();
         }
 
         function logoutUser() {
             appState.currentUser = null;
-            localStorage.removeItem('edu_kidz_active_user');
+            localStorage.removeItem('edukidz_t6_sub5_active_user');
             appState.currentView = 'auth';
             renderApp();
         }
@@ -2436,6 +2450,8 @@
             const topicQuestions = QUESTION_BANK[appState.selectedTopic] || [];
             appState.currentQuestions = topicQuestions.filter(q => q.tahap === appState.selectedLevel);
             appState.currentQuestionIndex = 0;
+            appState.answeredIndex = -1;
+            appState.resultRecorded = false;
             appState.score = 0;
             appState.correctCount = 0;
             appState.wrongCount = 0;
@@ -2516,6 +2532,7 @@
         function checkAnswer(selectedOpt) {
             if (appState.timerInterval) clearInterval(appState.timerInterval);
             const q = appState.currentQuestions[appState.currentQuestionIndex];
+            if (!q) return;
             const isCorrect = selectedOpt.trim().toLowerCase() === q.jawapan_betul.trim().toLowerCase();
 
             processAnswerResult(isCorrect, q);
@@ -2532,6 +2549,7 @@
 
             if (appState.timerInterval) clearInterval(appState.timerInterval);
             const q = appState.currentQuestions[appState.currentQuestionIndex];
+            if (!q) return;
             const isCorrect = val.toLowerCase() === q.jawapan_betul.toLowerCase();
 
             processAnswerResult(isCorrect, q);
@@ -2543,6 +2561,8 @@
         }
 
         function processAnswerResult(isCorrect, q, isTimeout = false) {
+            if (!q || appState.resultRecorded || appState.answeredIndex === appState.currentQuestionIndex) return;
+            appState.answeredIndex = appState.currentQuestionIndex;
             const feedbackArea = document.getElementById('feedback-area');
             const feedbackMsg = document.getElementById('feedback-message');
             feedbackArea.classList.remove('hidden');
@@ -2571,11 +2591,14 @@
         }
 
         function nextQuestion() {
+            if (appState.resultRecorded || appState.answeredIndex !== appState.currentQuestionIndex) return;
             appState.currentQuestionIndex++;
             loadQuestion();
         }
 
         function finishGameSession() {
+            if (appState.resultRecorded || !appState.currentUser) return;
+            appState.resultRecorded = true;
             if (appState.timerInterval) clearInterval(appState.timerInterval);
 
             const user = appState.currentUser;
@@ -2607,8 +2630,8 @@
             if (idx !== -1) {
                 appState.users[idx] = user;
             }
-            localStorage.setItem('edu_kidz_users', JSON.stringify(appState.users));
-            localStorage.setItem('edu_kidz_active_user', JSON.stringify(user));
+            localStorage.setItem('edukidz_t6_sub5_users', JSON.stringify(appState.users));
+            localStorage.setItem('edukidz_t6_sub5_active_user', JSON.stringify(user));
 
             appState.currentView = 'result';
             renderApp();

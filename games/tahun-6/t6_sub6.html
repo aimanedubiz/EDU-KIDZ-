@@ -683,7 +683,8 @@
                         { sides: 12, ext: "30°", int: "150°" },
                         { sides: 15, ext: "24°", int: "156°" },
                         { sides: 18, ext: "20°", int: "160°" },
-                        { sides: 20, ext: "18°", int: "162°" }
+                        { sides: 20, ext: "18°", int: "162°" },
+                        { sides: 24, ext: "15°", int: "165°" }
                     ];
 
                     for (let i = 1; i <= 20; i++) {
@@ -699,6 +700,15 @@
                             qText = `Jika setiap sudut pedalaman bagi sebuah poligon sekata bernilai ${poly.int} pada rajah, cari bilangan sisinya.`;
                         }
 
+                        const totalInterior = (poly.sides - 2) * 180;
+                        const asksTotal = i > susahPolygons.length;
+                        if (asksTotal) {
+                            const given = isExtQuery ? `sudut peluaran ${poly.ext}` : `sudut pedalaman ${poly.int}`;
+                            qText = `Setiap bucu poligon sekata ini mempunyai ${given}. Hitung jumlah semua sudut pedalamannya.`;
+                            ans = `${totalInterior}°`;
+                            wOpts = [totalInterior + 180, totalInterior - 180, totalInterior + 360].map(value => `${value}°`);
+                        }
+
                         bank[2].Susah.push({
                             id: `R2-SUSAH-${String(i).padStart(3, '0')}`,
                             topik: "Lukis dan Ukur Sudut Pedalaman Poligon Sekata",
@@ -709,8 +719,8 @@
                             pilihan_jawapan: shuffleArray([ans, ...wOpts]),
                             jawapan_betul: ans,
                             markah: 5,
-                            penerangan: isExtQuery ? `Bilangan sisi = 360° ÷ sudut peluaran (${poly.ext}) = ${poly.sides} sisi.` : `Sudut peluaran = 180° - ${poly.int} = ${poly.ext}. Bilangan sisi = 360° ÷ ${poly.ext} = ${poly.sides} sisi.`,
-                            gambarajah: { type: 'polygon_ext', sides: poly.sides > 8 ? 8 : poly.sides, extAngle: poly.ext }
+                            penerangan: asksTotal ? `Sudut peluaran ialah ${poly.ext}. Bilangan sisi = 360° ÷ ${poly.ext} = ${poly.sides}. Jumlah sudut pedalaman = (${poly.sides} − 2) × 180° = ${totalInterior}°.` : isExtQuery ? `Bilangan sisi = 360° ÷ sudut peluaran (${poly.ext}) = ${poly.sides} sisi.` : `Sudut peluaran = 180° - ${poly.int} = ${poly.ext}. Bilangan sisi = 360° ÷ ${poly.ext} = ${poly.sides} sisi.`,
+                            gambarajah: { type: 'polygon_ext', sides: poly.sides, extAngle: poly.ext }
                         });
                     }
                 }
@@ -718,7 +728,7 @@
                 // TOPIC 3: KENALI BULATAN
                 if (topic.id === 3) {
                     for (let i = 1; i <= 20; i++) {
-                        let r = 3 + (i % 7);
+                        const r = 2 + i;
                         let d = r * 2;
                         bank[3].Senang.push({
                             id: `R3-SENANG-${String(i).padStart(3, '0')}`,
@@ -752,7 +762,7 @@
                         });
                     }
                     for (let i = 1; i <= 20; i++) {
-                        let r = 7 + (i % 7);
+                        const r = 6 + i;
                         let kelilingApprox = Math.round(2 * (22/7) * r);
                         bank[3].Susah.push({
                             id: `R3-SUSAH-${String(i).padStart(3, '0')}`,
@@ -760,11 +770,11 @@
                             tahap: "Susah",
                             aras_kognitif: "Mengaplikasi",
                             jenis_game: "Objektif",
-                            soalan: `Hitung lilitan bulatan yang mempunyai jejari ${r} cm seperti yang ditunjukkan pada rajah (guna π = 22/7).`,
+                            soalan: `Hitung lilitan bulatan yang mempunyai jejari ${r} cm seperti yang ditunjukkan pada rajah. Gunakan π = 22/7 dan bundarkan jawapan kepada sentimeter terdekat.`,
                             pilihan_jawapan: shuffleArray([`${kelilingApprox} cm`, `${kelilingApprox + 10} cm`, `${kelilingApprox - 5} cm`, `${r * 4} cm`]),
                             jawapan_betul: `${kelilingApprox} cm`,
                             markah: 5,
-                            penerangan: `Lilitan = 2πr = 2 × (22/7) × ${r} = ${kelilingApprox} cm.`,
+                            penerangan: `Lilitan = 2πr = 2 × (22/7) × ${r} ≈ ${kelilingApprox} cm kepada sentimeter terdekat.`,
                             gambarajah: { type: 'circle', r: r, show: 'circumference' }
                         });
                     }
@@ -774,7 +784,7 @@
                 if (topic.id === 4) {
                     const t4SenangItems = [
                         { q: "Ali melukis sebuah taman rekreasi berbentuk segi empat sama. Jika panjang satu sisi ialah 12 m, berapakah perimeter taman tersebut?", ans: "48 m", w: ["36 m", "60 m", "24 m"], diag: { type: 'polygon', sides: 4, sideLen: '12m' } },
-                        { q: "Sebuah papan tanda berbentuk heksagon sekata mempunyai ukuran sisi 7 cm. Hitung perimeter papan tanda itu.", ans: "42 cm", w: ["35 cm", "49 cm", "28 cm"], diag: { type: 'polygon', sides: 6, sideLen: '7m' } },
+                        { q: "Sebuah papan tanda berbentuk heksagon sekata mempunyai ukuran sisi 7 cm. Hitung perimeter papan tanda itu.", ans: "42 cm", w: ["35 cm", "49 cm", "28 cm"], diag: { type: 'polygon', sides: 6, sideLen: '7cm' } },
                         { q: "Jam dinding menunjukkan pukul 4:00 petang. Berapakah nilai sudut pada jarum jam dan jarum minit?", ans: "120°", w: ["90°", "150°", "60°"], diag: { type: 'clock', hour: 4, angleVal: "120°" } },
                         { q: "Siti memotong sehelai kain berbentuk segi tiga sama sisi dengan panjang sisi 15 cm setiap satu. Cari perimeter kain tersebut.", ans: "45 cm", w: ["30 cm", "60 cm", "25 cm"], diag: { type: 'polygon', sides: 3, sideLen: '15cm' } },
                         { q: "Jam dinding menunjukkan pukul 2:00 petang. Cari sudut antara jarum jam dengan jarum minit.", ans: "60°", w: ["90°", "30°", "120°"], diag: { type: 'clock', hour: 2, angleVal: "60°" } },
@@ -894,6 +904,11 @@
                 }
             });
 
+            for (const topic of Object.values(bank)) {
+                for (const questions of Object.values(topic)) {
+                    for (const question of questions) question.pilihan_jawapan = [...new Set(question.pilihan_jawapan)];
+                }
+            }
             return bank;
         }
 

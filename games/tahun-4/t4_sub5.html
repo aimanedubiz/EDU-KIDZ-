@@ -569,6 +569,7 @@
                 ['Senang', 'Sederhana', 'Susah'].forEach((tahap) => {
                     for (let i = 1; i <= 20; i++) {
                         let q = buildSingleQuestion(subtopic.id, subtopic.name, tahap, i);
+                        q.pilihan = [...new Set(q.pilihan)];
                         bank.push(q);
                     }
                 });
@@ -580,66 +581,45 @@
             const idStr = `PJC_T4_SUB${subId}_${tahap.substring(0,3).toUpperCase()}_${String(index).padStart(3, '0')}`;
             let cognitive = tahap === 'Senang' ? 'Mengingat' : (tahap === 'Sederhana' ? 'Memahami' : 'Mengaplikasi');
             let qText = "", choices = [], answer = "", unit = "", diagram = null, exp = "";
+            const level = ['Senang', 'Sederhana', 'Susah'].indexOf(tahap);
+            const seed = level * 20 + index;
 
             if (subId === 1) {
-                const smallObjects = [
-                    "ketebalan kad pengenalan / kad sim",
-                    "ketebalan sebatang klip kertas",
-                    "ketebalan sekeping kad kredit",
-                    "ketebalan skrin telefon bimbit",
-                    "ketebalan sekeping simen / jubin nipis",
-                    "ketebalan sebutir kunci rumah",
-                    "ketebalan penutup botol air",
-                    "ketebalan sekeping setem pos",
-                    "ketebalan kepingan biskut",
-                    "ketebalan pemadam pensel"
+                const byUnit = [
+                    ['mm', 'ketebalan sekeping kad', 'ketebalan kanta cermin mata', 'diameter dawai halus', 'lebar garisan pensel', 'ketebalan sehelai kertas'],
+                    ['cm', 'panjang pensel', 'panjang buku tulis', 'lebar kotak pensel', 'diameter pinggan', 'panjang pemadam'],
+                    ['m', 'panjang bilik darjah', 'lebar gelanggang badminton', 'tinggi tiang bendera', 'lebar dewan sekolah', 'panjang kolam renang'],
+                    ['km', 'jarak antara dua bandar', 'panjang laluan bas antara daerah', 'panjang lebuh raya', 'jarak perjalanan rentas negeri', 'panjang laluan kereta api antara negeri']
                 ];
-
-                const longDistances = [
-                    "Jarak dari Kuala Lumpur ke Kuantan",
-                    "Jarak laluan keretapi dari Gemas ke Kota Bharu",
-                    "Jarak pemanduan dari Ipoh ke Pulau Pinang",
-                    "Jarak penerbangan dari Sepang ke Kota Kinabalu",
-                    "Panjang lebuh raya Utara-Selatan"
-                ];
-
-                if (tahap === 'Senang') {
-                    const obj = smallObjects[(index - 1) % smallObjects.length];
-                    qText = `Apakah unit ukuran yang paling sesuai untuk mengukur ${obj}?`;
-                    choices = ['mm', 'cm', 'm', 'km'];
-                    answer = 'mm';
-                    exp = `Ketebalan atau ukuran objek yang sangat nipis atau kecil diukur dalam unit milimeter (mm).`;
-                    diagram = 'ruler';
-                } else if (tahap === 'Sederhana') {
-                    if (index % 2 === 0) {
-                        qText = `Simbol manakah yang mewakili unit kilometer untuk mengukur jarak jauh?`;
-                        choices = ['km', 'm', 'cm', 'mm'];
-                        answer = 'km';
-                        exp = 'Unit kilometer digunakan untuk jarak jauh dan diwakili oleh simbol km.';
-                        diagram = 'road';
-                    } else {
-                        qText = `Apakah unit yang betul untuk mengukur jarak antara dua buah bandar?`;
-                        choices = ['kilometer (km)', 'milimeter (mm)', 'sentimeter (cm)', 'meter (m)'];
-                        answer = 'kilometer (km)';
-                        exp = 'Jarak perjalanan antara dua lokasi atau bandar diukur dalam kilometer (km).';
-                        diagram = 'road';
-                    }
+                const [symbol, ...objects] = byUnit[(index - 1) % byUnit.length];
+                const item = objects[Math.floor((index - 1) / byUnit.length)];
+                const names = { mm: 'milimeter', cm: 'sentimeter', m: 'meter', km: 'kilometer' };
+                if (level === 0) {
+                    qText = `Apakah simbol unit yang sesuai untuk mengukur ${item}?`;
+                    choices = Object.keys(names);
+                    answer = symbol;
+                } else if (level === 1) {
+                    qText = `Ukuran bagi ${item} dicatat menggunakan simbol ${symbol}. Apakah nama penuh unit itu?`;
+                    choices = Object.values(names);
+                    answer = names[symbol];
                 } else {
-                    const dist = longDistances[(index - 1) % longDistances.length];
-                    qText = `Antara situasi berikut, yang manakah paling sesuai diukur menggunakan unit kilometer (km)?`;
-                    choices = [dist, 'Panjang sebatang pensel', 'Tinggi sebuah kerusi murid', 'Ketebalan kad matriks'];
-                    answer = dist;
-                    exp = 'Jarak laluan dan perjalanan darat yang jauh sentiasa diukur dalam unit kilometer (km).';
-                    diagram = 'road';
+                    const [otherSymbol, ...otherObjects] = byUnit[index % byUnit.length];
+                    const other = otherObjects[Math.floor((index - 1) / byUnit.length)];
+                    qText = `Pilih pasangan unit yang sesuai, mengikut turutan, bagi ${item} dan ${other}.`;
+                    answer = `${symbol} dan ${otherSymbol}`;
+                    choices = [answer, `${otherSymbol} dan ${symbol}`, `${symbol} dan ${symbol}`, `${otherSymbol} dan ${otherSymbol}`];
                 }
+                exp = `Unit ${names[symbol]} (${symbol}) sesuai untuk mengukur ${item}.`;
             } else if (subId === 2) {
-                let val = index * 2;
-                qText = `Berapakah panjang sebatang objek pada pembaris jika ia bermula dari 0 cm hingga ${val} cm?`;
-                choices = [`${val} cm`, `${val + 2} cm`, `${val - 1} cm`, `${val * 10} cm`];
-                answer = `${val} cm`;
+                const start = [0, 2, 5.5][level];
+                const length = index + (level === 2 ? 0.5 : 0);
+                const end = start + length;
+                qText = `Objek bermula pada tanda ${start} cm dan berakhir pada tanda ${end} cm. Berapakah panjang objek?`;
+                choices = [length, length + 2, length - 1, length + 5].map(value => `${value} cm`);
+                answer = `${length} cm`;
                 unit = 'cm';
-                exp = `Panjang objek diukur dari titik permulaan 0 cm hingga ke takat akhir ${val} cm.`;
-                diagram = 'ruler';
+                exp = `Panjang objek = bacaan akhir − bacaan awal = ${end} cm − ${start} cm = ${length} cm.`;
+                diagram = { type: 'ruler-measurement', start, end };
             } else if (subId === 3) {
                 let cmVal = index + 1;
                 let mmVal = cmVal * 10;
@@ -660,11 +640,11 @@
                     let cmPart = Math.floor(calcMm / 10);
                     let mmPart = calcMm % 10;
                     answer = `${cmPart} cm ${mmPart} mm`;
-                    choices = [`${cmPart} cm ${mmPart} mm`, `${cmPart + 1} cm ${mmPart} mm`, `${cmPart} cm 0 mm`, `${mmPart} cm ${cmPart} mm`];
+                    choices = [`${cmPart} cm ${mmPart} mm`, `${cmPart + 1} cm ${mmPart} mm`, `${cmPart} cm ${(mmPart + 3) % 10} mm`, `${mmPart} cm ${cmPart} mm`];
                     exp = `Bahagikan ${calcMm} dengan 10. Hasil bahagi ialah ${cmPart} cm dan baki ialah ${mmPart} mm.`;
                 }
             } else if (subId === 4) {
-                let kmVal = index;
+                const kmVal = seed;
                 let mVal = kmVal * 1000;
                 qText = `Tukarkan ${kmVal} km kepada unit meter (m).`;
                 answer = `${mVal} m`;
@@ -710,7 +690,7 @@
                     exp = `Tambah nilai nombor dengan unit sentimeter yang sama: ${a} cm + ${b} cm = ${sum} cm.`;
                     diagram = 'ruler';
                 } else if (tahap === 'Sederhana') {
-                    let cm1 = (index % 5) + 10;
+                    const cm1 = index + 9;
                     let mm1 = 4;
                     let cm2 = (index % 4) + 5;
                     let mm2 = 3;
@@ -736,7 +716,7 @@
                 }
             } else if (subId === 7) {
                 if (tahap === 'Senang') {
-                    let lengthVal = (index % 5) + 3;
+                    const lengthVal = index + 2;
                     let multiplier = (index % 3) + 2;
                     let product = lengthVal * multiplier;
                     qText = `Selesaikan operasi darab ukuran panjang berikut: ${lengthVal} cm × ${multiplier} = ?`;
@@ -745,7 +725,7 @@
                     exp = `Darabkan nilai ukuran panjang dengan nombor bulat: ${lengthVal} cm × ${multiplier} = ${product} cm.`;
                     diagram = 'ruler';
                 } else if (tahap === 'Sederhana') {
-                    let mVal = (index % 4) + 2;
+                    const mVal = index + 1;
                     let cmVal = 40;
                     let multiplier = 3;
                     let totalCmResult = (mVal * 100 + cmVal) * multiplier;
@@ -767,7 +747,7 @@
                     diagram = 'road';
                 }
             } else if (subId === 8) {
-                let a = index * 2;
+                const a = seed * 2;
                 let b = index + 3;
                 let sum = a + b;
                 qText = `Kira hasil tambah jisim berikut: ${a} kg + ${b} kg = ?`;
@@ -777,7 +757,7 @@
                 diagram = 'scale';
             } else if (subId === 9) {
                 if (tahap === 'Senang') {
-                    let kgVal = (index % 5) + 2;
+                    const kgVal = index + 1;
                     let multiplier = (index % 3) + 2;
                     let productKg = kgVal * multiplier;
                     qText = `Selesaikan operasi darab jisim berikut: ${kgVal} kg × ${multiplier} = ?`;
@@ -786,7 +766,7 @@
                     exp = `Darabkan nilai jisim dengan nombor bulat: ${kgVal} kg × ${multiplier} = ${productKg} kg.`;
                     diagram = 'scale';
                 } else if (tahap === 'Sederhana') {
-                    let kgVal = (index % 3) + 1;
+                    const kgVal = index;
                     let gVal = 250;
                     let multiplier = 2;
                     let totalGrams = (kgVal * 1000 + gVal) * multiplier;
@@ -808,7 +788,7 @@
                     diagram = 'scale';
                 }
             } else if (subId === 10) {
-                let lVal = index;
+                const lVal = seed;
                 let mlVal = lVal * 1000;
                 qText = `Sebuah bekas mengandungi ${lVal} liter air. Berapakah isipadu air tersebut dalam unit mililiter (ml)?`;
                 answer = `${mlVal} ml`;
@@ -818,7 +798,7 @@
             } else if (subId === 11) {
                 // SUBTOPIK 11: Darab dan Bahagi Isipadu Cecair (Refined with explicit units l and ml in operations)
                 if (tahap === 'Senang') {
-                    let lVal = (index % 5) + 2;
+                    const lVal = index + 1;
                     let multiplier = (index % 3) + 2;
                     let productL = lVal * multiplier;
                     qText = `Selesaikan operasi darab isipadu cecair berikut: ${lVal} l × ${multiplier} = ?`;
@@ -827,7 +807,7 @@
                     exp = `Darabkan nilai isipadu dengan nombor bulat: ${lVal} l × ${multiplier} = ${productL} l.`;
                     diagram = 'beaker';
                 } else if (tahap === 'Sederhana') {
-                    let lVal = (index % 3) + 1;
+                    const lVal = index;
                     let mlVal = 250;
                     let multiplier = 2;
                     let totalMl = (lVal * 1000 + mlVal) * multiplier;
@@ -870,7 +850,7 @@
 
                 let pTypeIdx = index % problemTypes.length;
                 let pt = problemTypes[pTypeIdx];
-                let valA = (index + 3) * 2;
+                const valA = (seed + 3) * 2;
                 let valB = index + 1;
                 let calcRes = pt.calc(valA, valB);
 
@@ -1169,7 +1149,22 @@
                 const container = document.getElementById('gameDiagramArea');
                 container.innerHTML = '';
 
-                if (type === 'ruler') {
+                if (type?.type === 'ruler-measurement') {
+                    const max = Math.max(5, Math.ceil(type.end / 5) * 5);
+                    const x = value => 18 + 264 * value / max;
+                    const ticks = Array.from({length: max * 2 + 1}, (_, i) => {
+                        const value = i / 2;
+                        const labelled = i === 0 || value % 5 === 0;
+                        return `<line x1="${x(value)}" x2="${x(value)}" y1="31" y2="${labelled ? 46 : i % 2 ? 37 : 41}" stroke="#073B4C"/>${labelled ? `<text x="${x(value)}" y="61" text-anchor="middle" font-size="9">${value}</text>` : ''}`;
+                    }).join('');
+                    container.innerHTML = `
+                        <svg width="300" height="75" viewBox="0 0 300 75" class="max-w-full" role="img" aria-label="Objek dari ${type.start} hingga ${type.end} sentimeter">
+                            <rect x="8" y="29" width="284" height="38" rx="4" fill="#FFD166"/>
+                            ${ticks}
+                            <rect x="${x(type.start)}" y="13" width="${x(type.end) - x(type.start)}" height="13" rx="3" fill="#EF476F"/>
+                            <text x="290" y="74" font-size="8" text-anchor="end">cm</text>
+                        </svg>`;
+                } else if (type === 'ruler') {
                     container.innerHTML = `
                         <svg width="280" height="70" viewBox="0 0 280 70" class="max-w-full">
                             <rect x="5" y="10" width="270" height="50" fill="#FFD166" stroke="#073B4C" stroke-width="3" rx="8"/>
@@ -1181,7 +1176,6 @@
                             <text x="118" y="55" font-weight="bold" font-size="12">4 cm</text>
                             <line x1="170" y1="10" x2="170" y2="30" stroke="#073B4C" stroke-width="2"/>
                             <text x="168" y="55" font-weight="bold" font-size="12">6 cm</text>
-                            <rect x="20" y="20" width="100" height="10" fill="#EF476F" stroke="#073B4C" stroke-width="1.5" rx="2"/>
                         </svg>
                     `;
                 } else if (type === 'scale') {

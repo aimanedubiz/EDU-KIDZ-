@@ -306,6 +306,18 @@
                 </div>
             </div>
 
+            <section class="w-full bg-indigo-50 rounded-2xl p-4 mb-4 text-left" aria-labelledby="leaderboard-title">
+                <h4 id="leaderboard-title" class="font-bold text-indigo-900">Leaderboard</h4>
+                <p class="text-xs text-slate-600">10 markah terbaik untuk topik dan aras ini pada pelayar ini.</p>
+                <ol id="leaderboard-list" class="list-decimal pl-5 py-2 text-sm"></ol>
+                <form class="flex flex-wrap gap-2 items-end" onsubmit="saveLeaderboardScore(event)">
+                    <label class="flex-1 text-sm" for="leaderboard-player">Nama pemain
+                        <input id="leaderboard-player" type="text" required maxlength="30" class="block w-full rounded-lg border p-2">
+                    </label>
+                    <button id="leaderboard-save" type="submit" class="bg-indigo-600 text-white font-bold rounded-lg px-4 py-2">Simpan</button>
+                </form>
+                <p id="leaderboard-status" class="text-sm mt-2" role="status"></p>
+            </section>
             <div class="flex flex-col sm:flex-row gap-3 w-full">
                 <button onclick="restartQuiz()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-2xl shadow transition text-sm">
                     🔄 Main Semula Topik Ini
@@ -376,6 +388,8 @@
         let streak = 0;
         let userAnswersHistory = [];
         let isAnswerSubmitted = false;
+        let resultSaved = false;
+        const leaderboardKey = 'edukidz_t1_sub1_leaderboard';
 
         /*
           REFINED TOPIC 0: MEMBILANG NOMBOR 1–100 (NO IMAGES, UNIQUE TEXT-BASED VARIATIONS, NO DUPLICATES)
@@ -419,7 +433,7 @@
                             q.options = shuffleArray([ans.toString(), (ans + 1).toString(), (ans - 1).toString(), (ans + 3).toString()]);
                         }
                     } else if (modeType === 1) {
-                        let start = (i * 5) % 50 + 10;
+                        let start = i * 3 + 10;
                         let s1 = start + 5;
                         let s2 = s1 + 5;
                         q.text = `Mari membilang secara tertib menaik lima-lima: ${start}, ${s1}, ${s2}, ... Apakah nombor seterusnya?`;
@@ -447,7 +461,7 @@
                 } else {
                     let appType = i % 3;
                     if (appType === 0) {
-                        let packets = (i % 5) + 3;
+                        let packets = Math.ceil(i / 3) + 2;
                         let total = packets * 10;
                         q.text = `Encik Ali menyusun ${packets} berkas lidi. Setiap berkas mengandungi tepat 10 batang lidi. Berapakah jumlah keseluruhan lidi jika dibilang sepuluh-sepuluh?`;
                         q.answer = total.toString();
@@ -470,7 +484,7 @@
                 }
                 questions.push(q);
             }
-            return questions;
+            return questions.map(q => q.options ? {...q, options: [...new Set(q.options)]} : q);
         }
 
         /*
@@ -494,7 +508,7 @@
                     
                     if (i % 2 === 0) {
                         // Cari nombor tengah dalam tertib menaik
-                        q.text = `Pilih susunan nombor dalam TERTIB MENAIK (dari kecil ke besar) yang betul:`;
+                        q.text = `Pilih susunan TERTIB MENAIK bagi nombor ${n2}, ${n3} dan ${n1}:`;
                         q.answer = `${n1}, ${n2}, ${n3}`;
                         let wrong1 = `${n3}, ${n2}, ${n1}`;
                         let wrong2 = `${n2}, ${n1}, ${n3}`;
@@ -502,7 +516,7 @@
                         q.options = shuffleArray([q.answer, wrong1, wrong2, wrong3]);
                     } else {
                         // Cari nombor dalam tertib menurun
-                        q.text = `Pilih susunan nombor dalam TERTIB MENURUN (dari besar ke kecil) yang betul:`;
+                        q.text = `Pilih susunan TERTIB MENURUN bagi nombor ${n2}, ${n1} dan ${n3}:`;
                         let correctDesc = `${n3}, ${n2}, ${n1}`;
                         q.answer = correctDesc;
                         let wrong1 = `${n1}, ${n2}, ${n3}`;
@@ -570,7 +584,7 @@
                 }
                 questions.push(q);
             }
-            return questions;
+            return questions.map(q => q.options ? {...q, options: [...new Set(q.options)]} : q);
         }
 
         // Standard Generator for topics 1, 2, 3, 5, 6, 7
@@ -578,14 +592,15 @@
             let questions = [];
             let cognitive = diff === 'senang' ? 'MENGINGAT' : (diff === 'sederhana' ? 'MEMAHAMI' : 'MENGAPLIKASI');
             
+            const level = ['senang', 'sederhana', 'susah'].indexOf(diff);
             for (let i = 1; i <= 20; i++) {
+                const slot = i + 20 * level;
                 let q = { id: i, topic: topicIdx, difficulty: diff, cognitive: cognitive };
                 
                 switch(topicIdx) {
                     case 1: // Baca & Tulis Nombor
                         {
-                            let num = diff === 'senang' ? (i + 2) : (diff === 'sederhana' ? (i * 3 + 5) : (i * 4 + 12));
-                            if (num > 100) num = 88;
+                            let num = slot + 5 + 8 * level;
                             let word = getMalayWord(num);
                             q.format = i % 2 === 0 ? 'objektif' : 'subjektif';
                             if (q.format === 'objektif') {
@@ -603,7 +618,7 @@
                         break;
                     case 2: // Sebelum & Selepas
                         {
-                            let num = (i * 4) % 70 + 10;
+                            let num = slot + 10;
                             let isBefore = i % 2 === 0;
                             let target = isBefore ? num - 1 : num + 1;
                             q.format = 'objektif';
@@ -617,7 +632,7 @@
                         break;
                     case 3: // Membanding Nombor
                         {
-                            let n1 = (i * 3) % 80 + 5;
+                            let n1 = slot + 5;
                             let n2 = n1 + ((i % 2 === 0) ? 4 : -3);
                             if (n1 === n2) n2 = n1 + 6;
                             q.format = 'objektif';
@@ -631,21 +646,21 @@
                         break;
                     case 5: // Nilai Tempat Puluh & Sa
                         {
-                            let puluh = (i % 7) + 1;
-                            let sa = (i % 8) + 1;
+                            let puluh = 1 + Math.floor((slot - 1) / 9);
+                            let sa = 1 + (slot - 1) % 9;
                             let fullNum = puluh * 10 + sa;
                             let askPuluh = i % 2 === 0;
                             q.format = 'objektif';
-                            q.text = `Bagi nombor ${fullNum}, apakah nilai digit bagi angka ${askPuluh ? (puluh * 10) : sa}?`;
+                            q.text = `Bagi nombor ${fullNum}, apakah nilai digit bagi angka ${askPuluh ? puluh : sa} di tempat ${askPuluh ? "puluh" : "sa"}?`;
                             q.answer = askPuluh ? (puluh * 10).toString() : sa.toString();
-                            q.options = shuffleArray([q.answer, (puluh).toString(), (sa + 2).toString(), "10"]);
+                            q.options = shuffleArray([q.answer, ...[puluh, sa + 2, 10, 20, 30].map(String).filter(value => value !== q.answer)].filter((value, index, choices) => choices.indexOf(value) === index).slice(0, 4));
                         }
                         break;
                     case 6: // Terbesar & Terkecil
                         {
-                            let a = (i * 5) % 70 + 10;
-                            let b = (i * 7) % 70 + 10;
-                            let c = (i * 3) % 70 + 10;
+                            let a = slot + 10;
+                            let b = a + 2 + i % 7;
+                            let c = a - 2 - i % 7;
                             let numbers = [a, b, c];
                             let askLargest = i % 2 === 0;
                             let targetNum = askLargest ? Math.max(...numbers) : Math.min(...numbers);
@@ -657,7 +672,7 @@
                         break;
                     case 7: // Pola Nombor
                         {
-                            let start = (i * 2) % 40 + 5;
+                            let start = slot + 5;
                             let diffVal = i % 3 === 0 ? 5 : (i % 3 === 1 ? 2 : 10);
                             let seq = [start, start + diffVal, start + (diffVal * 2), "❓"];
                             q.format = 'subjektif';
@@ -668,7 +683,7 @@
                 }
                 questions.push(q);
             }
-            return questions;
+            return questions.map(q => q.options ? {...q, options: [...new Set(q.options)]} : q);
         }
 
         function generateQuestionBankFor(topicIdx, diff) {
@@ -715,6 +730,8 @@
             currentQuestionIndex = 0;
             score = 0;
             streak = 0;
+            resultSaved = false;
+            userAnswersHistory.length = 0;
 
             document.getElementById('screen-difficulty').classList.add('hidden');
             document.getElementById('screen-result').classList.add('hidden');
@@ -830,6 +847,7 @@
         }
 
         function nextQuestion() {
+            if (!isAnswerSubmitted || currentQuestionIndex >= questionBank.length) return;
             currentQuestionIndex++;
             if (currentQuestionIndex < questionBank.length) {
                 loadQuestion();
@@ -842,6 +860,10 @@
             document.getElementById('screen-game').classList.add('hidden');
             document.getElementById('global-stats').classList.add('hidden');
             document.getElementById('screen-result').classList.remove('hidden');
+
+            document.getElementById('leaderboard-save').disabled = resultSaved;
+            document.getElementById('leaderboard-status').textContent = '';
+            renderLeaderboard();
 
             let maxPossible = questionBank.length * 10;
             let percentage = Math.round((score / maxPossible) * 100);
@@ -865,6 +887,49 @@
                 emojiEl.innerText = '💡';
                 titleEl.innerText = 'Cuba Lagi Ya!';
                 subEl.innerText = 'Jangan berputus asa. Cuba ulangi latihan untuk mempertingkatkan kemahiran anda.';
+            }
+        }
+
+        function getLeaderboard() {
+            try {
+                const entries = JSON.parse(localStorage.getItem(leaderboardKey) || '[]');
+                return Array.isArray(entries) ? entries : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function renderLeaderboard() {
+            const list = document.getElementById('leaderboard-list');
+            list.replaceChildren();
+            getLeaderboard()
+                .filter(entry => entry.topic === currentTopicIndex && entry.level === currentDifficulty)
+                .sort((a, b) => b.percentage - a.percentage || b.score - a.score)
+                .slice(0, 10)
+                .forEach(entry => {
+                    const row = document.createElement('li');
+                    row.textContent = `${entry.name} — ${entry.score}/${entry.maximum} (${entry.percentage}%)`;
+                    list.appendChild(row);
+                });
+        }
+
+        function saveLeaderboardScore(event) {
+            event.preventDefault();
+            const name = document.getElementById('leaderboard-player').value.trim();
+            if (!name || resultSaved || !questionBank.length || currentQuestionIndex !== questionBank.length) return;
+            const status = document.getElementById('leaderboard-status');
+            const maximum = questionBank.length * 10;
+            const entries = getLeaderboard();
+            entries.push({name, score, maximum, percentage: Math.round(score * 100 / maximum),
+                topic: currentTopicIndex, level: currentDifficulty});
+            try {
+                localStorage.setItem(leaderboardKey, JSON.stringify(entries));
+                resultSaved = true;
+                document.getElementById('leaderboard-save').disabled = true;
+                status.textContent = 'Markah disimpan.';
+                renderLeaderboard();
+            } catch {
+                status.textContent = 'Markah gagal disimpan pada pelayar ini.';
             }
         }
 

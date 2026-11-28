@@ -248,19 +248,25 @@
         }
 
         class QuestionBankEngine {
-            static generateQuestion(topicId, difficulty, formatType) {
+            static generateQuestion(topicId, difficulty, formatType, index = 0) {
+                const question = this.createQuestion(topicId, difficulty, formatType, index);
+                if (Array.isArray(question.pilihan)) question.pilihan = [...new Set(question.pilihan)];
+                return question;
+            }
+
+            static createQuestion(topicId, difficulty, formatType, index = 0) {
                 const id = `NB_T5_${topicId}_${difficulty.substring(0,3).toUpperCase()}_${Date.now()}_${randInt(100,999)}`;
                 let cognitive = COGNITIVE_LEVELS[randInt(0, 2)];
                 
                 switch(topicId) {
                     case 'A': return this.genTopicA(id, difficulty, formatType, cognitive);
                     case 'B': return this.genTopicB(id, difficulty, formatType, cognitive);
-                    case 'C': return this.genTopicC(id, difficulty, formatType, cognitive);
+                    case 'C': return this.genTopicC(id, difficulty, formatType, index);
                     case 'D': return this.genTopicD(id, difficulty, formatType, cognitive);
                     case 'E': return this.genTopicE(id, difficulty, formatType, cognitive);
                     case 'F': return this.genTopicF(id, difficulty, formatType, cognitive);
-                    case 'G': return this.genTopicG(id, difficulty, formatType, cognitive);
-                    case 'H': return this.genTopicH(id, difficulty, formatType, cognitive);
+                    case 'G': return this.genTopicG(id, difficulty, formatType, index);
+                    case 'H': return this.genTopicH(id, difficulty, formatType, index);
                     case 'I': return this.genTopicI(id, difficulty, formatType, cognitive);
                     case 'J': return this.genTopicJ(id, difficulty, formatType, cognitive);
                     case 'K': return this.genTopicK(id, difficulty, formatType, cognitive);
@@ -280,21 +286,18 @@
                     const placeValuePower = strNum.length - 1 - idx;
                     const digitVal = parseInt(digit) * Math.pow(10, placeValuePower);
 
-                    const choices = [
-                        digitVal.toString(),
-                        (digitVal / 10 || digitVal * 10).toString(),
-                        (digitVal * 10).toString(),
-                        digit.toString()
-                    ];
+                    const choices = [digitVal, ...[1, 10, 100, 1000, 10000]
+                        .map(place => Number(digit) * place || place)
+                        .filter(value => value !== digitVal)].slice(0, 4).map(String);
 
                     return {
                         id, topik: 'Nombor Bulat dan Operasi', subtopik: 'Kenali dan Teroka Nombor',
                         tahap: diff, aras_kognitif: 'Mengingat', jenis: format,
-                        soalan: `Apakah nilai digit bagi digit <span class="text-amber-600 font-extrabold underline">${digit}</span> dalam nombor <b>${num.toLocaleString('ms-MY')}</b>?`,
+                        soalan: `Apakah nilai digit bagi digit <span class="text-amber-600 font-extrabold underline">${digit}</span> di tempat ${this.getPlaceValueName(placeValuePower)} dalam nombor <b>${num.toLocaleString('ms-MY')}</b>?`,
                         pilihan: shuffle([...new Set(choices)]),
                         jawapan: digitVal.toString(),
                         markah: 5,
-                        gambarajah: { type: 'place_value', number: num, highlightIdx: idx },
+                        gambarajah: { type: 'place_value', number: num, highlightIdx: idx + 6 - strNum.length },
                         penerangan: `Digit ${digit} terletak pada nilai tempat ${this.getPlaceValueName(placeValuePower)}. Maka nilai digitnya ialah ${digitVal.toLocaleString('ms-MY')}.`
                     };
                 } else if (subType === 2) { // Perkataan ke Angka
@@ -331,9 +334,9 @@
                         soalan: `Manakah mencerakinkan nombor <b>${num.toLocaleString('ms-MY')}</b> mengikut nilai digit dengan betul?`,
                         pilihan: shuffle([
                             ansStr,
-                            ansStr.replace(/\+/g, '-'),
+                            correctCerakin.length > 1 ? ansStr.replace(/\+/g, '-') : String(num - 100),
                             ansStr + ' + 10',
-                            correctCerakin.slice(0, -1).join(' + ')
+                            String(num - Number(correctCerakin.at(-1)))
                         ]),
                         jawapan: ansStr,
                         markah: 5,
@@ -383,20 +386,22 @@
             }
 
             // TOPIC C: Nombor Perdana
-            static genTopicC(id, diff, format, cognitive) {
+            static genTopicC(id, diff, format, index) {
+                const level = ['Senang', 'Sederhana', 'Susah'].indexOf(diff);
                 const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
-                const nonPrimes = [1, 4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 22, 24, 25, 27, 30, 33, 35, 49, 51, 81, 91];
-
-                const targetPrime = primes[randInt(0, primes.length - 1)];
-                const wrg1 = nonPrimes[randInt(0, nonPrimes.length - 1)];
-                const wrg2 = nonPrimes[randInt(0, nonPrimes.length - 1)];
-                const wrg3 = nonPrimes[randInt(0, nonPrimes.length - 1)];
+                const nonPrimes = [
+                    [1, 4, 6, 8, 9, 10, 12, 14, 15, 16],
+                    [21, 22, 24, 25, 27, 28, 30, 33, 35, 39],
+                    [49, 51, 55, 57, 63, 65, 69, 77, 81, 91]
+                ][level];
+                const targetPrime = primes[[0, 9, 15][level] + index];
+                const options = [targetPrime, nonPrimes[index], nonPrimes[(index + 1) % 10], nonPrimes[(index + 3) % 10]];
 
                 return {
                     id, topik: 'Nombor Bulat dan Operasi', subtopik: 'Nombor Perdana',
                     tahap: diff, aras_kognitif: 'Mengingat', jenis: format,
-                    soalan: `Antara nombor berikut, yang manakah merupakan <b>Nombor Perdana</b>?`,
-                    pilihan: shuffle([targetPrime.toString(), wrg1.toString(), wrg2.toString(), wrg3.toString()]),
+                    soalan: `Antara <b>${[...options].sort((a, b) => a - b).join(", ")}</b>, yang manakah nombor perdana?`,
+                    pilihan: shuffle(options.map(String)),
                     jawapan: targetPrime.toString(),
                     markah: 5,
                     gambarajah: null,
@@ -508,9 +513,10 @@
             }
 
             // TOPIC G: Anu Dalam Darab
-            static genTopicG(id, diff, format, cognitive) {
+            static genTopicG(id, diff, format, index) {
+                const level = ['Senang', 'Sederhana', 'Susah'].indexOf(diff);
                 const b = randInt(4, 25);
-                const ans = randInt(12, 150);
+                const ans = 12 + level * 50 + index * 3;
                 const total = ans * b;
 
                 const pos = randInt(1, 2);
@@ -529,11 +535,12 @@
             }
 
             // TOPIC H: Anu Dalam Bahagi
-            static genTopicH(id, diff, format, cognitive) {
+            static genTopicH(id, diff, format, index) {
+                const level = ['Senang', 'Sederhana', 'Susah'].indexOf(diff);
                 const pos = randInt(1, 2);
                 if (pos === 1) { // □ ÷ b = ans => □ = ans * b
                     const b = randInt(5, 20);
-                    const ans = randInt(10, 100);
+                    const ans = 10 + level * 30 + index * 2;
                     const anuVal = ans * b;
 
                     return {
@@ -547,7 +554,7 @@
                         penerangan: `Untuk mencari nilai anu yang dibahagi: darabkan jawapan dengan pembahagi (${ans} × ${b} = ${anuVal}).`
                     };
                 } else { // total ÷ □ = ans => □ = total / ans
-                    const ans = randInt(6, 30);
+                    const ans = 6 + level * 12 + index;
                     const anuVal = randInt(4, 15);
                     const total = ans * anuVal;
 
@@ -680,6 +687,27 @@
     </script>
 
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t5_sub1_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = legacy && typeof legacy === "object" && !Array.isArray(legacy)
+                ? Object.fromEntries(Object.entries(legacy).filter(([key, u]) => u && u.username === key && Number.isFinite(u.accuracy) && Number.isFinite(u.gamesPlayed) && Array.isArray(u.history)))
+                : {};
+            localStorage.setItem(usersKey, JSON.stringify(users));
+            const active = localStorage.getItem('math_kids_active_user');
+            if (active && Object.hasOwn(users, active)) {
+                localStorage.setItem('edukidz_t5_sub1_active_user', active);
+            }
+        })();
+
         class App {
             constructor() {
                 this.currentUser = null;
@@ -696,27 +724,10 @@
             }
 
             initData() {
-                // Initial default user if none
-                if (!localStorage.getItem('math_kids_users')) {
-                    const defaultUser = {
-                        username: 'murid1',
-                        name: 'Amirul Hakim',
-                        avatar: '👦',
-                        totalScore: 120,
-                        gamesPlayed: 3,
-                        accuracy: 85,
-                        history: [
-                            { date: '2026-10-12', topic: 'TOPIK A', diff: 'Senang', score: 90, total: 100 },
-                            { date: '2026-10-14', topic: 'TOPIK B', diff: 'Sederhana', score: 80, total: 100 }
-                        ]
-                    };
-                    localStorage.setItem('math_kids_users', JSON.stringify({ 'murid1': defaultUser }));
-                }
-
                 // Check active logged in user
-                const active = localStorage.getItem('math_kids_active_user');
+                const active = localStorage.getItem('edukidz_t5_sub1_active_user');
                 if (active) {
-                    const users = JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+                    const users = JSON.parse(localStorage.getItem('edukidz_t5_sub1_users') || '{}');
                     if (users[active]) {
                         this.currentUser = users[active];
                     }
@@ -725,10 +736,10 @@
 
             saveUserData() {
                 if (!this.currentUser) return;
-                const users = JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+                const users = JSON.parse(localStorage.getItem('edukidz_t5_sub1_users') || '{}');
                 users[this.currentUser.username] = this.currentUser;
-                localStorage.setItem('math_kids_users', JSON.stringify(users));
-                localStorage.setItem('math_kids_active_user', this.currentUser.username);
+                localStorage.setItem('edukidz_t5_sub1_users', JSON.stringify(users));
+                localStorage.setItem('edukidz_t5_sub1_active_user', this.currentUser.username);
             }
 
             renderHeaderNav() {
@@ -930,7 +941,7 @@
             handleLogin(e) {
                 e.preventDefault();
                 const username = document.getElementById('login-username').value.trim();
-                const users = JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+                const users = JSON.parse(localStorage.getItem('edukidz_t5_sub1_users') || '{}');
 
                 if (users[username]) {
                     this.currentUser = users[username];
@@ -946,7 +957,7 @@
                 const fullname = document.getElementById('reg-fullname').value.trim();
                 const username = document.getElementById('reg-username').value.trim();
                 const avatar = document.querySelector('input[name="reg-avatar"]:checked')?.value || '👦';
-                const users = JSON.parse(localStorage.getItem('math_kids_users') || '{}');
+                const users = JSON.parse(localStorage.getItem('edukidz_t5_sub1_users') || '{}');
 
                 if (users[username]) {
                     alert('Nama pengguna telah digunakan! Pilih nama pengguna lain.');
@@ -964,7 +975,7 @@
                 };
 
                 users[username] = newUser;
-                localStorage.setItem('math_kids_users', JSON.stringify(users));
+                localStorage.setItem('edukidz_t5_sub1_users', JSON.stringify(users));
                 this.currentUser = newUser;
                 this.saveUserData();
                 this.showScreen('main-menu');
@@ -972,7 +983,7 @@
 
             logout() {
                 this.currentUser = null;
-                localStorage.removeItem('math_kids_active_user');
+                localStorage.removeItem('edukidz_t5_sub1_active_user');
                 this.showScreen('main-menu');
             }
 
@@ -1068,8 +1079,14 @@
 
                 // Build a set of 10 unique generated questions for this session
                 const questions = [];
-                for(let i=0; i<10; i++) {
-                    questions.push(QuestionBankEngine.generateQuestion(this.selectedTopic, this.selectedDiff, this.selectedMode));
+                const seen = new Set();
+                for (let i = 0; i < 10; i++) {
+                    let question;
+                    do {
+                        question = QuestionBankEngine.generateQuestion(this.selectedTopic, this.selectedDiff, this.selectedMode, i);
+                    } while (seen.has(question.soalan));
+                    seen.add(question.soalan);
+                    questions.push(question);
                 }
 
                 this.currentSession = {
@@ -1225,8 +1242,8 @@
             }
 
             submitAnswer(isTimeout = false) {
-                clearInterval(this.timerInterval);
                 const session = this.currentSession;
+                if (!session || session.finished || session.answeredIndex === session.currentIndex) return;
                 const q = session.questions[session.currentIndex];
 
                 let userAns = this.selectedAnswerValue;
@@ -1240,6 +1257,8 @@
                     return;
                 }
 
+                clearInterval(this.timerInterval);
+                session.answeredIndex = session.currentIndex;
                 const isCorrect = !isTimeout && (userAns === q.jawapan);
                 if (isCorrect) {
                     session.score += 5;
@@ -1293,6 +1312,8 @@
 
             finishGameSession() {
                 const session = this.currentSession;
+                if (!session || session.finished) return;
+                session.finished = true;
                 if (this.currentUser) {
                     this.currentUser.totalScore += session.score;
                     this.currentUser.gamesPlayed += 1;
@@ -1422,7 +1443,7 @@
             }
 
             renderLeaderboard(container) {
-                const users = Object.values(JSON.parse(localStorage.getItem('math_kids_users') || '{}'))
+                const users = Object.values(JSON.parse(localStorage.getItem('edukidz_t5_sub1_users') || '{}'))
                     .sort((a,b) => b.totalScore - a.totalScore);
 
                 container.innerHTML = `

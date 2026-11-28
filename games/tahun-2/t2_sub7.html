@@ -50,6 +50,23 @@
     </div>
 
     <script>
+
+        // Import compatible profiles once. Each game keeps its own progress and ranking.
+        (() => {
+            const usersKey = 'edukidz_t2_sub7_users';
+            if (localStorage.getItem(usersKey) !== null) return;
+            let legacy;
+            try {
+                legacy = JSON.parse(localStorage.getItem('math_kids_users') || 'null');
+            } catch {
+                legacy = null;
+            }
+            const users = Array.isArray(legacy)
+                ? legacy.filter(u => u && typeof u.username === "string" && Number.isFinite(u.highScore) && Number.isFinite(u.totalPlayed) && Array.isArray(u.badges))
+                : [];
+            localStorage.setItem(usersKey, JSON.stringify(users));
+        })();
+
         // ==========================================
         // GAME DATABASE & STATE MANAGEMENT
         // ==========================================
@@ -274,7 +291,7 @@
                     { q: "Bentuk 2D manakah yang mempunyai kesemua sisinya sama panjang?", type: "objektif", shape: "segi_empat_sama", options: ["Segi empat sama", "Segi empat tepat", "Segi tiga", "Bulatan"], answer: 0, explanation: "Segi empat sama semua sisi sama panjang." },
                     { q: "Berapakah bilangan bucu bagi sebuah bulatan?", type: "objektif", shape: "bulatan", options: ["0", "1", "3", "4"], answer: 0, explanation: "Bulatan tiada bucu (0 bucu)." },
                     { q: "Kepingan biskut berbentuk empat segi sama mempunyai berapa bucu?", type: "objektif", shape: "segi_empat_sama", options: ["4", "3", "5", "6"], answer: 0, explanation: "4 bucu." },
-                    { q: "Pilih bentuk 2D daripada senarai berikut:", type: "objektif", shape: "segi_tiga", options: ["Segi tiga", "Kubus", "Silinder", "Piramid"], answer: 0, explanation: "Segi tiga ialah bentuk 2D." },
+                    { q: "Antara bentuk berikut, yang manakah mempunyai empat sisi lurus dan empat sudut tepat?", type: "objektif", shape: "segi_empat_tepat", options: ["Segi empat tepat", "Segi tiga", "Bulatan", "Kon"], answer: 0, explanation: "Segi empat tepat mempunyai empat sisi lurus dan empat sudut tepat." },
                     { q: "Apakah bentuk bendera Malaysia (jalur gemilang) secara keseluruhan?", type: "objektif", shape: "segi_empat_tepat", options: ["Segi empat tepat", "Bulatan", "Segi tiga", "Kon"], answer: 0, explanation: "Bendera berbentuk segi empat tepat." },
                     { q: "Berapakah sisi lurus bagi segi empat sama?", type: "objektif", shape: "segi_empat_sama", options: ["4", "3", "2", "0"], answer: 0, explanation: "4 sisi lurus." },
                     { q: "Bentuk manakah yang mempunyai sisi melengkung?", type: "objektif", shape: "bulatan", options: ["Bulatan", "Segi tiga", "Segi empat sama", "Segi empat tepat"], answer: 0, explanation: "Bulatan mempunyai sisi melengkung." },
@@ -309,7 +326,7 @@
                     { q: "Manakah bentuk 2D yang mempunyai bilangan paksi simetri paling banyak?", type: "objektif", shape: "bulatan", options: ["Bulatan (tak terhingga)", "Segi empat sama (4)", "Segi empat tepat (2)", "Segi tiga sama sisi (3)"], answer: 0, explanation: "Bulatan mempunyai paksi simetri tak terhingga." },
                     { q: "Jika sebuah segi empat tepat mempunyai perimeter 20 cm dan panjangnya 6 cm, berapakah lebar segi empat tepat tersebut?", type: "objektif", shape: "segi_empat_tepat", options: ["4 cm ((20 - 6 - 6) ÷ 2)", "5 cm", "3 cm", "8 cm"], answer: 0, explanation: "Perimeter = 2(p + l) → 20 = 2(6 + l) → l = 4 cm." },
                     { q: "Apakah bentuk 2D yang terhasil apabila anda memotong sebuah kon secara menegak melalui puncaknya hingga ke tengah tapak?", type: "objektif", shape: "segi_tiga", options: ["Segi tiga sama kaki", "Bulatan", "Segi empat", "Sfera"], answer: 0, explanation: "Keratan tegak melalui puncak kon menghasilkan segi tiga sama kaki." },
-                    { q: "Berapakah jumlah bucu kesemua bagi 4 buah segi empat sama dan 3 buah segi tiga?", type: "objektif", shape: "gabungan", options: ["25 bucu ((4×4) + (3×3) = 16 + 9 = 25... ralat pilihan? 25 bucu)", "24 bucu", "20 bucu", "30 bucu"], answer: 0, explanation: "16 + 9 = 25 bucu." },
+                    { q: "Berapakah jumlah bucu kesemua bagi 4 buah segi empat sama dan 3 buah segi tiga?", type: "objektif", shape: "gabungan", options: ["25 bucu", "24 bucu", "20 bucu", "30 bucu"], answer: 0, explanation: "(4 × 4) + (3 × 3) = 16 + 9 = 25 bucu." },
                     { q: "Ali melukis sebuah bentuk 2D yang mempunyai ciri: 4 sisi lurus, sudut penjuru bukan 90 darjah (condong), tetapi sisi bertentangan sama panjang dan selari. Apakah bentuk itu?", type: "objektif", shape: "segi_empat_tepat", options: ["Segi empat selari / Rombus", "Segi empat sama", "Bulatan", "Segi tiga"], answer: 0, explanation: "Segi empat selari / rombus." },
                     { q: "Jika anda melipat sehelai kertas segi empat sama kepada dua bahagian mengikut pepenjuru (diagonal), apakah bentuk 2D baharu yang terbentuk pada lapisan lipatan?", type: "objektif", shape: "segi_tiga", options: ["Segi tiga bersudut tegak sama kaki", "Segi empat tepat", "Bulatan", "Kon"], answer: 0, explanation: "Lipatan pepenjuru membentuk segi tiga bersudut tegak." },
                     { q: "Manakah pernyataan yang PALING TEPAT mengenai sifat geometri segi empat sama dan segi empat tepat?", type: "objektif", shape: "segi_empat_sama", options: ["Semua segi empat sama adalah segi empat tepat, tetapi tidak semua segi empat tepat adalah segi empat sama", "Semua segi empat tepat adalah segi empat sama", "Tiada kaitan", "Segi empat sama ialah bulatan"], answer: 0, explanation: "Hujah hierarki geometri asas." },
@@ -377,7 +394,7 @@
                     { q: "Siti mempunyai kotak hadiah berbentuk kubus bersisi 10 cm. Dia ingin memasukkan kotak hadiah itu ke dalam beg plastik berbentuk kuboid berukuran 15cm × 12cm × 11cm. Adakah kotak kubus itu muat?", type: "objektif", shape: "kubus", options: ["Ya, muat kerana saiz beg lebih besar daripada 10cm di semua arah", "Tidak muat", "Sangat ketat", "Hilang bentuk"], answer: 0, explanation: "15>10, 12>10, 11>10, maka muat dengan selamat." },
                     { q: "Dalam satu eksperimen sains, murid melancarkan roket mini mainan. Bahagian kepala roket berbentuk kon dan badan roket berbentuk silinder panjang. Apakah fungsi bentuk kon di bahagian kepala?", type: "objektif", shape: "kon", options: ["Mengurangkan rintangan udara (aerodinamik) semasa roket menembus udara", "Menambahkan berat", "Menjadikan roket lambat", "Cantik sahaja"], answer: 0, explanation: "Bentuk kon aerodinamik mengurangkan rintangan udara." },
                     { q: "Rizal mempunyai 3 biji bola (sfera), 2 buah dadu (kubus) dan 4 batang pen (silinder). Berapakah jumlah keseluruhan bucu bagi kesemua objek dadu tersebut sahaja?", type: "objektif", shape: "kubus", options: ["16 bucu (2 dadu × 8 bucu)", "24 bucu", "10 bucu", "0 bucu"], answer: 0, explanation: "Hanya dadu (kubus) yang ada bucu: 2 × 8 = 16 bucu." },
-                    { q: "Sebuah syarikat kurier ingin memilih reka bentuk kotak penghantaran. Kotak A berbentuk kubus (sisi 20cm), Kotak B berbentuk kuboid (25cm × 20cm × 15cm). Kotak manakah mempunyai ruang isi padu lebih besar?", type: "objektif", shape: "kuboid", options: ["Kotak B (25 × 20 × 15 = 7500 cm³) berbanding Kotak A (20×20×20 = 8000? Ralat: 20³=8000, 7500<8000. Jadi Kotak A lebih besar)", "Kotak B lebih besar", "Sama besar", "Tidak dapat dikira"], answer: 0, explanation: "Isi padu Kubus A = 8000 cm³, Kuboid B = 7500 cm³. Kubus A lebih besar." },
+                    { q: "Sebuah syarikat kurier ingin memilih reka bentuk kotak penghantaran. Kotak A berbentuk kubus (sisi 20cm), Kotak B berbentuk kuboid (25cm × 20cm × 15cm). Kotak manakah mempunyai ruang isi padu lebih besar?", type: "objektif", shape: "kuboid", options: ["Kotak A lebih besar", "Kotak B lebih besar", "Sama besar", "Tidak dapat dikira"], answer: 0, explanation: "Isi padu Kubus A = 8000 cm³, Kuboid B = 7500 cm³. Kubus A lebih besar." },
                     { q: "Manakah penyelesaian masalah reka bentuk yang PALING BIJAK bagi mengangkut buah oren (sfera) dalam kuantiti banyak tanpa mudah bergolek jatuh?", type: "objektif", shape: "sfera", options: ["Menyusun oren di dalam tray berpetak-petak khas (egg-tray style) di dalam kotak kuboid", "Menimbun begitu sahaja tanpa kotak", "Mengikat dengan tali", "Membiarkan di lantai"], answer: 0, explanation: "Tray berpetak menstabilkan objek sfera." },
                     { q: "Farah ingin menghias biliknya. Dia menyusun kotak tisu (kuboid), tin biskut (silinder) dan bola hiasan (sfera). Jika dia mengira jumlah permukaan rata keseluruhan objek tersebut, objek mana menyumbang permukaan rata paling banyak?", type: "objektif", shape: "kuboid", options: ["Kotak tisu kuboid (6 permukaan rata)", "Bolafera (0 permukaan rata)", "Tin biskut silinder (2 permukaan rata)", "Sama banyak"], answer: 0, explanation: "Kotak kuboid mempunyai 6 permukaan rata." },
                     { q: "Mengapakah tangki air rumah kediaman berbentuk silinder tegak atau sfera besar, dan bukannya bentuk kubus tajam?", type: "objektif", shape: "silinder", options: ["Bentuk lengkung silinder/sfera menahan tekanan air dalaman dengan sekata tanpa titik lemah pada bucu", "Supaya sedap dimakan", "Supaya boleh berenang", "Supaya cepat bocor"], answer: 0, explanation: "Tabung lengkung menahan tekanan cecair sekata." },
@@ -386,7 +403,7 @@
                     { q: "Pilih analisis situasi yang tepat: 'Sebuah objek mempunyai tapak rata, satu permukaan melengkung dan satu bucu tajam di atas. Objek ini digolekkan di atas lantai.' Apakah yang terjadi?", type: "objektif", shape: "kon", options: ["Objek itu berpusing melingkar (membuat bulatan) kerana bentuk kon yang tirus di atas", "Objek berjalan lurus seperti bola", "Objek terbang ke udara", "Objek pecah"], answer: 0, explanation: "Pergerakan putaran kon." },
                     { q: "Siti ingin membungkus hadiah berbentuk kon. Dia mencuba membalutnya dengan kertas segi empat sama leper tanpa memotong. Apakah masalah utama yang dihadapi Siti?", type: "objektif", shape: "kon", options: ["Kertas renyuk di bahagian atas bucu kon kerana bentuk kon tirus meruncing", "Kertas jadi bertukar warna", "Kertas jadi cair", "Tiada masalah"], answer: 0, explanation: "Masalah geometri pembalutan bentuk tirus." },
                     { q: "Dalam permainan membina istana pasir di pantai, acuan bentuk manakah yang paling mudah ditarik keluar ke atas tanpa meruntuhkan pasir di dalamnya?", type: "objektif", shape: "silinder", options: ["Acuan silinder atau kon tirus terbuka sedikit ke bawah", "Acuan kubus bersudut tajam 90 darjah tepat", "Acuan kusut", "Tiada acuan"], answer: 0, explanation: "Bentuk tirus/silinder mudah ditarik keluar dari pasir." },
-                    { q: "Rizal mencabar rakan-rakannya: 'Cari bentuk 3D yang mempunyai bilangan permukaan, bucu dan sisi yang sama banyak.' Siapakah jawapannya?", type: "objektif", shape: "piramid", options: ["Piramid tapak segi empat sama (5 permukaan, 5 bucu - perbezaan pada sisi 8)", "Kubus (6 permukaan, 8 bucu, 12 sisi - tiada yang sama)", "Tiada bentuk 3D standard yang semua bilangannya sama persis", "Semua bentuk sama"], answer: 0, explanation: "Analisis ciri terperinci." },
+                    { q: "Antara bentuk 3D berikut, yang manakah mempunyai bilangan permukaan dan bilangan bucu yang sama?", type: "objektif", shape: "piramid", options: ["Piramid bertapak segi empat sama", "Kubus", "Kuboid", "Prisma segi tiga"], answer: 0, explanation: "Piramid bertapak segi empat sama mempunyai 5 permukaan dan 5 bucu." },
                     { q: "Mengapakah buku-buku perpustakaan disusun secara melintang bertindih atau menegak rapat dalam rak berbentuk kuboid?", type: "objektif", shape: "kuboid", options: ["Kerana bentuk buku kuboid nipis membolehkan penjimatan ruang maksimum di dalam rak stor", "Supaya buku terbang", "Supaya buku basah", "Supaya hilang"], answer: 0, explanation: "Kecekapan storan ruang rak." },
                     { q: "Jika anda diminta mereka bentuk robot mainan untuk kanak-kanak kecil, mengapa anda dinasihatkan mengelakkan penggunaan bentuk 3D yang mempunyai bucu yang terlalu tajam?", type: "objektif", shape: "kubus", options: ["Untuk keselamatan kanak-kanak daripada tercedera apabila memegang atau terjatuh", "Supaya mainan murah", "Supaya mainan berat", "Supaya nampak menakutkan"], answer: 0, explanation: "Faktor keselamatan reka bentuk mainan." },
                     { q: "Amin merekabentuk label kertas keliling tin silinder. Jika diameter tin ialah 10 cm dan tinggi 14 cm, apakah bentuk 2D label kertas tersebut sebelum dipotong dan dilekatkan?", type: "objektif", shape: "silinder", options: ["Segi empat tepat berukuran panjang (lilitan ≈ 31.4cm) dan lebar 14 cm", "Segi tiga", "Bulatan", "Sfera"], answer: 0, explanation: "Label silinder ialah segi empat tepat." },
@@ -399,7 +416,7 @@
         let gameState = {
             currentScreen: 'login', // login, register, menu, topic, gamemode, difficulty, timer, play, result, leaderboard, progress, account
             currentUser: null,
-            users: JSON.parse(localStorage.getItem('math_kids_users') || '[]'),
+            users: JSON.parse(localStorage.getItem('edukidz_t2_sub7_users') || '[]'),
             selectedTopic: 1,
             selectedGameMode: 'objektif',
             selectedDifficulty: 'senang',
@@ -419,7 +436,7 @@
 
         // Save users to localStorage
         function saveUsers() {
-            localStorage.setItem('math_kids_users', JSON.stringify(gameState.users));
+            localStorage.setItem('edukidz_t2_sub7_users', JSON.stringify(gameState.users));
         }
 
         // Sound generator using Web Audio API (No external URLs needed)
